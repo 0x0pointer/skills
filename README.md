@@ -1,273 +1,170 @@
-# Security Workflows for Claude Code
+# CVE Analysis Workflow for Claude Code
 
-A collection of reusable security analysis workflows for Claude Code that can be shared across your team.
+A structured workflow that guides Claude through analyzing whether a CVE in your dependencies is actually exploitable in your codebase.
 
-## 🎯 Purpose
+## What It Does
 
-This repository contains structured workflows that guide Claude through complex security analysis tasks. These workflows are:
-- **Reusable** across multiple projects and programming languages
-- **Version controlled** for easy updates and collaboration
-- **Shareable** with your entire team
-- **Standardized** to ensure consistent analysis quality
+This workflow performs a comprehensive 6-phase security analysis:
 
-## 📦 Available Workflows
-
-### 1. CVE Vulnerability Analysis (`cve-analysis/`)
-Comprehensive workflow for analyzing whether a CVE in a project dependency is actually exploitable.
-
-**Features:**
-- Traces vulnerable code paths in your application
-- Analyzes dataflow from user input to vulnerable functions
-- Generates Burp Suite-ready HTTP requests for testing
-- Creates detailed reports with remediation steps
+1. **Vulnerability Context** - Fetches CVE details and understands the vulnerability
+2. **Code Path Analysis** - Finds if vulnerable code is used in your application
+3. **User Input Trace** - Identifies how user input enters the system
+4. **Dataflow Analysis** - Maps complete path from input to vulnerable function
+5. **PoC Development** - Creates HTTP request ready for Burp Suite testing
+6. **Report Generation** - Produces detailed markdown report with fixes
 
 **Supports:** Python, Node.js, Java, Go, Ruby, PHP, and more
 
-[→ See CVE Analysis Documentation](./cve-analysis/README.md)
+---
+
+## Installation
+
+### Install as Claude Code Skill (Recommended)
+
+Run the installer to enable `/analyze-cve` command:
+
+```bash
+cd ~/Desktop/security-workflows
+bash cve-analysis/install-skill.sh
+```
+
+Then **restart Claude Code**.
+
+### What Gets Installed
+
+```
+~/.claude/skills/analyze-cve/
+└── SKILL.md      # Skill configuration and workflow (official format)
+```
 
 ---
 
-## 🚀 Quick Start
+## Usage
 
-### Installation (One-Time Setup)
+### With Skill Installed
 
 ```bash
-# Clone this repository to your home directory
-git clone <your-repo-url> ~/security-workflows
-
-# That's it! The workflows are now available.
-```
-
-**Optional:** Run the setup script for convenience:
-```bash
-cd ~/security-workflows
-chmod +x setup.sh
-./setup.sh
-```
-
-### Usage
-
-1. Navigate to any project you want to analyze
-2. Open Claude Code
-3. Reference the workflow you want to use
-
-**Example:**
-```
-cd ~/my-project
+cd /your/project
 claude
 
-# In Claude, say:
-Use the CVE workflow from ~/security-workflows/cve-analysis/workflow.md to analyze:
-Dependency: fastapi
-Version: 0.115.13
-CVE: https://nvd.nist.gov/vuln/detail/CVE-2024-XXXXX
+# Simple command format
+/analyze-cve <dependency> <version> <cve-url>
 ```
 
-**Or use the shorter command format:**
-```
-/analyze-cve fastapi 0.115.13 https://nvd.nist.gov/vuln/detail/CVE-2024-XXXXX
-
-(Make sure to mention using ~/security-workflows/cve-analysis/workflow.md first)
+**Example:**
+```bash
+/analyze-cve pymupdf 1.26.4 https://nvd.nist.gov/vuln/detail/CVE-2024-12345
 ```
 
----
-
-## 📋 Workflows Overview
-
-| Workflow | Purpose | Status |
-|----------|---------|--------|
-| **CVE Analysis** | Analyze dependency vulnerabilities | ✅ Ready |
-| Security Code Review | (Coming soon) | 🚧 Planned |
-| Threat Modeling | (Coming soon) | 🚧 Planned |
-| Penetration Test Report | (Coming soon) | 🚧 Planned |
-
----
-
-## 🔄 Updating Workflows
-
-Workflows are continuously improved. To get the latest version:
+### Without Skill
 
 ```bash
-cd ~/security-workflows
-git pull
+cd /your/project
+claude
+
+# Reference skill file directly
+Use the CVE workflow from ~/Desktop/security-workflows/cve-analysis/SKILL.md to analyze:
+Dependency: pymupdf
+Version: 1.26.4
+CVE: https://nvd.nist.gov/vuln/detail/CVE-2024-12345
 ```
 
-All team members will instantly have access to updated workflows.
+---
+
+## Output
+
+Generates a comprehensive report: `CVE-YYYY-XXXXX-analysis.md`
+
+**Includes:**
+- Executive summary with exploitability rating (HIGH/MEDIUM/LOW/NOT EXPLOITABLE)
+- Complete dataflow analysis from user input to vulnerable function
+- Burp Suite-ready HTTP request for testing
+- Remediation recommendations
+- Detection and monitoring suggestions
 
 ---
 
-## 👥 Team Collaboration
-
-### For Team Members
-
-**First-time setup:**
-1. Clone this repository: `git clone <repo-url> ~/security-workflows`
-2. Start using workflows immediately
-
-**Staying updated:**
-- Run `git pull` in the `~/security-workflows` directory periodically
-- Or set up a cron job for automatic updates
-
-### For Workflow Contributors
-
-**Adding a new workflow:**
-1. Create a new directory: `mkdir new-workflow-name`
-2. Add `workflow.md` with the workflow instructions
-3. Add `README.md` with usage documentation
-4. Add `examples/` directory with sample outputs
-5. Submit a pull request
-
-**Improving existing workflows:**
-1. Edit the `workflow.md` file in the relevant directory
-2. Update the workflow version number
-3. Document changes in the workflow's README
-4. Submit a pull request
-
----
-
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 security-workflows/
-├── README.md                           # This file
-├── setup.sh                            # Optional setup script
-├── .gitignore                          # Git ignore rules
-│
-├── cve-analysis/                       # CVE vulnerability analysis
-│   ├── workflow.md                     # Main workflow instructions
-│   ├── README.md                       # Usage guide
-│   └── examples/                       # Example reports
-│       └── CVE-2024-XXXXX-example.md   # Sample analysis report
-│
-└── [future-workflows]/                 # Additional workflows coming soon
+├── README.md                    # This file
+├── .gitignore                   # Git ignore rules
+└── cve-analysis/
+    ├── SKILL.md                 # Skill configuration and workflow
+    └── install-skill.sh         # One-command installer
 ```
 
 ---
 
-## 🛠️ Configuration
+## Sharing with Your Team
 
-### Default Workflow Location
-
-By default, workflows are stored in `~/security-workflows/`. If you prefer a different location:
-
-1. Clone to your preferred location
-2. Update references in your commands to use the correct path
-
-### Project-Specific Customization
-
-While workflows are designed to be generic, you can create project-specific overrides:
+### Push to Git
 
 ```bash
-# In your project directory
-cp ~/security-workflows/cve-analysis/workflow.md ./.claude/workflows/cve-analysis.md
+cd ~/Desktop/security-workflows
+git remote add origin <your-repo-url>
+git push -u origin main
+```
 
-# Customize the local copy for project-specific needs
+### Team Installation
+
+```bash
+git clone <your-repo-url> ~/security-workflows
+cd ~/security-workflows
+bash cve-analysis/install-skill.sh
+# Restart Claude Code
 ```
 
 ---
 
-## 🔒 Security Considerations
+## Updating
 
-**Important:** These workflows are designed for:
+Pull latest changes:
+```bash
+cd ~/Desktop/security-workflows
+git pull
+```
+
+Reinstall skill:
+```bash
+bash cve-analysis/install-skill.sh
+# Restart Claude Code
+```
+
+---
+
+## Uninstalling
+
+```bash
+# Remove the skill
+rm -rf ~/.claude/skills/analyze-cve
+
+# Remove the repository
+rm -rf ~/Desktop/security-workflows
+```
+
+---
+
+## Security Notice
+
+This workflow is for:
 - ✅ Authorized security testing
 - ✅ Defensive security analysis
-- ✅ CTF challenges and competitions
+- ✅ CTF challenges
 - ✅ Educational purposes
-- ✅ Internal penetration testing with proper authorization
 
 **NOT for:**
-- ❌ Unauthorized access or testing
+- ❌ Unauthorized testing
 - ❌ Malicious exploitation
-- ❌ Testing systems without permission
-
-Always ensure you have proper authorization before conducting security testing.
+- ❌ Testing without permission
 
 ---
 
-## 📞 Support
+## License
 
-### Getting Help
-
-- **Documentation**: Check the README in each workflow directory
-- **Examples**: Review the `examples/` directory for sample outputs
-- **Issues**: Open an issue in this repository
-- **Questions**: Ask in your team's security channel
-
-### Troubleshooting
-
-**Claude can't find the workflow:**
-- Verify the path: `ls ~/security-workflows/cve-analysis/workflow.md`
-- Use absolute path: `~/security-workflows/cve-analysis/workflow.md`
-- Check you're referencing the correct file name
-
-**Workflow not working as expected:**
-- Make sure you're using the latest version: `git pull`
-- Check if your project structure is supported
-- Review the workflow's README for specific requirements
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! To add or improve workflows:
-
-1. Fork this repository
-2. Create a feature branch: `git checkout -b new-workflow`
-3. Make your changes
-4. Test thoroughly with multiple project types
-5. Submit a pull request
-
-**Contribution Guidelines:**
-- Workflows should be language/framework agnostic when possible
-- Include clear documentation and examples
-- Test with at least 2-3 different project types
-- Follow the existing directory structure
-
----
-
-## 📜 License
-
-[Add your license here - e.g., MIT, Apache 2.0, or Internal Use Only]
-
----
-
-## 🎖️ Credits
-
-Created and maintained by the Security Team
-
-**Contributors:**
-- [Your name]
-- [Team members]
-
----
-
-## 📝 Changelog
-
-### Version 1.0.0 (2024-02-04)
-- ✨ Initial release
-- ✅ CVE Analysis workflow
-- 📚 Documentation and examples
-
----
-
-## 🚀 Roadmap
-
-**Coming Soon:**
-- [ ] Security code review workflow
-- [ ] Threat modeling workflow
-- [ ] Automated CVE database integration
-- [ ] MCP server version for native Claude integration
-- [ ] VS Code extension
-- [ ] Slack/Discord integration for team notifications
-
-**Future Ideas:**
-- [ ] API security testing workflow
-- [ ] Container security analysis
-- [ ] Secret scanning workflow
-- [ ] Compliance checking (OWASP, PCI-DSS, etc.)
+[Add your license - MIT, Apache 2.0, or Internal Use Only]
 
 ---
 
 **Happy Hunting! 🔒🔍**
-
-For questions or suggestions, reach out to the security team.
