@@ -1,0 +1,64 @@
+# Security Workflows - Git Ignore
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Editor Files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary Files
+*.tmp
+*.temp
+*.log
+*.bak
+*.orig
+
+# Generated Reports (users can commit these if they want)
+# Uncomment to ignore all CVE reports:
+# **/CVE-*.md
+# !**/examples/CVE-*.md
+
+# Local Configuration
+.env
+.env.local
+config.local.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test Artifacts
+test-results/
+coverage/
+.pytest_cache/
+*.test
+
+# Personal Notes (uncommit if you want personal notes tracked)
+PERSONAL-NOTES.md
+TODO.md
+SCRATCH.md
