@@ -433,6 +433,8 @@ OSINT Summary:
 | `/pentester` | OSINT complete — user authorizes active scanning |
 | `/threat-model` | Use OSINT findings to build threat model before active testing |
 | `/ai-redteam` | AI/LLM endpoint discovered during OSINT |
+| `/ssl-tls-audit` | TLS services discovered — deep certificate and crypto audit |
+| `/supply-chain` | Code repos discovered — dependency and CI/CD security assessment |
 | `/gh-export` | Always — after `complete_scan` |
 
 ---

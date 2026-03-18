@@ -335,6 +335,7 @@ OWASP LLM Top 10 Coverage:
 |-------|----------------|
 | `/analyze-cve` | You discover a CVE-affected dependency in the AI application's stack (e.g., vulnerable LangChain version) |
 | `/threat-model` | After `complete_scan` if the user wants a full STRIDE analysis of the AI architecture |
+| `/supply-chain` | AI/ML dependencies found — check for supply chain risks in model packages |
 | `/gh-export` | Always — after `complete_scan`. Formats findings as GitHub issue blocks |
 
 ---
