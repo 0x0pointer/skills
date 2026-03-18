@@ -1021,6 +1021,7 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
 | `/threat-model` | Produce PASTA threat model of the K8s architecture |
 | `/compliance-check` | Map findings to CIS K8s Benchmark, PCI DSS, SOC 2 |
+| `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
 | `/gh-export` | Always — after `complete_scan` |
 
 ---
