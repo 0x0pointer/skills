@@ -1015,13 +1015,10 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | Skill | When to invoke |
 |-------|----------------|
 | `/post-exploit` | Container escape achieved — post-exploitation on host node |
-| `/cloud-security` | K8s runs on cloud — assess cloud-level misconfigurations + IMDS |
-| `/supply-chain` | Image supply chain concerns — check registries, build pipeline, SBOM |
 | `/credential-audit` | Default creds found on exposed services (Redis, dashboards) |
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
-| `/threat-model` | Produce PASTA threat model of the K8s architecture |
-| `/compliance-check` | Map findings to CIS K8s Benchmark, PCI DSS, SOC 2 |
 | `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
+| `/threat-model` | Produce PASTA threat model of the K8s architecture |
 | `/gh-export` | Always — after `complete_scan` |
 
 ---
