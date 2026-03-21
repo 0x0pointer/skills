@@ -244,11 +244,11 @@ Internal Network Assessment Summary:
 | Skill | When to invoke |
 |-------|----------------|
 | `/lateral-movement` | Credentials captured — test lateral movement paths |
-| `/ad-assessment` | Domain controllers discovered — full AD audit |
 | `/credential-audit` | Weak credentials found — comprehensive credential testing |
 | `/ssl-tls-audit` | TLS services found — deep TLS assessment |
 | `/container-k8s-security` | Docker/K8s services discovered — container and K8s assessment |
 | `/osint` | Passive recon before active network assessment |
+| `/post-exploit` | Access obtained on network device or host — privilege escalation, credential harvesting, pivot prep |
 | `/gh-export` | Always — after `complete_scan` |
 
 ---

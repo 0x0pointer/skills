@@ -406,7 +406,7 @@ flowchart TD
 | `/threat-model` | Architecture-level risk analysis beyond TLS |
 | `/network-assess` | Internal network found — test segmentation, SNMP, broadcast protocols |
 | `/credential-audit` | Weak TLS enables credential interception — test authentication strength |
-| `/compliance-check` | TLS findings need compliance mapping — CIS, PCI DSS, NIST |
+| `/post-exploit` | Weak TLS enables MitM credential capture — post-exploitation with harvested credentials |
 | `/gh-export` | Always — after `complete_scan` |
 
 ---
