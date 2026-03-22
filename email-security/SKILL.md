@@ -100,8 +100,15 @@ kali(command="dig _smtp._tls.DOMAIN TXT +short")
 | `pct=` < 100 | **Low** — partial enforcement |
 
 **DKIM — discover selectors:**
+
+Start with common selectors, then expand if needed. Selector naming is organization-specific — these are examples, not an exhaustive list:
 ```
-kali(command="for sel in default google selector1 selector2 k1 k2 mail dkim s1 s2; do echo -n \"$sel: \"; dig ${sel}._domainkey.DOMAIN TXT +short 2>/dev/null; done")
+kali(command="for sel in default google selector1 selector2 k1 k2 k3 mail dkim s1 s2 s1024 s2048 smtp protonmail mandrill mxvault; do R=$(dig ${sel}._domainkey.DOMAIN TXT +short 2>/dev/null); [ -n \"$R\" ] && echo \"$sel: $R\"; done")
+```
+
+If no selectors found, try brute-forcing with a wordlist or checking email headers from the domain for the `s=` tag:
+```
+kali(command="swaks --to test@DOMAIN --server MX_HOST 2>&1 | grep -i 'dkim-signature' | grep -oP 's=\\K[^;]+'")
 ```
 
 ---

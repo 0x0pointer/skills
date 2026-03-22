@@ -162,7 +162,14 @@ kali(command="aws sts assume-role --role-arn arn:aws:iam::TARGET_ACCOUNT:role/RO
 kali(command="aws iam list-roles --query 'Roles[?Path==`/aws-service-role/`].{Name:RoleName,Service:AssumeRolePolicyDocument.Statement[0].Principal.Service}' --output table")
 ```
 
-**Escalation path severity matrix:**
+**Enumerate all permissions first** — escalation paths depend on what the current principal can do. AWS adds new services and actions regularly, so always check dynamically:
+```
+kali(command="aws iam list-attached-user-policies --user-name CURRENT_USER --output table")
+kali(command="aws iam list-user-policies --user-name CURRENT_USER --output table")
+kali(command="aws iam get-user-policy --user-name CURRENT_USER --policy-name POLICY --output json")
+```
+
+**Common escalation patterns** (examples — not exhaustive; new AWS services create new paths):
 
 | Path | Severity | Vector |
 |------|----------|--------|
@@ -176,6 +183,8 @@ kali(command="aws iam list-roles --query 'Roles[?Path==`/aws-service-role/`].{Na
 | Cross-account trust with `:root` | **High** | Any principal in trusted account can assume |
 | `iam:CreateAccessKey` | **High** | Create API keys for any user |
 | `iam:UpdateLoginProfile` | **High** | Reset any user's console password |
+
+For systematic coverage, also run Prowler or ScoutSuite (Phase 10) — they check hundreds of escalation vectors automatically.
 
 #### Azure IAM
 ```

@@ -159,9 +159,13 @@ When invoked WITHOUT a `userlist=` argument, build a comprehensive username list
 kali(command="cat /usr/share/seclists/Usernames/top-usernames-shortlist.txt > /tmp/spray-users.txt")
 ```
 
-Then append platform-specific usernames based on detected OS/service banners:
+Then append platform-specific usernames based on detected OS/service banners. **These are common examples** — always supplement with SecLists username wordlists for broader coverage:
 
-| Banner contains | Append usernames |
+```
+kali(command="cat /usr/share/seclists/Usernames/xato-net-10-million-usernames-dup.txt | head -500 >> /tmp/spray-users.txt")
+```
+
+| Banner contains | Append usernames (examples) |
 |-----------------|-----------------|
 | `Debian`, `Ubuntu` | `www-data`, `pi`, `ftpuser`, `debian`, `ubuntu` |
 | `CentOS`, `Red Hat`, `Fedora` | `centos`, `ec2-user`, `fedora` |
@@ -171,7 +175,7 @@ Then append platform-specific usernames based on detected OS/service banners:
 | Azure | `azureuser`, `azure` |
 | Docker (hostname looks like container ID) | `app`, `node`, `web`, `deploy` |
 | FTP service present | `ftp`, `ftpuser`, `anonymous`, `backup` |
-| Any SSH | Common first names: `james`, `john`, `robert`, `michael`, `david`, `richard`, `joseph`, `thomas`, `charles`, `daniel`, `matthew`, `anthony`, `mark`, `donald`, `steven`, `paul`, `andrew`, `joshua`, `kenneth`, `kevin`, `brian`, `george`, `timothy`, `ronald`, `edward`, `jason`, `jeffrey`, `ryan`, `jacob`, `gary`, `nicholas`, `eric`, `jonathan`, `stephen`, `larry`, `justin`, `scott`, `brandon`, `benjamin`, `samuel`, `raymond`, `gregory`, `frank`, `jack`, `dennis`, `jerry`, `tyler`, `aaron`, `jose`, `nathan`, `henry`, `peter`, `mary`, `patricia`, `jennifer`, `linda`, `barbara`, `elizabeth`, `susan`, `jessica`, `sarah`, `karen`, `lisa`, `nancy`, `betty`, `margaret`, `sandra`, `ashley`, `dorothy`, `kimberly`, `emily`, `donna`, `michelle`, `carol`, `amanda`, `melissa`, `deborah`, `stephanie`, `rebecca`, `sharon`, `laura`, `cynthia`, `kathleen`, `amy`, `angela`, `shirley`, `anna`, `brenda`, `pamela`, `emma`, `nicole`, `helen`, `samantha`, `katherine`, `christine`, `debra`, `rachel`, `carolyn`, `janet`, `catherine`, `maria`, `heather`, `diane`, `ruth`, `julie`, `olivia`, `joyce`, `virginia`, `victoria`, `kelly`, `lauren`, `christina`, `joan`, `evelyn`, `judith`, `megan`, `andrea`, `cheryl`, `hannah`, `jacqueline`, `martha`, `gloria`, `teresa`, `ann`, `anne`, `sara`, `madison`, `frances`, `kathryn`, `janice`, `jean`, `abigail`, `alice`, `judy`, `sophia`, `grace`, `denise`, `amber`, `doris`, `marilyn`, `danielle`, `beverly`, `isabella`, `theresa`, `diana`, `natalie`, `brittany`, `charlotte`, `marie`, `kayla`, `alexis`, `lori` |
+| Any SSH | Use SecLists names: `/usr/share/seclists/Usernames/Names/names.txt` |
 
 ```
 kali(command="printf 'anne\njohn\nmary\njames\n...\n' >> /tmp/spray-users.txt && sort -u /tmp/spray-users.txt -o /tmp/spray-users.txt")
