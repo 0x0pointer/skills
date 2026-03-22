@@ -235,7 +235,7 @@ scan(tool="metasploit", target="TARGET", options={
 })
 ```
 
-Or generate via kali_exec if msfvenom is needed standalone — but prefer the Metasploit container.
+Or chain into `/reverse-shell` for payload generation with listener setup — it covers all platforms and encodings.
 
 ---
 
