@@ -102,7 +102,14 @@ If the request does not specify a CVE or target service, ask the user:
 
 ### Phase 1 — Module Discovery
 
-**Search for relevant modules:**
+**Search Exploit-DB first** (faster than MSF search, covers non-MSF exploits too):
+```
+kali(command="searchsploit zoneminder 1.29")
+kali(command="searchsploit --cve CVE-2021-44228")
+kali(command="searchsploit -m 41239")  # mirror/download a specific exploit
+```
+
+**Then search Metasploit modules:**
 ```
 scan(tool="metasploit", target="TARGET", options={
   "module": "",
