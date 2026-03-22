@@ -411,6 +411,7 @@ ASVS 5.0 Coverage:
 | `/container-k8s-security` | K8s manifests or Dockerfiles found — verify container security |
 | `/analyze-cve` | CVE-affected dependency found — trace code path with full source context |
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
+| `/remediate` | Findings produced — generate specific code fixes with full source context |
 | `/gh-export` | Always — after `complete_scan` |
 
 ---
