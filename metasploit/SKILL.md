@@ -135,16 +135,21 @@ scan(tool="metasploit", target="TARGET", options={
 
 | CVE | Module | Service |
 |-----|--------|---------|
-| CVE-2021-44228 | `exploit/multi/http/log4shell_header_injection` | Java/HTTP |
-| CVE-2017-0144 | `exploit/windows/smb/ms17_010_eternalblue` | SMB |
+| CVE-2009-3103 | `exploit/windows/smb/ms09_050_smb2_negotiate_func_index` | SMB (Win2008) |
+| CVE-2008-4250 | `exploit/windows/smb/ms08_067_netapi` | SMB (WinXP/2003) |
+| CVE-2017-0144 | `exploit/windows/smb/ms17_010_eternalblue` | SMB (Win7/2008R2+) |
+| CVE-2017-0143 | `exploit/windows/smb/ms17_010_psexec` | SMB (all Windows) |
 | CVE-2019-0708 | `exploit/windows/rdp/cve_2019_0708_bluekeep_rce` | RDP |
+| CVE-2021-44228 | `exploit/multi/http/log4shell_header_injection` | Java/HTTP |
 | CVE-2021-34473 | `exploit/windows/http/exchange_proxyshell_rce` | Exchange |
+| CVE-2021-26855 | `exploit/windows/http/exchange_proxylogon_rce` | Exchange |
 | CVE-2023-22515 | `exploit/multi/http/atlassian_confluence_rce_cve_2023_22515` | Confluence |
 | CVE-2024-1709 | `exploit/multi/http/screenconnect_rce_cve_2024_1709` | ScreenConnect |
-| CVE-2021-26855 | `exploit/windows/http/exchange_proxylogon_rce` | Exchange |
 | CVE-2020-1472 | `auxiliary/admin/dcerpc/cve_2020_1472_zerologon` | AD/DC |
 | CVE-2014-6271 | `exploit/multi/http/apache_mod_cgi_bash_env_exec` | Shellshock |
 | CVE-2021-3156 | `exploit/linux/local/sudo_baron_samedit` | Linux sudo |
+| CVE-2016-3714 | `exploit/unix/fileformat/imagemagick_delegate` | ImageMagick |
+| CVE-2012-1823 | `exploit/multi/http/php_cgi_arg_injection` | PHP-CGI |
 
 ---
 
