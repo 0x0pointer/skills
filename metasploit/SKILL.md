@@ -104,9 +104,15 @@ If the request does not specify a CVE or target service, ask the user:
 
 **Search Exploit-DB first** (faster than MSF search, covers non-MSF exploits too):
 ```
-kali(command="searchsploit zoneminder 1.29")
+kali(command="searchsploit saltstack 3000")
 kali(command="searchsploit --cve CVE-2021-44228")
-kali(command="searchsploit -m 41239")  # mirror/download a specific exploit
+```
+
+**If no MSF module exists but a standalone exploit is available**, mirror and run it via Kali:
+```
+kali(command="searchsploit -m 48421")                    # download to /tmp/
+kali(command="head -30 /tmp/48421.py")                   # review the script
+kali(command="python3 /tmp/48421.py --master TARGET")    # run it
 ```
 
 **Then search Metasploit modules:**
