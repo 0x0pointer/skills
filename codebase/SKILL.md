@@ -3,10 +3,12 @@ name: codebase
 description: |
   White-box source code security review structured around OWASP ASVS 5.0 (427 verification requirements across 16 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
 
-  Covers: tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, and ASVS compliance mapping.
+  Covers: tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, ASVS compliance mapping, and LLM integration security (prompt injection, tool abuse, output handling, RAG poisoning, MCP server patterns).
 
-  Chains into /pentester, /threat-model, /web-exploit, /cloud-security, /analyze-cve, and /credential-audit — providing white-box context that transforms black-box testing into targeted, informed assessment.
-argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac]
+  When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
+
+  Chains into /pentester, /threat-model, /web-exploit, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
+argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]
 user-invocable: true
 ---
 
@@ -92,6 +94,7 @@ If the request does not specify depth or focus, ask the user:
 > - `crypto` — cryptography, communication security, data protection (ASVS V11-V14)
 > - `config` — configuration, secrets, error handling (ASVS V13, V16)
 > - `iac` — Infrastructure as Code (Terraform, K8s, Docker)
+> - `llm` — LLM/AI integration security: prompt injection, tool abuse, output handling, RAG, MCP (OWASP LLM Top 10)
 
 ---
 
@@ -117,6 +120,11 @@ If the request does not specify depth or focus, ask the user:
   - Ruby: `Gemfile`, `Gemfile.lock`
   - Go: `go.mod`, `go.sum`
   - .NET: `*.csproj`, `*.sln`
+- **Check for LLM/AI framework usage** while reading manifests. Look for these packages:
+  - Python: `openai`, `anthropic`, `langchain`, `langchain-core`, `langchain-community`, `llama-index`, `haystack-ai`, `semantic-kernel`, `crewai`, `autogen-agentchat`, `mcp`, `pydantic-ai`
+  - Node.js: `openai`, `@anthropic-ai/sdk`, `langchain`, `@langchain/core`, `@modelcontextprotocol/sdk`, `ai` (Vercel AI SDK)
+  - Also grep source files for: API key patterns (`sk-`, `sk-ant-`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), model name strings (`gpt-4`, `gpt-3.5`, `claude`, `o1-`, `o3-`), and LLM endpoint URLs (`api.openai.com`, `api.anthropic.com`)
+  - If any LLM framework is detected: `log_note("LLM_DETECTED: [frameworks list]. Phase 5b will run.")`
 - Call `log_note` with: language, framework, major dependencies, framework version
 
 **Step 2 — Map project structure:**
@@ -229,6 +237,12 @@ scan(tool="semgrep", target="/target")
 scan(tool="trufflehog", target="/target")
 ```
 
+**If LLM detected in Phase 1**, also run in the same parallel batch:
+```
+scan(tool="semgrep", target="/target", flags="--config p/ai-best-practices")
+```
+This runs 58 semgrep rules covering: hardcoded API keys, missing max_tokens, prompt injection taint flow, MCP command injection, LLM output passed to eval/exec, and insecure model loading.
+
 After results come back:
 - Read each semgrep finding and verify it against the actual code — false positives are common
 - For each confirmed finding, call `report_finding` with the code context
@@ -280,6 +294,84 @@ For each finding, trace whether user input actually reaches the function (source
 - Can users skip steps or replay requests?
 
 Call `report_finding` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
+
+---
+
+### Phase 5b — LLM Integration Security (conditional: standard+)
+
+**Trigger:** Runs when LLM frameworks were detected in Phase 1, OR when `focus=llm`. Skip entirely for non-LLM codebases.
+
+**Goal:** Find security weaknesses specific to LLM integrations. This phase covers patterns where the **LLM is the source, sink, or intermediary**. Generic injection/deserialization patterns are in Phase 5 — this phase focuses on the unique attack surface that LLM integrations introduce.
+
+**Maps to:** OWASP LLM Top 10 (2025), OWASP MCP Top 10.
+
+> **Reference:** Load `skills/codebase/refs/llm-integration.md` for framework-specific grep patterns, CVE table, secure agent patterns, and MCP Top 10 checks.
+
+**Category 1 — Prompt Construction (OWASP LLM01: Prompt Injection):**
+- Search for how prompts are built: string concatenation, f-strings, `.format()`, template literals with user input
+- Check whether user input is inserted into system prompts, few-shot examples, or tool descriptions
+- Look for RAG context injection: are retrieved documents inserted into prompts without sanitization?
+- Check for indirect injection surfaces: can attacker-controlled content (emails, web pages, documents) reach the prompt via RAG or tool outputs?
+- Verify whether any prompt input validation, escaping, or structural separation (e.g. XML tags, delimiters) is applied
+
+**Category 2 — Output Handling (OWASP LLM05: Insecure Output Handling):**
+- Search for LLM response text flowing into dangerous sinks:
+  - `eval()`, `exec()`, `subprocess`, `os.system()`, `child_process.exec()` — code execution
+  - Raw SQL queries, ORM raw methods — SQL injection from LLM output
+  - `innerHTML`, `dangerouslySetInnerHTML`, template `|safe` — XSS from LLM output
+  - Shell commands, file path construction — command injection, path traversal
+- Check for code execution tools: `PythonREPLTool`, `PALChain`, `LLMMathChain`, custom code interpreters
+- Verify whether LLM output is validated, sanitized, or sandboxed before use
+
+**Category 3 — Tool/Function Definitions (OWASP LLM06: Excessive Agency):**
+- Find all tool/function definitions passed to the LLM (OpenAI function calling, LangChain tools, MCP tools)
+- Check each tool for:
+  - **Over-permissioned operations**: can the tool delete data, modify configs, access other users' resources, execute arbitrary code?
+  - **Missing auth propagation**: does the tool handler enforce the calling user's permissions, or does it run with service-level privileges?
+  - **Missing input validation**: are tool arguments validated before use?
+  - **No approval gates**: are destructive or sensitive operations auto-executed, or is human-in-the-loop confirmation required?
+- Count total tools available to the agent — more tools = larger attack surface
+
+**Category 4 — Secrets in Prompts (OWASP LLM02/LLM07: Sensitive Information Disclosure):**
+- Search system prompts and prompt templates for hardcoded API keys, database credentials, internal URLs, or PII
+- Check whether confidential business logic or instructions are embedded in prompts (extractable via prompt leakage)
+- Look for logging of full prompts/completions that may contain user PII
+- Check whether conversation history is stored unencrypted or without access controls
+
+**Category 5 — RAG & Vector Store Security (OWASP LLM08: Vector and Embedding Weaknesses):**
+- Find vector store/retriever configuration (Chroma, Pinecone, Weaviate, pgvector, FAISS)
+- Check for **tenant isolation**: are per-user metadata filters applied to vector queries, or can any user retrieve any document?
+- Check document ingestion pipeline: is there validation of uploaded documents? Can users upload to shared collections?
+- Look for poisoning risk: can untrusted sources inject documents into the knowledge base?
+- Check similarity score thresholds — are results filtered by relevance, or does everything retrieved get injected into the prompt?
+
+**Category 6 — Supply Chain & Model Loading (OWASP LLM03: Supply Chain):**
+- Check for unpinned LLM framework versions (known CVEs exist — see ref file for CVE table)
+- Search for pickle-based model loading (`torch.load`, `pickle.load`, `joblib.load` on untrusted files)
+- Look for model downloads without integrity verification (no hash checks, no signed models)
+- Check for custom model loading from user-specified paths
+- Flag known-vulnerable dependency versions against the CVE table in the ref file
+
+**Category 7 — Resource Controls (OWASP LLM10: Unbounded Consumption):**
+- Check for missing `max_tokens` / `max_completion_tokens` on API calls
+- Look for missing timeouts on LLM API requests
+- Check for unbounded agent loops — is there a `max_iterations` or recursion limit?
+- Look for missing rate limiting on endpoints that trigger LLM calls
+- Check cost controls: is there per-request or per-user spend limiting?
+
+**Category 8 — MCP Server Patterns (OWASP MCP Top 10):**
+Only applies when the codebase implements or consumes MCP servers.
+- **Tool handler injection**: check whether MCP tool arguments are passed to shell commands, SQL, or file paths without sanitization
+- **Resource exposure**: are MCP resources exposing sensitive files or data without auth checks?
+- **Server authentication**: is the MCP server accessible without authentication?
+- **Rug-pull potential**: can MCP tool descriptions or behavior change between discovery and invocation?
+- **Upstream dependency trust**: does the MCP client validate responses from MCP servers, or trust them blindly?
+
+Call `report_finding` for each confirmed LLM-specific weakness. Use severity guidance:
+- **Critical**: LLM output reaches eval/exec/shell without sandboxing; tool handler has command injection; prompt injection enables data exfiltration
+- **High**: No tenant isolation in RAG; over-permissioned tools without approval gates; secrets in system prompts; pickle model loading
+- **Medium**: Missing max_tokens; no agent iteration limits; unpinned LLM framework versions; weak prompt/response validation
+- **Low**: Logging full prompts without PII redaction; no similarity threshold on RAG retrieval; missing rate limits on LLM endpoints
 
 ---
 
@@ -358,9 +450,30 @@ Codebase Security Profile:
   Secrets found:   [count] (verified: N)
   ASVS coverage:   V1:[status] V2:[status] ... V16:[status]
 
+  LLM Integration: [yes/no]
+    Frameworks:    [openai, langchain, etc.]
+    LLM endpoints: [count] (endpoints that trigger LLM calls)
+    Tools defined: [count] (function/tool definitions passed to LLM)
+    RAG:           [yes/no] ([vector store name])
+    MCP:           [server/client/none]
+    OWASP LLM Top 10 white-box coverage:
+      LLM01 Prompt Injection:           [REVIEWED/NOT APPLICABLE]
+      LLM02 Sensitive Info Disclosure:   [REVIEWED/NOT APPLICABLE]
+      LLM03 Supply Chain:               [REVIEWED/NOT APPLICABLE]
+      LLM05 Insecure Output Handling:   [REVIEWED/NOT APPLICABLE]
+      LLM06 Excessive Agency:           [REVIEWED/NOT APPLICABLE]
+      LLM07 System Prompt Leakage:      [REVIEWED/NOT APPLICABLE]
+      LLM08 Vector/Embedding Weakness:  [REVIEWED/NOT APPLICABLE]
+      LLM10 Unbounded Consumption:      [REVIEWED/NOT APPLICABLE]
+
   Priority targets for pentesting:
     - [endpoint] — [reason: missing auth, SQLi, file upload, etc.]
     - [endpoint] — [reason]
+
+  Priority targets for AI red-team (/ai-redteam):
+    - [endpoint URL] — [reason: extractable system prompt, over-permissioned tools, no input validation]
+    - [extracted system prompt text or location]
+    - [tool definitions and guardrail mechanisms found in source]
 
   IaC issues:      [count] ([Terraform/K8s/Docker])
 ```
@@ -396,6 +509,7 @@ ASVS 5.0 Coverage:
 - **If injection points found** → `/web-exploit` (source-to-sink context for deep exploitation)
 - **If IaC found** → `/cloud-security` or `/container-k8s-security`
 - **If CVE-affected dependencies found** → `/analyze-cve` (already has code context)
+- **If LLM integration detected and live endpoint URL identifiable from source** → `/ai-redteam` (pass white-box context via `log_note`: system prompts found in code, tool definitions, guardrail mechanisms, RAG architecture, known weaknesses from Phase 5b)
 - **Always** → `/gh-export`
 
 ---
@@ -411,6 +525,7 @@ ASVS 5.0 Coverage:
 | `/container-k8s-security` | K8s manifests or Dockerfiles found — verify container security |
 | `/analyze-cve` | CVE-affected dependency found — trace code path with full source context |
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
+| `/ai-redteam` | LLM integration detected — pass system prompts, tool definitions, guardrails, RAG architecture, and endpoint URLs as white-box context |
 | `/remediate` | Findings produced — generate specific code fixes with full source context |
 | `/gh-export` | Always — after `complete_scan` |
 
