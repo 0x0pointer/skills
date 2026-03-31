@@ -1,0 +1,113 @@
+{
+  "skill_name": "colang-gen",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building a support bot for a mobile banking app. It should handle account balance questions, card freezing/unfreezing, transaction disputes, and password resets. Nothing else. Formal tone.",
+      "expected_output": "A config.yaml using the standard security classifier template with allow_free_text: false, default_reply: false, output_scanning: true, colang_version 2.x. A main.co with intents covering at least: greeting, account balance, card freeze/unfreeze, transaction disputes, password reset, plus a strict fallback. Each user intent should have 5+ semantically varied example phrases.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "config has allow_free_text false",
+          "description": "config.yaml must contain allow_free_text: false"
+        },
+        {
+          "name": "config has default_reply false",
+          "description": "config.yaml must contain default_reply: false"
+        },
+        {
+          "name": "config has output_scanning true",
+          "description": "config.yaml must contain output_scanning: true"
+        },
+        {
+          "name": "config has colang_version 2.x",
+          "description": "config.yaml must contain colang_version: \"2.x\""
+        },
+        {
+          "name": "config uses standard security classifier instructions",
+          "description": "config.yaml instructions block must contain the security classifier system prompt (not a generic bot description)"
+        },
+        {
+          "name": "colang has fallback flow",
+          "description": "main.co must contain a fallback flow with 'when true'"
+        },
+        {
+          "name": "colang covers all 4 required intents",
+          "description": "main.co must have flows for account balance, card freeze/unfreeze, transaction disputes, and password reset"
+        },
+        {
+          "name": "user intents have 5+ example phrases each",
+          "description": "Each define user block should have at least 5 example phrases"
+        },
+        {
+          "name": "no pricing or off-topic flows",
+          "description": "main.co should not contain flows for topics outside the stated scope"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Need a bot for my bakery website. Customers ask about our menu, opening hours, custom cake orders, and allergens. Keep it friendly.",
+      "expected_output": "A config.yaml using the standard security classifier template. A main.co with intents for: greeting, menu questions, opening hours, custom cake orders, allergen info, plus fallback. Bot responses should be warm/friendly in tone. Each user intent has 5+ varied example phrases.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "config has required security settings",
+          "description": "config.yaml must have allow_free_text: false, default_reply: false, output_scanning: true"
+        },
+        {
+          "name": "config uses standard security classifier instructions",
+          "description": "config.yaml instructions block must contain the security classifier system prompt"
+        },
+        {
+          "name": "colang covers all 4 required intents",
+          "description": "main.co must have flows for menu, opening hours, custom cake orders, and allergens"
+        },
+        {
+          "name": "colang has fallback flow",
+          "description": "main.co must contain a fallback flow with 'when true'"
+        },
+        {
+          "name": "user intents have 5+ example phrases each",
+          "description": "Each define user block should have at least 5 example phrases"
+        },
+        {
+          "name": "bot responses match friendly tone",
+          "description": "Bot response examples should use friendly/warm language, not formal/clinical"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Building an onboarding assistant for a B2B SaaS product. It should help new users understand features, walk through setup steps, and escalate to human support if they're stuck. Block everything off-topic including pricing questions — sales handles those.",
+      "expected_output": "A config.yaml using the standard security classifier template. A main.co with intents for: feature overview, setup walkthrough (potentially multi-step), human escalation. Pricing must not appear as an allowed flow. Fallback must be present and strict.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "config has required security settings",
+          "description": "config.yaml must have allow_free_text: false, default_reply: false, output_scanning: true"
+        },
+        {
+          "name": "config uses standard security classifier instructions",
+          "description": "config.yaml instructions block must contain the security classifier system prompt"
+        },
+        {
+          "name": "colang has human escalation flow",
+          "description": "main.co must include a flow for escalating to human support"
+        },
+        {
+          "name": "pricing is not an allowed intent",
+          "description": "main.co must not contain a flow that handles pricing questions"
+        },
+        {
+          "name": "colang has fallback flow",
+          "description": "main.co must contain a fallback flow with 'when true'"
+        },
+        {
+          "name": "user intents have 5+ example phrases each",
+          "description": "Each define user block should have at least 5 example phrases"
+        }
+      ]
+    }
+  ]
+}
