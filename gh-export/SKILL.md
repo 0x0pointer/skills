@@ -53,13 +53,31 @@ For every finding, output exactly this structure (omit `## Browsers Verified In`
 * Affected target: <target URL or file path from the finding>
 * Tool: <tool_used value from the finding>
 * <any additional evidence: key excerpt from raw tool output>
+
+## Remediation
+
+<if the finding has a `remediation` field, include this section — otherwise omit it entirely>
+
+**Effort:** <effort level> | **Breaking change:** <Yes/No>
+
+```diff
+<paste the diff from remediation.diff, or show before/after from remediation.before and remediation.after>
+```
+
+**File:** <remediation.file>:<remediation.line>
+
+**Verification:** <remediation.verification — how to confirm the fix worked>
+
+**References:**
+* <each URL from remediation.references>
 ~~~
 
 ## Rules
 
 - **One block per finding** — never merge two findings into one issue
 - **Impact must be concrete** — derive it from the finding's `description` and `evidence` fields; never invent hypothetical consequences
-- **Steps to Reproduce must be self-contained** — include full URLs and exact payloads so a developer can reproduce without asking questions
-- **PoC block is mandatory** — if a matching `.http` file exists in `pocs/`, paste its full content; otherwise extract the most relevant raw evidence line from the `evidence` field (e.g. the curl command, the HTTP request, or the tool's finding line)
+- **Steps to Reproduce must be self-contained** — if the finding has a `reproduction` field, use its `command` as the primary reproduction step. Otherwise include full URLs and exact payloads so a developer can reproduce without asking questions
+- **PoC block is mandatory** — if a matching `.http` file exists in `pocs/`, paste its full content; if the finding has `reproduction.command`, include that; otherwise extract the most relevant raw evidence line from the `evidence` field
+- **Remediation section** — if the finding has a `remediation` field, include the ## Remediation section with the diff, effort level, verification step, and references. If no remediation exists, omit the section entirely
 - **Severity mapping**: critical → `Critical`, high → `High`, medium → `Medium`, low → `Low`
 - Output only the markdown blocks and the final summary line — no extra prose, no headers, no explanation around the blocks

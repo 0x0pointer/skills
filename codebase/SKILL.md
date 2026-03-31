@@ -3,6 +3,7 @@ name: codebase
 description: |
   White-box source code security review structured around OWASP ASVS 5.0 (427 verification requirements across 16 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
 
+
   Covers: tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, ASVS compliance mapping, and LLM integration security (prompt injection, tool abuse, output handling, RAG poisoning, MCP server patterns).
 
   When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.

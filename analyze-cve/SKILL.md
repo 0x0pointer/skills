@@ -43,6 +43,7 @@ This workflow provides a structured methodology for analyzing whether a CVE affe
    - Understand attack vector and vulnerability type
    - Note affected version range
    - Document any PoC or exploit details
+   - Search Exploit-DB for existing exploits: `kali_exec("searchsploit <product> <version>")`
 
 2. **Trust User-Provided Version Information**
    - **IMPORTANT**: Trust the user's input about dependency version and CVE applicability

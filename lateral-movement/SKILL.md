@@ -495,6 +495,7 @@ Lateral Movement Summary:
 
 | Skill | When to invoke |
 |-------|----------------|
+| `/ad-assessment` | Need full AD audit — ADCS, delegation, ACLs, GPO, trust analysis |
 | `/credential-audit` | Need to crack Kerberos tickets or test credentials |
 | `/post-exploit` | Gained access to new hosts — enumerate and escalate |
 | `/network-assess` | Internal network access from new position — segmentation testing, service enumeration |
