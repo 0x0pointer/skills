@@ -31,6 +31,8 @@ Answer these four questions across the full session. They're not sequential step
 
 If you're missing information to answer Q1, ask before proceeding. A threat model built on wrong assumptions is worse than none.
 
+**Q1 + Q2 must be written as prose.** After completing all PASTA stages, write one focused paragraph answering Q1 ("What are we working on?") and one answering Q2 ("What can go wrong?") as a standalone executive summary section. These paragraphs are for stakeholders who will not read the full report — make them self-contained and concrete.
+
 ---
 
 ## Three Core Activities
@@ -77,7 +79,19 @@ Think like an attacker targeting the application's intended behavior:
 
 ## PASTA Stage Workflow
 
-Work through all 7 stages in order. Each builds on the previous.
+Work through all stages in order. Each builds on the previous.
+
+---
+
+### Stage 0 — Codebase Scan *(mandatory if source directories are provided)*
+
+**Before drawing any diagram or identifying any threat, read the code.** A threat model built on a description alone misses the real attack surface. If the user provides one or more source directories:
+
+1. **Glob for key file types**: `**/*.{kt,java,py,ts,js,go,yaml,yml,properties,env,tf,json}`
+2. **Prioritise reading**: controllers/routes, security config, auth/auth middleware, background jobs, environment/config files (all profiles — dev, staging, prod), external API integrations, data models
+3. **Note and carry forward**: every external service called, every place credentials or secrets are handled, every place user input touches storage or an external API, any config value that differs between environments (e.g. `useSSL=false` in production)
+
+Do not proceed to Stage 1 until this scan is complete. Evidence from code always overrides assumptions from description.
 
 ---
 
@@ -210,6 +224,10 @@ Apply STRIDE to every component and data flow from Stage 3. For each component, 
 
 Risk scoring: **Critical / High / Medium / Low** (Likelihood × Impact). After populating the table, apply Activity 2 — identify which threats sit on the most business-critical components and flag them for priority treatment.
 
+**After completing the STRIDE table, run the completeness check before moving to Stage 5:**
+- Every T-XX must have a corresponding RTM row. List the T-IDs and verify one-to-one coverage.
+- If any T-XX is missing from the RTM, add it before proceeding. Never leave this to the human to catch.
+
 ---
 
 ### Stage 5 — Vulnerability & Logic Flaw Analysis *(Activity 3: Logic Flaws Identification)*
@@ -277,17 +295,23 @@ Produce one attack tree per major High/Critical risk. Focus on paths that are re
 
 ---
 
-### Stage 7 — Risk Register & Mitigations *(Shostack Q3)*
+### Stage 7 — Risk & Traceability Matrix (RTM) + Mitigations *(Shostack Q3)*
 
-**7a. Prioritized Risk Register**
+**7a. RTM — fixed column format, always**
 
-| ID | Threat | Risk | Business Impact | Recommended Control |
-|----|--------|------|-----------------|---------------------|
-| T-01 | JWT replay | High | Account takeover | Short JWT TTL + token binding / refresh rotation |
-| T-02 | SQL injection | High | PII breach, regulatory fine | Parameterized queries, WAF rules, input validation |
-| T-03 | Privilege escalation | High | Full system compromise | RBAC audit, attribute-based access control |
+The RTM is always a single flat table with exactly these columns — no exceptions, no individual cards:
 
-Sort by Risk (Critical first), then Business Impact. The goal of Activity 2 (Critical Assessment) feeds directly here — highest-business-impact items must appear at the top regardless of technical likelihood.
+| ID | Component | Use Case | Abuse Case | How to Test | Vulnerable | Severity | GH Issue |
+|----|-----------|----------|------------|-------------|------------|----------|----------|
+| RTM-01 | API Server | User authenticates via JWT | Attacker replays stolen JWT to impersonate another user | 1. Capture a valid JWT. 2. Replay after logout. 3. Verify token is invalidated. | Likely — no token binding visible | High | — |
+
+**Rules:**
+- **Every T-XX from Stage 4 must appear as an RTM row.** Run the completeness check: list all T-IDs, confirm each has an RTM row. Fail loudly if any are missing.
+- **Every business logic flaw from Stage 5 must appear as an RTM row.** These get their own RTM IDs (they don't correspond to a T-XX).
+- **Every open/unresolved question with a security consequence must appear as an RTM row.** Assign severity as worst-case-if-unanswered. These rows must also appear in Section 9 (Open Questions). Mark them visually distinct in HTML (e.g. blue row background).
+- **GH Issue column is always blank (`—`).** It is reserved for manual back-linking after GitHub issues are created. Never populate it automatically.
+- Sort by Severity (Critical first), then business impact.
+- Include a STRIDE→RTM mapping note below the table so traceability is explicit.
 
 **7b. Mitigation Tiers**
 
@@ -298,7 +322,7 @@ For each High/Critical risk, provide three horizons:
 3. **Long-term hardening** — architectural improvement
 
 Example:
-- **T-02 SQL Injection**
+- **RTM-02 SQL Injection**
   - Immediate: Parameterized queries on all DB calls; enable WAF in block mode
   - Short-term: Integrate SAST (e.g., Semgrep, CodeQL) into CI pipeline
   - Long-term: Migrate to ORM with query builder that prevents raw SQL
@@ -328,14 +352,19 @@ Markdown with all sections:
 
 ```
 # Threat Model: [Application Name]
+## Executive Summary
+### What are we working on? (1 paragraph — Shostack Q1)
+### What can go wrong? (1 paragraph — Shostack Q2)
 ## 1. Objectives & Scope
 ## 2. Component Map (Mermaid)
 ## 3. Data Flow Diagram (Mermaid)
 ## 4. Threat Inventory (STRIDE table)
 ## 5. Business Logic Flaws
 ## 6. Attack Trees (Mermaid — top 2–3 threats)
-## 7. Risk Register & Mitigations
-## 8. Retrospective
+## 7. Risk & Traceability Matrix (RTM) — single flat table: ID | Component | Use Case | Abuse Case | How to Test | Vulnerable | Severity | GH Issue
+## 8. Mitigations by Tier
+## 9. Open Questions / Dialogue Items (also present as RTM rows)
+## 10. Retrospective
 ```
 
 ### File 2: `threat-model-[app-name].html`
@@ -437,15 +466,26 @@ A self-contained styled HTML report. Use this template — inline all CSS/JS so 
     <div class="toc">
       <h2>Table of Contents</h2>
       <ol>
+        <li><a href="#executive">Executive Summary</a></li>
         <li><a href="#objectives">Objectives &amp; Scope</a></li>
         <li><a href="#components">Component Map</a></li>
         <li><a href="#dfd">Data Flow Diagram</a></li>
         <li><a href="#threats">Threat Inventory (STRIDE)</a></li>
         <li><a href="#logic">Business Logic Flaws</a></li>
         <li><a href="#attack-trees">Attack Trees</a></li>
-        <li><a href="#risks">Risk Register &amp; Mitigations</a></li>
+        <li><a href="#rtm">Risk &amp; Traceability Matrix (RTM)</a></li>
+        <li><a href="#mitigations">Mitigations by Tier</a></li>
+        <li><a href="#dialogue">Open Questions / Dialogue Items</a></li>
         <li><a href="#retro">Retrospective</a></li>
       </ol>
+    </div>
+
+    <div class="section" id="executive">
+      <h2>Executive Summary</h2>
+      <h3>What are we working on?</h3>
+      <p><!-- [ONE PARAGRAPH — Shostack Q1: describe the system, its purpose, key data flows, and deployment context in plain language for a stakeholder who won't read the full report] --></p>
+      <h3>What can go wrong?</h3>
+      <p><!-- [ONE PARAGRAPH — Shostack Q2: summarise the most significant threat themes, highest-severity findings, and key unknowns. Be concrete — name components and data types.] --></p>
     </div>
 
     <div class="section" id="objectives">
@@ -499,19 +539,47 @@ A self-contained styled HTML report. Use this template — inline all CSS/JS so 
       <!-- one diagram-wrap per tree -->
     </div>
 
-    <div class="section" id="risks">
-      <h2>7. Risk Register &amp; Mitigations</h2>
+    <div class="section" id="rtm">
+      <h2>7. Risk &amp; Traceability Matrix (RTM)</h2>
       <div class="activity-badge">Activity 2: Critical Assessment</div>
-      <!-- use .risk-card divs with class critical/high/medium/low -->
+      <p style="font-size:.85rem;color:#4a5568;margin-bottom:.8rem;">
+        <!-- [N] entries total: [N] STRIDE threats + [N] business logic findings + [N] open questions (blue rows).
+             STRIDE mapping: T-01&rarr;RTM-XX, ... GH Issue column is blank — fill in manually after creating issues. -->
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Component</th><th>Use Case</th><th>Abuse Case</th>
+            <th>How to Test</th><th>Vulnerable</th><th>Severity</th><th>GH Issue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- RULE: every T-XX from STRIDE table must have a row here. Every business logic flaw must have a row.
+               Every open question with security consequence must have a row (style="background:#ebf8ff;").
+               Sort: Critical first, then High, Medium, Low. GH Issue always "&mdash;". -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section" id="mitigations">
+      <h2>8. Mitigations by Tier</h2>
+      <!-- tier-immediate: fix this sprint. tier-short: next release. tier-long: architectural. -->
+    </div>
+
+    <div class="section" id="dialogue">
+      <h2>9. Open Questions / Dialogue Items</h2>
+      <!-- These items also appear as RTM rows (blue). List them here as numbered questions for the team. -->
     </div>
 
     <div class="section" id="retro">
-      <h2>8. Retrospective</h2>
+      <h2>10. Retrospective</h2>
       <ul class="checklist">
-        <li>Coverage: all components and flows analyzed</li>
-        <li>Depth: logic flaws and chained attacks explored</li>
-        <li>Actionability: mitigations are implementable</li>
-        <li>Business alignment: risks match business priorities</li>
+        <li>Coverage: every component and data flow analyzed for threats</li>
+        <li>Completeness: every T-XX from STRIDE table has an RTM row</li>
+        <li>Depth: logic flaws and chained attacks explored beyond STRIDE</li>
+        <li>Actionability: mitigations specific enough to implement without further research</li>
+        <li>Business alignment: highest-risk items map to most business-critical components</li>
+        <li>Open questions resolved (or tracked as RTM rows with worst-case severity)</li>
       </ul>
     </div>
 
