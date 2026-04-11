@@ -8,7 +8,7 @@ description: |
 
   When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
 
-  Chains into /pentester, /threat-model, /web-exploit, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
+  Chains into /pentester, /threat-model, /web-exploit, /api-security, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
 argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]
 user-invocable: true
 ---
@@ -508,6 +508,7 @@ ASVS 5.0 Coverage:
 - **Always** → `/threat-model` (now has real architecture from code)
 - **If endpoints found** → `/pentester` (targeted scanning of discovered endpoints)
 - **If injection points found** → `/web-exploit` (source-to-sink context for deep exploitation)
+- **If API routes/controllers found** → `/api-security` (route inventory, auth middleware, ORM models, authorization decorators as white-box context for OWASP API Top 10)
 - **If IaC found** → `/cloud-security` or `/container-k8s-security`
 - **If CVE-affected dependencies found** → `/analyze-cve` (already has code context)
 - **If LLM integration detected and live endpoint URL identifiable from source** → `/ai-redteam` (pass white-box context via `log_note`: system prompts found in code, tool definitions, guardrail mechanisms, RAG architecture, known weaknesses from Phase 5b)
@@ -522,6 +523,7 @@ ASVS 5.0 Coverage:
 | `/threat-model` | Always after review — feed real architecture into STRIDE analysis |
 | `/pentester` | Endpoints discovered — target scan with white-box knowledge |
 | `/web-exploit` | Injection points found in source — exploit with source-to-sink context |
+| `/api-security` | API routes/controllers identified in source (REST/GraphQL/gRPC/SOAP/MCP) — pass route inventory, auth middleware, ORM models, and authorization decorators as white-box context for OWASP API Top 10 testing |
 | `/cloud-security` | IaC files found — verify cloud misconfigs match runtime state |
 | `/container-k8s-security` | K8s manifests or Dockerfiles found — verify container security |
 | `/analyze-cve` | CVE-affected dependency found — trace code path with full source context |
