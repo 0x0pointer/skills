@@ -27,15 +27,15 @@ This review is structured around the **OWASP Application Security Verification S
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
 | `set_codebase` | Set the local codebase path — `session(action="set_codebase", options={"path": "/path"})` |
-| `run_semgrep` | SAST scanning — `scan(tool="semgrep", target="/target")` |
-| `run_trufflehog` | Secret scanning — `scan(tool="trufflehog", target="/target")` |
-| `report_finding` | Log a confirmed vulnerability with evidence to findings.json |
-| `report_diagram` | Save a Mermaid diagram (architecture, data flow, attack surface) to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `scan(tool="semgrep", ...)` | SAST scanning — `scan(tool="semgrep", target="/target")` |
+| `scan(tool="trufflehog", ...)` | Secret scanning — `scan(tool="trufflehog", target="/target")` |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram (architecture, data flow, attack surface) to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 **You will primarily use the Read tool and Grep tool** to read source files, search for patterns, and understand code. The Glob tool helps find files by pattern. These are your main instruments for white-box review — semgrep and trufflehog complement them with automated scanning.
 
@@ -101,10 +101,10 @@ If the request does not specify depth or focus, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with codebase path, depth, and limits
+0. Call `session(action="start", options={...})` with codebase path, depth, and limits
 1. Call `session(action="set_codebase", options={"path": "/absolute/path"})`
-2. Call `start_dashboard` — live findings tracker
-3. Call `log_note` — record codebase path, expected tech stack, review focus
+2. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+3. Call `report(action="note", data={...})` — record codebase path, expected tech stack, review focus
 
 ---
 
@@ -125,8 +125,8 @@ If the request does not specify depth or focus, ask the user:
   - Python: `openai`, `anthropic`, `langchain`, `langchain-core`, `langchain-community`, `llama-index`, `haystack-ai`, `semantic-kernel`, `crewai`, `autogen-agentchat`, `mcp`, `pydantic-ai`
   - Node.js: `openai`, `@anthropic-ai/sdk`, `langchain`, `@langchain/core`, `@modelcontextprotocol/sdk`, `ai` (Vercel AI SDK)
   - Also grep source files for: API key patterns (`sk-`, `sk-ant-`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), model name strings (`gpt-4`, `gpt-3.5`, `claude`, `o1-`, `o3-`), and LLM endpoint URLs (`api.openai.com`, `api.anthropic.com`)
-  - If any LLM framework is detected: `log_note("LLM_DETECTED: [frameworks list]. Phase 5b will run.")`
-- Call `log_note` with: language, framework, major dependencies, framework version
+  - If any LLM framework is detected: `report(action="note", data={"message": "LLM_DETECTED: [frameworks list]. Phase 5b will run.")`
+- Call `report(action="note", data={...})` with: language, framework, major dependencies, framework version
 
 **Step 2 — Map project structure:**
 - Use Glob to understand the directory layout (MVC? microservice? monolith?)
@@ -144,12 +144,12 @@ Look for security-relevant settings. What matters depends on the framework — a
 - Allowed hosts / origins
 - Email / SMTP configuration with credentials
 
-Call `report_finding` for any hardcoded secrets or dangerous configurations found.
+Call `report(action="finding", data={...})` for any hardcoded secrets or dangerous configurations found.
 
 **Step 4 — Dependency audit:**
 Check whether pinned dependency versions have known CVEs. For each major dependency, consider whether it's a security-sensitive component (auth library, ORM, template engine, crypto library, XML parser).
 
-Call `report_diagram` with a component architecture diagram showing the tech stack, major components, and their relationships.
+Call `report(action="diagram", data={...})` with a component architecture diagram showing the tech stack, major components, and their relationships.
 
 ---
 
@@ -184,7 +184,7 @@ For every endpoint, determine:
 - CLI commands that accept user input
 - Scheduled tasks that process external data
 
-Call `log_note` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
+Call `report(action="note", data={...})` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
 
 ---
 
@@ -226,7 +226,7 @@ If JWT or OAuth is used:
 - Scope validation on resource servers
 - PKCE enforcement for public clients
 
-Call `report_finding` for every auth/authz weakness found. Call `report_diagram` with the authentication flow diagram.
+Call `report(action="finding", data={...})` for every auth/authz weakness found. Call `report(action="diagram", data={...})` with the authentication flow diagram.
 
 ---
 
@@ -246,7 +246,7 @@ This runs 58 semgrep rules covering: hardcoded API keys, missing max_tokens, pro
 
 After results come back:
 - Read each semgrep finding and verify it against the actual code — false positives are common
-- For each confirmed finding, call `report_finding` with the code context
+- For each confirmed finding, call `report(action="finding", data={...})` with the code context
 - For trufflehog findings, verify whether secrets are real or test/example values
 
 ---
@@ -294,7 +294,7 @@ For each finding, trace whether user input actually reaches the function (source
 - Are there race conditions in critical operations (double-spend, TOCTOU)?
 - Can users skip steps or replay requests?
 
-Call `report_finding` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
+Call `report(action="finding", data={...})` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
 
 ---
 
@@ -368,7 +368,7 @@ Only applies when the codebase implements or consumes MCP servers.
 - **Rug-pull potential**: can MCP tool descriptions or behavior change between discovery and invocation?
 - **Upstream dependency trust**: does the MCP client validate responses from MCP servers, or trust them blindly?
 
-Call `report_finding` for each confirmed LLM-specific weakness. Use severity guidance:
+Call `report(action="finding", data={...})` for each confirmed LLM-specific weakness. Use severity guidance:
 - **Critical**: LLM output reaches eval/exec/shell without sandboxing; tool handler has command injection; prompt injection enables data exfiltration
 - **High**: No tenant isolation in RAG; over-permissioned tools without approval gates; secrets in system prompts; pickle model loading
 - **Medium**: Missing max_tokens; no agent iteration limits; unpinned LLM framework versions; weak prompt/response validation
@@ -418,14 +418,14 @@ If IaC files are present (Terraform, CloudFormation, K8s manifests, Dockerfiles,
 - Hardcoded secrets in manifests
 - Unpinned base images
 
-Call `report_finding` for each confirmed weakness.
+Call `report(action="finding", data={...})` for each confirmed weakness.
 
 ---
 
 ### Phase 7 — Security Profile & Report (all depths)
 
 **Step 1 — Architecture diagram:**
-Call `report_diagram` with a comprehensive Mermaid diagram showing:
+Call `report(action="diagram", data={...})` with a comprehensive Mermaid diagram showing:
 - All components (web server, app server, database, cache, queue, external APIs)
 - Trust boundaries (public internet, DMZ, internal network)
 - Data flows with sensitivity labels
@@ -433,7 +433,7 @@ Call `report_diagram` with a comprehensive Mermaid diagram showing:
 - Identified vulnerabilities annotated on the diagram
 
 **Step 2 — Codebase security profile:**
-Call `log_note` with a structured summary that downstream skills can consume:
+Call `report(action="note", data={...})` with a structured summary that downstream skills can consume:
 
 ```
 Codebase Security Profile:
@@ -480,7 +480,7 @@ Codebase Security Profile:
 ```
 
 **Step 3 — ASVS coverage summary (thorough only):**
-Call `log_note` with which ASVS chapters were reviewed and what was found:
+Call `report(action="note", data={...})` with which ASVS chapters were reviewed and what was found:
 
 ```
 ASVS 5.0 Coverage:
@@ -502,7 +502,7 @@ ASVS 5.0 Coverage:
   V16 Logging/Error Handling:   REVIEWED — [findings or "no issues"]
 ```
 
-**Step 4:** Call `complete_scan` with summary.
+**Step 4:** Call `session(action="complete", options={...})` with summary.
 
 **Step 5:** Chain into downstream skills as appropriate:
 - **Always** → `/threat-model` (now has real architecture from code)
@@ -511,7 +511,7 @@ ASVS 5.0 Coverage:
 - **If API routes/controllers found** → `/api-security` (route inventory, auth middleware, ORM models, authorization decorators as white-box context for OWASP API Top 10)
 - **If IaC found** → `/cloud-security` or `/container-k8s-security`
 - **If CVE-affected dependencies found** → `/analyze-cve` (already has code context)
-- **If LLM integration detected and live endpoint URL identifiable from source** → `/ai-redteam` (pass white-box context via `log_note`: system prompts found in code, tool definitions, guardrail mechanisms, RAG architecture, known weaknesses from Phase 5b)
+- **If LLM integration detected and live endpoint URL identifiable from source** → `/ai-redteam` (pass white-box context via `report(action="note", data={...})`: system prompts found in code, tool definitions, guardrail mechanisms, RAG architecture, known weaknesses from Phase 5b)
 - **Always** → `/gh-export`
 
 ---
@@ -530,7 +530,7 @@ ASVS 5.0 Coverage:
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
 | `/ai-redteam` | LLM integration detected — pass system prompts, tool definitions, guardrails, RAG architecture, and endpoint URLs as white-box context |
 | `/remediate` | Findings produced — generate specific code fixes with full source context |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
@@ -547,14 +547,14 @@ ASVS 5.0 Coverage:
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Read before you judge** — don't report a finding just because a function name appears. Verify that user input actually reaches it
 - **Source-to-sink tracing is essential** — a dangerous function with hardcoded arguments is not a vulnerability. Trace the data flow
 - **Adapt to the framework** — every framework has different patterns. Don't grep for Django patterns in a Flask app
-- **Call `report_finding` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
-- **Call `report_diagram` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
-- **The security profile feeds downstream skills** — write it clearly in `log_note` so other skills can parse and act on it
-- **Use `log_note` liberally** — document your understanding of each component before analyzing it
+- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
+- **Call `report(action="diagram", data={...})` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
+- **The security profile feeds downstream skills** — write it clearly in `report(action="note", data={...})` so other skills can parse and act on it
+- **Use `report(action="note", data={...})` liberally** — document your understanding of each component before analyzing it
 - **Never fabricate findings** — only report what the code actually shows
 - **ASVS is a guide, not a checklist** — focus on high-risk areas first, not sequential chapter review
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels with spaces/special chars, no em-dashes, short alphanumeric node IDs

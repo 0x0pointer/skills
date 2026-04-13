@@ -43,7 +43,7 @@ This workflow provides a structured methodology for analyzing whether a CVE affe
    - Understand attack vector and vulnerability type
    - Note affected version range
    - Document any PoC or exploit details
-   - Search Exploit-DB for existing exploits: `kali_exec("searchsploit <product> <version>")`
+   - Search Exploit-DB for existing exploits: `kali(command="searchsploit <product> <version>")`
 
 2. **Trust User-Provided Version Information**
    - **IMPORTANT**: Trust the user's input about dependency version and CVE applicability
@@ -149,12 +149,12 @@ This workflow provides a structured methodology for analyzing whether a CVE affe
 If pentest-agent MCP tools are available (e.g. when chained from `/pentester`), report findings to the live dashboard:
 
 11. **Log confirmed vulnerabilities**
-    - Call `report_finding` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets)
+    - Call `report(action="finding", data={...})` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets)
     - This makes the finding visible in the live dashboard at localhost:5000
 
 12. **Route PoC through Burp Suite**
-    - Call `http_request(poc=True)` with the crafted exploit request — this lands it in Burp HTTP History
-    - Call `save_poc` with a descriptive title (e.g. `cve-2024-xxxxx-rce-upload`) and include the vulnerability description in `notes`
+    - Call `http(action="request", options={"poc": true})` with the crafted exploit request — this lands it in Burp HTTP History
+    - Call `http(action="save_poc", ...)` with a descriptive title (e.g. `cve-2024-xxxxx-rce-upload`) and include the vulnerability description in `notes`
     - This produces a `.http` file in `pocs/` that can be pasted directly into Burp Repeater
 
 > **Skip this phase** if MCP tools are not available (standalone analysis). The markdown report is always produced regardless.

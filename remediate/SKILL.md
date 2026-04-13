@@ -22,11 +22,11 @@ You are an expert application security engineer generating specific, implementab
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define scope and limits — **always call this first** |
-| `complete_scan` | Mark done and write final notes |
-| `http_request` | Read findings — `http(action="request", url="http://localhost:5000/api/findings")` |
-| `http_request` | Update finding with remediation — PATCH to `/api/findings/{id}` |
-| `log_note` | Write reasoning notes to session log |
+| `session(action="start", options={...})` | Define scope and limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark done and write final notes |
+| `http(action="request", ...)` | Read findings — `http(action="request", url="http://localhost:5000/api/findings")` |
+| `http(action="request", ...)` | Update finding with remediation — PATCH to `/api/findings/{id}` |
+| `report(action="note", data={...})` | Write reasoning notes to session log |
 
 ### Reading findings
 
@@ -72,8 +72,8 @@ http(action="request", url="http://localhost:5000/api/findings/FINDING_ID", meth
 
 ### Phase 0 — Setup
 
-0. Call `start_scan` with depth and limits
-1. Call `log_note` — record whether `/codebase` ran (source code context available?)
+0. Call `session(action="start", options={...})` with depth and limits
+1. Call `report(action="note", data={...})` — record whether `/codebase` ran (source code context available?)
 
 ### Phase 1 — Read Findings
 
@@ -134,7 +134,7 @@ Update the finding with the remediation object via the API.
 
 ### Phase 3 — Remediation Summary
 
-Call `log_note` with:
+Call `report(action="note", data={...})` with:
 ```
 Remediation Summary:
   Total findings:    [count]
@@ -148,7 +148,7 @@ Remediation Summary:
   ...
 ```
 
-Call `complete_scan` with summary.
+Call `session(action="complete", options={...})` with summary.
 
 ---
 

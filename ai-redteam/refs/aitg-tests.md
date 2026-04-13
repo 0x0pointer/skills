@@ -75,7 +75,7 @@ AITG-only tests (no LLM Top 10 parallel): **APP-04, APP-09, APP-10, MOD-01, MOD-
 
 ### 3.1 Confidence / logprob probing
 
-Send each of these via `http_request` to the target API. Any that succeed expose model internals that enable distillation / boundary mapping.
+Send each of these via `http(action="request", ...)` to the target API. Any that succeed expose model internals that enable distillation / boundary mapping.
 
 ```http
 # OpenAI-style logprobs request
@@ -554,10 +554,10 @@ file /path/to/chroma.sqlite
 
 ## 9. Reporting Template Snippets
 
-When `report_finding`-ing an AITG or MCP test, include the test ID in both the title and description so downstream skills (`/gh-export`) preserve the framework mapping:
+When `report(action="finding", data={...})`-ing an AITG or MCP test, include the test ID in both the title and description so downstream skills (`/gh-export`) preserve the framework mapping:
 
 ```python
-report_finding(
+report(action="finding", data={
   title="AITG-APP-09 — Model decision boundary extractable via logprobs",
   severity="medium",
   target=URL,
@@ -567,12 +567,12 @@ report_finding(
     "field. This enables efficient distillation / substitute-model training."
   ),
   evidence=raw_http_response,
-  tool_used="http_request",
+  tool_used="http(action="request", ...)",
 )
 ```
 
 ```python
-report_finding(
+report(action="finding", data={
   title="MCP05 — Command injection via <tool_name> argument",
   severity="high",
   target=URL,
@@ -582,6 +582,6 @@ report_finding(
     "confirming arbitrary command execution under the tool-server user."
   ),
   evidence=tool_response_with_uid,
-  tool_used="http_request",
+  tool_used="http(action="request", ...)",
 )
 ```

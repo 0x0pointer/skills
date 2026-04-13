@@ -20,15 +20,15 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `kali_exec` | Kali tools: swaks, dig, nmap, smtp-user-enum, openssl s_client |
-| `run_nmap` | SMTP service detection and NSE scripts |
-| `http_request` | Check MTA-STS policy, web-based mail config |
-| `report_finding` | Log confirmed vulnerabilities to findings.json |
-| `report_diagram` | Save email infrastructure diagrams |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write reasoning notes to session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `kali(command=...)` | Kali tools: swaks, dig, nmap, smtp-user-enum, openssl s_client |
+| `scan(tool="nmap", ...)` | SMTP service detection and NSE scripts |
+| `http(action="request", ...)` | Check MTA-STS policy, web-based mail config |
+| `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
+| `report(action="diagram", data={...})` | Save email infrastructure diagrams |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write reasoning notes to session log |
 
 ---
 
@@ -40,7 +40,7 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 | **DKIM** | Selector discovery, key size, algorithm | dig | High if missing |
 | **DMARC** | Record exists, policy (none/quarantine/reject), rua/ruf reporting | dig | High if p=none or missing |
 | **STARTTLS** | SMTP STARTTLS supported, certificate valid | openssl, nmap | Medium |
-| **MTA-STS** | Policy published, mode (enforce/testing/none) | http_request | Low-Medium |
+| **MTA-STS** | Policy published, mode (enforce/testing/none) | http(action="request", ...) | Low-Medium |
 | **TLS-RPT** | TLSRPT DNS record for failure reporting | dig | Low |
 | **Open relay** | Test if server relays mail for external domains | swaks | Critical |
 | **Spoofing** | Send spoofed email, check if accepted/rejected | swaks | High |
@@ -63,9 +63,9 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target domain, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record target domain, known mail provider
+0. Call `session(action="start", options={...})` with target domain, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record target domain, known mail provider
 
 ---
 
@@ -172,7 +172,7 @@ kali(command="smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/top-userna
 
 **Fetch MTA-STS policy:**
 ```
-http_request(url="https://mta-sts.DOMAIN/.well-known/mta-sts.txt", method="GET")
+http(action="request", url="https://mta-sts.DOMAIN/.well-known/mta-sts.txt", method="GET")
 ```
 
 **Verify:**
@@ -184,7 +184,7 @@ http_request(url="https://mta-sts.DOMAIN/.well-known/mta-sts.txt", method="GET")
 
 ### Phase 7 — Report & Wrap-Up
 
-1. Call `report_diagram` with email infrastructure:
+1. Call `report(action="diagram", data={...})` with email infrastructure:
 ```mermaid
 flowchart TD
     Sender["External Sender"] --> DNS["DNS Lookup"]
@@ -198,7 +198,7 @@ flowchart TD
     MX --> MTASTS["MTA-STS: enforce"]
 ```
 
-2. Call `log_note` with email security summary:
+2. Call `report(action="note", data={...})` with email security summary:
 ```
 Email Security Assessment Summary:
   Domain:          [domain]
@@ -213,7 +213,7 @@ Email Security Assessment Summary:
   User enumeration: [possible/blocked]
 ```
 
-3. Call `complete_scan` with summary
+3. Call `session(action="complete", options={...})` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -225,18 +225,18 @@ Email Security Assessment Summary:
 | `/osint` | Email addresses discovered — expand OSINT reconnaissance |
 | `/credential-audit` | SMTP credentials needed — test authentication |
 | `/ssl-tls-audit` | STARTTLS weaknesses found — deep TLS assessment |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent DNS lookups** — SPF, DKIM, DMARC, MTA-STS can all run in parallel
 - **Test spoofing carefully** — only send test emails to authorized addresses
-- **Call `report_finding` for every confirmed weakness** — include the DNS record and specific misconfiguration
+- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the DNS record and specific misconfiguration
 - **SPF + DKIM + DMARC must all be present** — missing any one is a finding
-- **Use `log_note` liberally** — document DNS records and analysis decisions
+- **Use `report(action="note", data={...})` liberally** — document DNS records and analysis decisions
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used

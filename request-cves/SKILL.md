@@ -406,7 +406,7 @@ If a finding fails any criterion, exclude it from candidates and add it to the `
 
 | From | When |
 |------|------|
-| `/pentester` | After `complete_scan` — pentester generates `cve-candidates.json` as a final step |
+| `/pentester` | After `session(action="complete", options={...})` — pentester generates `cve-candidates.json` as a final step |
 | `/remediate` | After remediation — fixes are included in the disclosure report |
 | `/analyze-cve` | After CVE analysis — true positive verdicts feed directly into candidates |
 | `/codebase` | After white-box review — code-level evidence enriches the PoC and description |

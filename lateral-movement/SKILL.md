@@ -20,16 +20,16 @@ You are an expert Active Directory and network penetration tester. You have init
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `run_nmap` | Network discovery and service enumeration |
-| `kali_exec` | Kali tools: impacket-*, netexec/nxc, enum4linux-ng, smbmap, smbclient, rpcclient, ldapsearch, bloodhound-python, Responder, ntlmrelayx, mitm6 |
-| `http_request` | Web-based management interfaces, ADFS, OWA |
-| `save_poc` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report_finding` | Log a confirmed vulnerability with evidence to findings.json |
-| `report_diagram` | Save a Mermaid diagram (attack path, network topology) to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `scan(tool="nmap", ...)` | Network discovery and service enumeration |
+| `kali(command=...)` | Kali tools: impacket-*, netexec/nxc, enum4linux-ng, smbmap, smbclient, rpcclient, ldapsearch, bloodhound-python, Responder, ntlmrelayx, mitm6 |
+| `http(action="request", ...)` | Web-based management interfaces, ADFS, OWA |
+| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram (attack path, network topology) to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
 
@@ -77,9 +77,9 @@ If the request does not specify credentials or depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record target network, domain, credentials available, objectives
+0. Call `session(action="start", options={...})` with target, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record target network, domain, credentials available, objectives
 
 ---
 
@@ -114,7 +114,7 @@ SMB signing cryptographically validates packet origin. Without it, an attacker c
 
 **Verify per host:** `nxc smb TARGET 2>/dev/null | grep -i signing` — `signing:False` means relayable. Report every unsigned host as a medium-severity finding.
 
-Call `report_diagram` with network topology showing signing status per host.
+Call `report(action="diagram", data={...})` with network topology showing signing status per host.
 
 ---
 
@@ -129,7 +129,7 @@ kali(command="nxc rdp NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/
 kali(command="nxc mssql NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
 ```
 
-Call `report_finding` for every successful auth — include host, protocol, and privilege level.
+Call `report(action="finding", data={...})` for every successful auth — include host, protocol, and privilege level.
 
 **Enumerate and spider shares:**
 ```
@@ -451,7 +451,7 @@ kali(command="nxc smb TARGET -u USER -p 'PASSWORD' -M lsassy")
 
 ### Phase 12 — Attack Path Documentation
 
-Call `report_diagram` with the complete lateral movement chain:
+Call `report(action="diagram", data={...})` with the complete lateral movement chain:
 ```mermaid
 flowchart TD
     Start["Initial Access"] --> PtH["Pass-the-Hash to FileServer"]
@@ -470,7 +470,7 @@ flowchart TD
 
 ### Phase 13 — Report & Wrap-Up
 
-1. Call `log_note` with lateral movement summary:
+1. Call `report(action="note", data={...})` with lateral movement summary:
 ```
 Lateral Movement Summary:
   Starting position:     [host, user, privileges]
@@ -486,7 +486,7 @@ Lateral Movement Summary:
   Attack path length:    [N hops from initial to target]
 ```
 
-2. Call `complete_scan` with summary
+2. Call `session(action="complete", options={...})` with summary
 3. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -499,23 +499,23 @@ Lateral Movement Summary:
 | `/credential-audit` | Need to crack Kerberos tickets or test credentials |
 | `/post-exploit` | Gained access to new hosts — enumerate and escalate |
 | `/network-assess` | Internal network access from new position — segmentation testing, service enumeration |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
 - **Test credential reuse first** — most common lateral movement vector
 - **Document every hop** — record how you moved from host A to host B
-- **Call `report_finding` for every successful lateral movement** — include source, destination, method, credentials
+- **Call `report(action="finding", data={...})` for every successful lateral movement** — include source, destination, method, credentials
 - **Build the attack path diagram progressively** — update as you discover new paths
 - **Check SMB signing** — unsigned SMB allows relay; report as a standalone finding
 - **Choose execution methods deliberately** — use the comparison matrix based on stealth needs
 - **Respect scope** — only pivot to in-scope hosts
-- **Use `log_note` liberally** — document decisions, credential sources, method rationale
+- **Use `report(action="note", data={...})` liberally** — document decisions, credential sources, method rationale
 - **Never fabricate findings** — only report what commands confirm
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
