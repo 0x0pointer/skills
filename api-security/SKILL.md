@@ -169,6 +169,38 @@ kali(command="clairvoyance https://TARGET/graphql -w /usr/share/wordlists/seclis
 ```
 `clairvoyance` reconstructs the schema from field-suggestion error messages even when introspection is disabled.
 
+**Step 1e-ii — Query every field on every type (not just what the UI uses).**
+
+The UI is a liar. It filters which fields it renders; the schema doesn't. Once you have the schema, **build a query that selects every scalar field on every object type** and run it. Look especially for fields named:
+
+- `flag`, `secret`, `password`, `password_hash`, `salt`, `mfa_secret`, `recovery_token`, `api_key`, `token`
+- `is_admin`, `isAdmin`, `role`, `permissions`, `internal_notes`, `fraud_score`, `risk_score`
+- `email`, `phone`, `ssn`, `address`, `credit_card`, `iban` (for PII leaks)
+- Any field beginning with `_` or `internal_`
+
+**Step 1e-iii — Try every argument, even undocumented ones.**
+
+GraphQL resolvers often accept arguments the UI never uses:
+
+- Boolean arguments like `is_admin`, `include_deleted`, `show_hidden`, `bypass_filter` are frequent backdoors
+- JSON-string arguments parsed via `json.loads()` + `filter(**dict)` are **kwargs-splat NoSQLi** — inject `{"is_admin": true}` or operator injection `{"username__ne": null}`, `{"$gt": ""}`
+- Pagination/sort args (`sort=`, `order_by=`, `filter_by=`) often accept raw SQL or ORM field names
+
+Example of kwargs-splat injection (mongoengine):
+
+```graphql
+query {
+  users(search: "{\"is_admin\": true}") {
+    username
+    email
+  }
+}
+```
+
+The server does `User.objects.filter(**json.loads(search))` and returns admin rows. The filter happens at the database level, bypassing any application-level "only show non-admins" logic.
+
+**This is the #1 GraphQL exploit pattern** — always look for arguments whose values are parsed as structured data (JSON, YAML, query DSL).
+
 **Step 1f — gRPC reflection (if gRPC endpoint found):**
 
 ```
@@ -349,6 +381,36 @@ PATCH /api/v2/users/me
 ```
 
 Then re-fetch the object to see if any of those fields stuck. If yes — mass assignment confirmed. Try the most damaging fields first: `role`, `isAdmin`, `tenant_id`, `verified`, `balance`.
+
+**Mass assignment on authentication endpoints (login, register, password reset).**
+
+Login endpoints are a blind spot — agents treat them as "authentication, not CRUD" and skip the mass-assignment check. That's wrong. The server still does `session[key] = request.form[key]` or `session = User(**request.json)`, and if the attacker controls the key set, they control the session.
+
+Always send the extended field set to login, register, and password-reset endpoints:
+
+```
+POST /login
+{
+  "username": "user",
+  "password": "user",
+  "role": "admin",
+  "isAdmin": true,
+  "is_admin": true,
+  "is_staff": true,
+  "is_superuser": true,
+  "tier": "premium",
+  "user_type": "admin",
+  "verified": true,
+  "email_verified": true,
+  "mfa_enabled": false,
+  "permissions": ["*"],
+  "group": "admin"
+}
+```
+
+After the login, immediately check the session by calling `/profile`, or an admin-only route. If the session reflects any of the injected values, **mass assignment at authentication time is confirmed** — and this is a complete authentication bypass, higher severity than a normal mass assignment.
+
+**Don't follow redirects blindly after login.** Apps often redirect to `/2fa`, `/welcome`, or `/onboarding` after login. The redirect may not be the actual gate. Check whether the final protected resource for example (`/admin/dashboard`, `/admin/users`) is directly reachable with the just-issued session — it frequently is.
 
 **Hidden field discovery via GraphQL introspection:**
 If GraphQL is in use, the introspection query already lists every field, including fields the public API never returns. Try selecting them directly: `{ user(id: 1) { internalNotes adminFlags fraudScore } }`.
