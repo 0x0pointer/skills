@@ -20,18 +20,18 @@ You are an expert penetration tester using Metasploit Framework to validate and 
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
 | `run_metasploit` | Run Metasploit modules — `scan(tool="metasploit", target=HOST, options={module, payload, rport, lhost, lport, extra})` |
 | `start_metasploit` | Pre-warm the Metasploit container — `session(action="start_metasploit")` |
 | `stop_metasploit` | Stop the container — `session(action="stop_metasploit")` |
-| `kali_exec` | Kali tools for auxiliary tasks (nmap verification, file inspection) |
-| `http_request` | Manual HTTP verification of web exploits |
-| `save_poc` | Save confirmed exploits as `.http` files in `pocs/` |
-| `report_finding` | Log confirmed vulnerabilities to findings.json |
-| `report_diagram` | Save attack path diagrams |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write reasoning notes to session log |
+| `kali(command=...)` | Kali tools for auxiliary tasks (nmap verification, file inspection) |
+| `http(action="request", ...)` | Manual HTTP verification of web exploits |
+| `http(action="save_poc", ...)` | Save confirmed exploits as `.http` files in `pocs/` |
+| `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
+| `report(action="diagram", data={...})` | Save attack path diagrams |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write reasoning notes to session log |
 
 ### How to invoke Metasploit modules
 
@@ -93,10 +93,10 @@ If the request does not specify a CVE or target service, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target, depth, and limits
-1. Call `start_dashboard` — live findings tracker
+0. Call `session(action="start", options={...})` with target, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
 2. Call `session(action="start_metasploit")` — pre-warm the container
-3. Call `log_note` — record target, CVE, service, available credentials
+3. Call `report(action="note", data={...})` — record target, CVE, service, available credentials
 
 ---
 
@@ -176,7 +176,7 @@ scan(tool="metasploit", target="TARGET", options={
 })
 ```
 
-Call `report_finding` for every confirmed vulnerable service. If depth is `quick`, stop here.
+Call `report(action="finding", data={...})` for every confirmed vulnerable service. If depth is `quick`, stop here.
 
 ---
 
@@ -203,7 +203,7 @@ scan(tool="metasploit", target="TARGET", options={
 })
 ```
 
-Call `report_finding` with the full Metasploit output as evidence.
+Call `report(action="finding", data={...})` with the full Metasploit output as evidence.
 
 ---
 
@@ -253,8 +253,8 @@ Or chain into `/reverse-shell` for payload generation with listener setup — it
 
 ### Phase 6 — Report & Wrap-Up
 
-1. Call `report_diagram` with exploitation attack path
-2. Call `log_note` with exploitation summary:
+1. Call `report(action="diagram", data={...})` with exploitation attack path
+2. Call `report(action="note", data={...})` with exploitation summary:
 ```
 Metasploit Exploitation Summary:
   Target:          [host/IP]
@@ -266,7 +266,7 @@ Metasploit Exploitation Summary:
   Post-exploit:    [hashdump/sysinfo/pivoting]
 ```
 3. Call `session(action="stop_metasploit")` — clean up container
-4. Call `complete_scan` with summary
+4. Call `session(action="complete", options={...})` with summary
 5. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -279,7 +279,7 @@ Metasploit Exploitation Summary:
 | `/post-exploit` | Exploitation succeeded — privilege escalation, credential harvesting |
 | `/lateral-movement` | Credentials obtained — move through the network |
 | `/credential-audit` | Need to crack hashes or test credentials |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
@@ -296,12 +296,12 @@ Metasploit Exploitation Summary:
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Start with auxiliary scanners** — always validate before exploiting
 - **Stay within scope** — only exploit authorized targets
 - **Use safe payloads first** — `cmd/unix/generic` with `set CMD id` before reverse shells
-- **Document every module run** — call `log_note` before and after each module
-- **Call `report_finding` for every confirmed vulnerability** — include full MSF output
+- **Document every module run** — call `report(action="note", data={...})` before and after each module
+- **Call `report(action="finding", data={...})` for every confirmed vulnerability** — include full MSF output
 - **Stop the Metasploit container when done** — `session(action="stop_metasploit")`
 - **Never fabricate findings** — only report what Metasploit output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs

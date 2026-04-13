@@ -22,17 +22,17 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `run_nuclei` | Kubernetes/Docker vulnerability templates |
-| `run_nmap` | Service discovery (API servers, etcd, kubelet, NodePorts) |
-| `kali_exec` | Kali tools: trivy, kubectl, curl, kube-bench, docker |
-| `http_request` | Direct API probing — K8s API server, etcd, kubelet, Docker API, registries |
-| `save_poc` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report_finding` | Log a confirmed vulnerability with evidence to findings.json |
-| `report_diagram` | Save a Mermaid diagram (K8s topology, attack paths) to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `scan(tool="nuclei", ...)` | Kubernetes/Docker vulnerability templates |
+| `scan(tool="nmap", ...)` | Service discovery (API servers, etcd, kubelet, NodePorts) |
+| `kali(command=...)` | Kali tools: trivy, kubectl, curl, kube-bench, docker |
+| `http(action="request", ...)` | Direct API probing — K8s API server, etcd, kubelet, Docker API, registries |
+| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram (K8s topology, attack paths) to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
 
@@ -84,9 +84,9 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record: target type (Docker/K8s/both), perspective (external/internal/both), access level (anonymous/token/kubeconfig), cluster type (kind/EKS/GKE/AKS/vanilla)
+0. Call `session(action="start", options={...})` with target, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record: target type (Docker/K8s/both), perspective (external/internal/both), access level (anonymous/token/kubeconfig), cluster type (kind/EKS/GKE/AKS/vanilla)
 
 ---
 
@@ -126,7 +126,7 @@ kali(command="kubectl get svc --all-namespaces -o json 2>/dev/null | python3 -c 
 
 **For each discovered NodePort, probe the service:**
 ```
-http_request(url="http://TARGET:NODEPORT/", method="GET")
+http(action="request", url="http://TARGET:NODEPORT/", method="GET")
 ```
 
 Any NodePort service is a finding — report each one with the service name, namespace, and what it exposes. NodePort services bypass ingress controls and are accessible on every node IP.
@@ -137,9 +137,9 @@ Any NodePort service is a finding — report each one with the service name, nam
 
 **API server version leak + anonymous auth:**
 ```
-http_request(url="https://TARGET:6443/version", method="GET")
-http_request(url="https://TARGET:6443/api", method="GET")
-http_request(url="https://TARGET:6443/api/v1/namespaces", method="GET")
+http(action="request", url="https://TARGET:6443/version", method="GET")
+http(action="request", url="https://TARGET:6443/api", method="GET")
+http(action="request", url="https://TARGET:6443/api/v1/namespaces", method="GET")
 ```
 
 **Anonymous pod and secret enumeration:**
@@ -157,15 +157,15 @@ kali(command="curl -sk https://TARGET:2379/v3/kv/range -X POST -H 'Content-Type:
 
 **Docker daemon exposure:**
 ```
-http_request(url="http://TARGET:2375/version", method="GET")
-http_request(url="http://TARGET:2375/containers/json", method="GET")
-http_request(url="http://TARGET:2375/images/json", method="GET")
+http(action="request", url="http://TARGET:2375/version", method="GET")
+http(action="request", url="http://TARGET:2375/containers/json", method="GET")
+http(action="request", url="http://TARGET:2375/images/json", method="GET")
 ```
 
 **Kubelet API — unauthenticated pod listing:**
 ```
-http_request(url="https://TARGET:10250/pods", method="GET")
-http_request(url="http://TARGET:10255/pods", method="GET")
+http(action="request", url="https://TARGET:10250/pods", method="GET")
+http(action="request", url="http://TARGET:10255/pods", method="GET")
 ```
 
 **Kubelet RCE via /run endpoint (anonymous auth):**
@@ -177,11 +177,11 @@ This is a **Critical** finding — unauthenticated RCE on any container via the 
 
 **kubectl proxy / insecure port:**
 ```
-http_request(url="http://TARGET:8001/api/v1/namespaces", method="GET")
-http_request(url="http://TARGET:8080/api/v1/namespaces", method="GET")
+http(action="request", url="http://TARGET:8001/api/v1/namespaces", method="GET")
+http(action="request", url="http://TARGET:8080/api/v1/namespaces", method="GET")
 ```
 
-Call `report_diagram` with discovered K8s topology after this phase.
+Call `report(action="diagram", data={...})` with discovered K8s topology after this phase.
 
 ---
 
@@ -606,8 +606,8 @@ kali(command="kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.
 **8f. Private container registry enumeration:**
 Scan for exposed registries on port 5000 or discovered via service enumeration:
 ```
-http_request(url="http://TARGET:5000/v2/", method="GET")
-http_request(url="http://TARGET:5000/v2/_catalog", method="GET")
+http(action="request", url="http://TARGET:5000/v2/", method="GET")
+http(action="request", url="http://TARGET:5000/v2/_catalog", method="GET")
 ```
 
 If the registry is accessible, enumerate repositories and extract image configs:
@@ -908,7 +908,7 @@ for p in d.get(\"items\", []):
 
 ### Phase 12 — Attack Path Diagram & Report
 
-1. Call `report_diagram` with a comprehensive attack path map showing all discovered vectors:
+1. Call `report(action="diagram", data={...})` with a comprehensive attack path map showing all discovered vectors:
 
 ```mermaid
 flowchart TD
@@ -950,7 +950,7 @@ flowchart TD
     style SECRETS fill:#ff6b6b,color:#fff
 ```
 
-2. Call `log_note` with assessment summary:
+2. Call `report(action="note", data={...})` with assessment summary:
 ```
 Container/K8s Security Assessment Summary:
   Cluster version:         [version]
@@ -975,7 +975,7 @@ Container/K8s Security Assessment Summary:
   Cloud metadata access:   [accessible/blocked]
 ```
 
-3. Call `complete_scan` with summary
+3. Call `session(action="complete", options={...})` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -1019,15 +1019,15 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
 | `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
 | `/threat-model` | Produce PASTA threat model of the K8s architecture |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
 - **Check anonymous auth first** — unauthenticated K8s API and kubelet access are the most critical findings
 - **Enumerate service accounts** — they're the most common K8s attack vector
 - **Always check NodePort range** — these bypass ingress controls entirely
@@ -1035,9 +1035,9 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 - **Test cross-namespace connectivity** — the flat network model is a lateral movement goldmine
 - **Check for SSRF to metadata** — cloud credentials via 169.254.169.254 from pods
 - **Verify defensive controls** — the ABSENCE of Falco, Kyverno, NetworkPolicies, audit logging is itself a finding
-- **Call `report_finding` for every confirmed weakness** — include the specific resource, misconfiguration, and impact
+- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the specific resource, misconfiguration, and impact
 - **Test container escape only when authorized** — these can affect the underlying host
-- **Use `log_note` liberally** — document K8s version, RBAC findings, pod configurations
+- **Use `report(action="note", data={...})` liberally** — document K8s version, RBAC findings, pod configurations
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used

@@ -22,15 +22,15 @@ You are an expert OSINT analyst performing comprehensive passive reconnaissance.
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `run_subfinder` | Subdomain enumeration — passive sources |
-| `kali_exec` | Kali tools: theHarvester, amass, dnsrecon, fierce, dnstwist, dmitry, whatweb, wafw00f, whois, dig, exiftool, smtp-user-enum, swaks, waybackurls |
-| `http_request` | HTTP requests — check public resources, APIs, web archives, crt.sh, Shodan, Censys |
-| `report_finding` | Log a significant OSINT discovery to findings.json — include confidence level |
-| `report_diagram` | Save a Mermaid diagram (org chart, infra map) to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `scan(tool="subfinder", ...)` | Subdomain enumeration — passive sources |
+| `kali(command=...)` | Kali tools: theHarvester, amass, dnsrecon, fierce, dnstwist, dmitry, whatweb, wafw00f, whois, dig, exiftool, smtp-user-enum, swaks, waybackurls |
+| `http(action="request", ...)` | HTTP requests — check public resources, APIs, web archives, crt.sh, Shodan, Censys |
+| `report(action="finding", data={...})` | Log a significant OSINT discovery to findings.json — include confidence level |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram (org chart, infra map) to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
 
@@ -49,7 +49,7 @@ You are an expert OSINT analyst performing comprehensive passive reconnaissance.
 
 ## OSINT Confidence Scoring
 
-Every finding must be assigned a confidence level. Include the confidence and source list in every `report_finding` call.
+Every finding must be assigned a confidence level. Include the confidence and source list in every `report(action="finding", data={...})` call.
 
 | Confidence | Criteria |
 |------------|----------|
@@ -89,9 +89,9 @@ If the request does not specify depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target domain, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record target domain, organization name, known info
+0. Call `session(action="start", options={...})` with target domain, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record target domain, organization name, known info
 
 ---
 
@@ -168,14 +168,14 @@ kali(command="swaks --to target@DOMAIN --server MAIL_SERVER --quit-after RCPT 2>
 ```
 kali(command="swaks --to definitelynotarealuser12345@DOMAIN --server MAIL_SERVER --quit-after RCPT 2>&1 | grep -E '250|550'")
 ```
-If fake address returns `250 OK`, the domain uses catch-all — SMTP cannot confirm individual addresses. Log with `log_note`.
+If fake address returns `250 OK`, the domain uses catch-all — SMTP cannot confirm individual addresses. Log with `report(action="note", data={...})`.
 
 **Timing analysis — some servers accept all but respond slower for valid addresses:**
 ```
 kali(command="for user in fakeuser1 fakeuser2 fakeuser3 realuser1 realuser2; do echo -n \"$user: \"; { time swaks --to $user@DOMAIN --server MAIL_SERVER --quit-after RCPT; } 2>&1 | grep real; done")
 ```
 
-Call `report_finding` for email pattern and verified employee list with confidence level.
+Call `report(action="finding", data={...})` for email pattern and verified employee list with confidence level.
 
 ---
 
@@ -191,7 +191,7 @@ kali(command="whatweb -a 1 https://DOMAIN")
 kali(command="wafw00f https://DOMAIN")
 ```
 
-Call `report_diagram` with infrastructure map after this phase.
+Call `report(action="diagram", data={...})` with infrastructure map after this phase.
 
 ---
 
@@ -224,7 +224,7 @@ kali(command="cat /tmp/subdomains.txt | while read sub; do cname=$(dig +short CN
 kali(command="cat /tmp/subdomains.txt | while read sub; do cname=$(dig +short CNAME $sub 2>/dev/null); if [ -n \"$cname\" ]; then result=$(dig +short $cname 2>/dev/null); if [ -z \"$result\" ]; then echo \"DANGLING: $sub -> $cname\"; fi; fi; done")
 ```
 
-Dangling CNAME = **Critical** finding. Call `report_finding` immediately.
+Dangling CNAME = **Critical** finding. Call `report(action="finding", data={...})` immediately.
 
 ---
 
@@ -244,7 +244,7 @@ kali(command="curl -s 'https://search.censys.io/api/v2/hosts/search?q=services.t
 kali(command="curl -s 'https://api.shodan.io/shodan/host/IP?key=SHODAN_KEY&history=true' | jq '.data[] | {timestamp: .timestamp, port: .port, product: .product, version: .version}' | head -50")
 ```
 
-If no API keys, use web interfaces and record with `log_note`. Call `report_finding` for exposed databases, admin panels, or unpatched software.
+If no API keys, use web interfaces and record with `report(action="note", data={...})`. Call `report(action="finding", data={...})` for exposed databases, admin panels, or unpatched software.
 
 ---
 
@@ -318,7 +318,7 @@ kali(command="curl -s 'https://api.github.com/search/code?q=org:ORG_NAME+filenam
 kali(command="curl -s 'https://api.github.com/search/code?q=DOMAIN+in:gist' -H 'Accept: application/vnd.github.v3+json' | jq '.items[] | {url: .html_url}' | head -20")
 ```
 
-Call `report_finding` for any leaked credentials or secrets.
+Call `report(action="finding", data={...})` for any leaked credentials or secrets.
 
 ---
 
@@ -380,7 +380,7 @@ kali(command="curl -s 'https://api.securitytrails.com/v1/history/DOMAIN/dns/mx' 
 
 **What DNS history reveals:** A record changes = hosting migrations (old IPs may still serve content). MX changes = email provider switches. NS changes = DNS provider migrations. Old IPs = check with Shodan for residual services.
 
-Call `report_finding` if old infrastructure is still reachable.
+Call `report(action="finding", data={...})` if old infrastructure is still reachable.
 
 ---
 
@@ -389,13 +389,13 @@ Call `report_finding` if old infrastructure is still reachable.
 ```
 kali(command="curl -s 'https://haveibeenpwned.com/api/v3/breachedaccount/test@DOMAIN' -H 'hibp-api-key: KEY' 2>/dev/null || echo 'HIBP API key required'")
 ```
-Search paste sites manually. Call `report_finding` for confirmed leaks.
+Search paste sites manually. Call `report(action="finding", data={...})` for confirmed leaks.
 
 ---
 
 ### Phase 13 — Report & Wrap-Up
 
-1. Call `report_diagram` with OSINT map:
+1. Call `report(action="diagram", data={...})` with OSINT map:
 ```mermaid
 flowchart TD
     Org["Target Organization"] --> People["People: N employees"]
@@ -407,7 +407,7 @@ flowchart TD
     Domains --> Takeover["Takeover candidates: N"]
 ```
 
-2. Call `log_note` with summary:
+2. Call `report(action="note", data={...})` with summary:
 ```
 OSINT Summary:
   Subdomains:        [count] ([count] crt.sh, [count] subfinder, [count] amass)
@@ -421,7 +421,7 @@ OSINT Summary:
   DNS history:       [notable changes]
 ```
 
-3. Call `complete_scan` with summary
+3. Call `session(action="complete", options={...})` with summary
 4. **Chain to `/pentester`** if active scanning is authorized
 
 ---
@@ -434,22 +434,22 @@ OSINT Summary:
 | `/threat-model` | Use OSINT findings to build threat model before active testing |
 | `/ai-redteam` | AI/LLM endpoint discovered during OSINT |
 | `/ssl-tls-audit` | TLS services discovered — deep certificate and crypto audit |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **All techniques must be PASSIVE** — no active exploitation (SMTP VRFY/RCPT TO is acceptable as standard email verification)
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
-- **Call `report_finding` for significant discoveries** — email patterns, credential leaks, exposed cloud storage, subdomain takeover candidates, secrets in repos
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
+- **Call `report(action="finding", data={...})` for significant discoveries** — email patterns, credential leaks, exposed cloud storage, subdomain takeover candidates, secrets in repos
 - **Include confidence level in every finding** — Confirmed, Likely, or Speculative — with source list
 - **Cross-reference sources** — upgrade confidence when multiple tools agree; downgrade single-source findings
 - **Build the org map progressively** — domain, then people, infrastructure, technology, cloud
-- **Use `log_note` liberally** — document sources and confidence for each finding
+- **Use `report(action="note", data={...})` liberally** — document sources and confidence for each finding
 - **Never fabricate findings** — only report what tool output confirms
 - **Respect privacy** — focus on publicly available information relevant to security assessment
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used

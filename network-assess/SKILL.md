@@ -20,19 +20,19 @@ You are an expert network penetration tester performing an internal network asse
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `run_nmap` | Port scanning and service detection |
-| `run_naabu` | Fast port scanning across large networks |
-| `run_httpx` | HTTP service probing |
-| `run_nuclei` | Network service vulnerability templates |
-| `kali_exec` | Kali tools: arp-scan, nbtscan, snmpwalk, onesixtyone, smbmap, showmount, hping3, masscan, netexec, nfs-common |
-| `http_request` | Probe web management interfaces |
-| `save_poc` | Save confirmed exploits |
-| `report_finding` | Log confirmed vulnerabilities to findings.json |
-| `report_diagram` | Save network topology diagrams |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write reasoning notes to session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `scan(tool="nmap", ...)` | Port scanning and service detection |
+| `scan(tool="naabu", ...)` | Fast port scanning across large networks |
+| `scan(tool="httpx", ...)` | HTTP service probing |
+| `scan(tool="nuclei", ...)` | Network service vulnerability templates |
+| `kali(command=...)` | Kali tools: arp-scan, nbtscan, snmpwalk, onesixtyone, smbmap, showmount, hping3, masscan, netexec, nfs-common |
+| `http(action="request", ...)` | Probe web management interfaces |
+| `http(action="save_poc", ...)` | Save confirmed exploits |
+| `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
+| `report(action="diagram", data={...})` | Save network topology diagrams |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write reasoning notes to session log |
 
 ---
 
@@ -64,9 +64,9 @@ You are an expert network penetration tester performing an internal network asse
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target CIDR, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record network range, gateway, VLAN, assessment objectives
+0. Call `session(action="start", options={...})` with target CIDR, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record network range, gateway, VLAN, assessment objectives
 
 ---
 
@@ -106,7 +106,7 @@ scan(tool="nmap", target=HOST, options={"ports": "top-1000", "flags": "-sV -sC"}
 scan(tool="naabu", target="NETWORK/24", options={"ports": "full"})
 ```
 
-After discovery, call `report_diagram` with network topology:
+After discovery, call `report(action="diagram", data={...})` with network topology:
 ```mermaid
 flowchart TD
     GW["Gateway: 10.0.0.1"] --> VLAN10["VLAN 10: Servers"]
@@ -134,7 +134,7 @@ kali(command="responder -I eth0 -A 2>&1 | head -30", timeout=15000)
 kali(command="tcpdump -i any -c 50 'udp port 5355 or udp port 137 or udp port 5353' -nn 2>/dev/null | head -30", timeout=15000)
 ```
 
-If LLMNR/NBT-NS responses are detected, call `report_finding` — these can be poisoned for credential capture.
+If LLMNR/NBT-NS responses are detected, call `report(action="finding", data={...})` — these can be poisoned for credential capture.
 
 ---
 
@@ -174,7 +174,7 @@ kali(command="smbmap -H HOST -u '' -p '' 2>/dev/null")
 kali(command="showmount -e HOST 2>/dev/null")
 ```
 
-If NFS exports are world-readable, call `report_finding`.
+If NFS exports are world-readable, call `report(action="finding", data={...})`.
 
 ---
 
@@ -218,9 +218,9 @@ kali(command="ssh-audit GATEWAY 2>/dev/null | head -50")
 
 ### Phase 8 — Report & Wrap-Up
 
-1. Call `report_diagram` with final annotated network topology
+1. Call `report(action="diagram", data={...})` with final annotated network topology
 
-2. Call `log_note` with assessment summary:
+2. Call `report(action="note", data={...})` with assessment summary:
 ```
 Internal Network Assessment Summary:
   Network range:           [CIDR]
@@ -234,7 +234,7 @@ Internal Network Assessment Summary:
   Network devices:         [count] with default creds or weak config
 ```
 
-3. Call `complete_scan` with summary
+3. Call `session(action="complete", options={...})` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -249,20 +249,20 @@ Internal Network Assessment Summary:
 | `/container-k8s-security` | Docker/K8s services discovered — container and K8s assessment |
 | `/osint` | Passive recon before active network assessment |
 | `/post-exploit` | Access obtained on network device or host — privilege escalation, credential harvesting, pivot prep |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
 - **Start with ARP scan** — it's the most reliable host discovery on local networks
 - **Test segmentation actively** — attempt to reach hosts in other VLANs/segments
-- **Call `report_finding` for every confirmed weakness** — include the specific service, protocol, or misconfiguration
+- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the specific service, protocol, or misconfiguration
 - **Map the full topology** — update the network diagram as you discover new segments
-- **Use `log_note` liberally** — document network structure discoveries
+- **Use `report(action="note", data={...})` liberally** — document network structure discoveries
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used

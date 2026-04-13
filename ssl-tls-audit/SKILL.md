@@ -20,16 +20,16 @@ You are an expert cryptographic security auditor. Your goal: comprehensively ass
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `kali_exec` | Kali tools: testssl.sh, sslscan, sslyze, openssl s_client, curl |
-| `run_nuclei` | SSL/TLS vulnerability templates |
-| `run_nmap` | SSL/TLS NSE scripts |
-| `http_request` | HTTPS header checks (HSTS, CSP, etc.), raw HTTP probes |
-| `report_finding` | Log a confirmed vulnerability with evidence to findings.json |
-| `report_diagram` | Save a Mermaid diagram to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `kali(command=...)` | Kali tools: testssl.sh, sslscan, sslyze, openssl s_client, curl |
+| `scan(tool="nuclei", ...)` | SSL/TLS vulnerability templates |
+| `scan(tool="nmap", ...)` | SSL/TLS NSE scripts |
+| `http(action="request", ...)` | HTTPS header checks (HSTS, CSP, etc.), raw HTTP probes |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
 
@@ -45,7 +45,7 @@ You are an expert cryptographic security auditor. Your goal: comprehensively ass
 | **TLS 1.3 specific** | 0-RTT replay, PSK modes, downgrade detection, GREASE, TLS_FALLBACK_SCSV | testssl, openssl | 4.2.1.2 | 3.4 |
 | **Session management** | Ticket reuse, session ID fixation, resumption, ticket lifetime | testssl, openssl | 4.2.1 | 3.6 |
 | **Renegotiation** | Client-initiated renego DoS, secure renegotiation extension (RFC 5746) | testssl, openssl | -- | 3.6.1 |
-| **HSTS** | max-age, includeSubDomains, preload list, subdomain bypass, HTTP redirect | http_request, curl | 6.2 | -- |
+| **HSTS** | max-age, includeSubDomains, preload list, subdomain bypass, HTTP redirect | http(action="request", ...), curl | 6.2 | -- |
 | **Certificate revocation** | CRL distribution points, OCSP responder, OCSP stapling freshness, CRL caching | testssl, openssl | 4.2.1.1 | 3.5 |
 | **Multi-port TLS** | 20 TLS-bearing ports: SMTP, IMAP, POP3, LDAPS, RDP, DB, MQTT, etc. | testssl, nmap | 4.2.1 | 3.1 |
 
@@ -76,9 +76,9 @@ If the request does not specify depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with target, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record target host:port, TLS requirements, compliance scope
+0. Call `session(action="start", options={...})` with target, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record target host:port, TLS requirements, compliance scope
 
 ### Phase 1 — Automated Scanning
 
@@ -97,7 +97,7 @@ scan(tool="nmap", target=HOST, options={"ports": "443", "flags": "--script ssl-e
 kali(command="sslyze --regular TARGET:443")
 ```
 
-After each tool: `log_note` summary + `report_finding` for confirmed vulns.
+After each tool: `report(action="note", data={...})` summary + `report(action="finding", data={...})` for confirmed vulns.
 
 ### Phase 2 — Protocol Version Analysis
 
@@ -379,7 +379,7 @@ Note: X25519 and CHACHA20 are NOT FIPS-approved. Flag as **Informational** in Fe
 
 ### Phase 14 — Report & Wrap-Up
 
-1. Call `report_diagram` with TLS configuration summary:
+1. Call `report(action="diagram", data={...})` with TLS configuration summary:
 ```mermaid
 flowchart TD
     Client["Client"] --> TLS["TLS Handshake"]
@@ -392,8 +392,8 @@ flowchart TD
     TLS --> Session["Session: Tickets rotated, no 0-RTT"]
     TLS --> Vulns["Known Vulns: None"]
 ```
-2. Call `log_note` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
-3. Call `complete_scan` with summary
+2. Call `report(action="note", data={...})` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
+3. Call `session(action="complete", options={...})` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -407,7 +407,7 @@ flowchart TD
 | `/network-assess` | Internal network found — test segmentation, SNMP, broadcast protocols |
 | `/credential-audit` | Weak TLS enables credential interception — test authentication strength |
 | `/post-exploit` | Weak TLS enables MitM credential capture — post-exploitation with harvested credentials |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
@@ -424,10 +424,10 @@ flowchart TD
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
-- **Call `report_finding` for every confirmed TLS weakness** — include protocol/cipher/vuln and compliance impact
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
+- **Call `report(action="finding", data={...})` for every confirmed TLS weakness** — include protocol/cipher/vuln and compliance impact
 - **Always run testssl first** — most comprehensive single-tool output
 - **Map findings to compliance** — PCI DSS 4.0 + NIST 800-52r2; include FedRAMP if in scope
 - **Full certificate chain validation** — validity, chain, SAN, key size, sig algo, CT logs, OCSP, CRL
@@ -435,7 +435,7 @@ flowchart TD
 - **TLS 1.3 specific tests** — 0-RTT, PSK modes, downgrade protection are distinct from TLS 1.2
 - **Session management** — ticket reuse, resumption, lifetime are often overlooked
 - **Renegotiation** — test both secure renegotiation support and client-initiated DoS
-- **Use `log_note` liberally** — document findings and compliance decisions
+- **Use `report(action="note", data={...})` liberally** — document findings and compliance decisions
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax**: `flowchart TD`, quote labels, no em-dashes, short node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used

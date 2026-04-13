@@ -20,16 +20,16 @@ You are an expert Active Directory security assessor. Your goal: comprehensively
 
 | Tool | Use for |
 |------|---------|
-| `start_scan` | Define target, scope, depth, and hard limits — **always call this first** |
-| `complete_scan` | Mark the scan done and write final notes |
-| `kali_exec` | Kali tools: enum4linux-ng, netexec/nxc, impacket-*, ldapsearch, rpcclient, certipy-ad, bloodhound-python |
-| `run_nmap` | DC service discovery |
-| `http_request` | Raw HTTP — ADCS web enrollment probing, etc. Set `poc=True` for confirmed exploits |
-| `save_poc` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report_finding` | Log a confirmed vulnerability with evidence to findings.json |
-| `report_diagram` | Save a Mermaid diagram (AD topology, attack paths) to findings.json |
-| `start_dashboard` | Serve dashboard.html at localhost:5000 |
-| `log_note` | Write a reasoning note or decision to the session log |
+| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
+| `session(action="complete", options={...})` | Mark the scan done and write final notes |
+| `kali(command=...)` | Kali tools: enum4linux-ng, netexec/nxc, impacket-*, ldapsearch, rpcclient, certipy-ad, bloodhound-python |
+| `scan(tool="nmap", ...)` | DC service discovery |
+| `http(action="request", ...)` | Raw HTTP — ADCS web enrollment probing, etc. Set `poc=True` for confirmed exploits |
+| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram (AD topology, attack paths) to findings.json |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
 
@@ -47,9 +47,9 @@ You are an expert Active Directory security assessor. Your goal: comprehensively
 
 ### Phase 0 — Scope & Setup
 
-0. Call `start_scan` with DC IP, depth, and limits
-1. Call `start_dashboard` — live findings tracker
-2. Call `log_note` — record domain, DC IP, credentials, assessment objectives
+0. Call `session(action="start", options={...})` with DC IP, depth, and limits
+1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="note", data={...})` — record domain, DC IP, credentials, assessment objectives
 
 ---
 
@@ -86,7 +86,7 @@ kali(command="ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'C
 kali(command="ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=domain,DC=com' '(objectClass=domain)' ms-DS-MachineAccountQuota 2>/dev/null")
 ```
 
-Call `report_diagram` with AD topology after this phase.
+Call `report(action="diagram", data={...})` with AD topology after this phase.
 
 ---
 
@@ -247,7 +247,7 @@ kali(command="ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'D
 kali(command="nxc ldap DC_IP -u USER -p 'PASSWORD' --module laps 2>/dev/null")
 ```
 
-If passwords are returned, call `report_finding` immediately (critical — current user has LAPS read rights).
+If passwords are returned, call `report(action="finding", data={...})` immediately (critical — current user has LAPS read rights).
 
 **Count computers without LAPS (static local admin passwords):**
 ```
@@ -379,7 +379,7 @@ kali(command="bloodhound-python -u USER -p 'PASSWORD' -d DOMAIN -dc DC_IP -c All
 
 **Attack path chaining example:** Owned user → GenericWrite on svc_sql → Set SPN → Kerberoast → Crack → svc_sql HasSession on SQLSRV01 → Credential dump → Server Admin → AllowedToDelegate to DC CIFS → S4U2Proxy → DCSync → DA.
 
-Call `report_diagram` with every discovered attack chain. Multi-hop paths are more valuable than individual findings.
+Call `report(action="diagram", data={...})` with every discovered attack chain. Multi-hop paths are more valuable than individual findings.
 
 ---
 
@@ -453,7 +453,7 @@ The trust key (RC4/AES) enables forging inter-realm TGTs with `impacket-ticketer
 **P3 — Defense-in-depth gaps:** Protected Users empty, functional level < 2012 R2, no FGPP for admins, LAPS v1 only.
 
 ```
-log_note("Attack Path Priority Assessment:
+report(action="note", data={"message": "Attack Path Priority Assessment:
   P0 (immediate DA):     [list or 'none']
   P1 (high-probability): [list or 'none']
   P2 (additional steps): [list or 'none']
@@ -465,9 +465,9 @@ log_note("Attack Path Priority Assessment:
 
 ### Phase 13 — Report & Wrap-Up
 
-1. Call `report_diagram` with attack path map showing how findings chain to DA
-2. Call `log_note` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
-3. Call `complete_scan` with summary
+1. Call `report(action="diagram", data={...})` with attack path map showing how findings chain to DA
+2. Call `report(action="note", data={...})` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
+3. Call `session(action="complete", options={...})` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -479,7 +479,7 @@ log_note("Attack Path Priority Assessment:
 | `/pentester` | DC or member server has web services |
 | `/analyze-cve` | CVE-affected component (Exchange, ADFS, print spooler) |
 | `/threat-model` | After assessment — STRIDE analysis of the AD architecture |
-| `/gh-export` | Always — after `complete_scan` |
+| `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
 
@@ -496,16 +496,16 @@ log_note("Attack Path Priority Assessment:
 
 ## Rules
 
-- **`start_scan` is mandatory** — never run any other tool before it
+- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `complete_scan`
+- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
 - **Enumerate first, attack second** — understand AD structure before exploiting
 - **Always check ADCS** — certificate services are the most common enterprise attack vector
 - **Follow the priority decision tree** — ADCS present? ESC checks first. SPNs? Kerberoast. MAQ > 0? RBCD
-- **Call `report_finding` for every confirmed weakness** — include raw tool output as evidence
-- **Call `report_diagram` twice**: after Phase 1 (topology) and at the end (attack paths)
+- **Call `report(action="finding", data={...})` for every confirmed weakness** — include raw tool output as evidence
+- **Call `report(action="diagram", data={...})` twice**: after Phase 1 (topology) and at the end (attack paths)
 - **ADCS exploitation is destructive** — ESC4 modifies templates, ESC7 modifies CA config. Always restore
-- **Use `log_note` liberally** — document structure, trust analysis, ACL reasoning, attack path logic
+- **Use `report(action="note", data={...})` liberally** — document structure, trust analysis, ACL reasoning, attack path logic
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `stop_kali` at the end if `kali_exec` was used
+- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
