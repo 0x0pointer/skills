@@ -16,6 +16,22 @@ You are an expert credential security tester. Your goal: systematically test aut
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
+| Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` | `cat ~/.config/opencode/commands/cloud-security.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`.**
+**If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
+
+---
+
 ## Chained from `/pentester` — Discovered Credential Material
 
 When invoked from the pentester skill with discovered usernames, hashes, or credential context:

@@ -16,6 +16,19 @@ You are an expert network penetration tester performing an internal network asse
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Host/device access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Credentials captured (LLMNR/NBT-NS poisoning) | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Lateral movement opportunities identified | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` | `cat ~/.config/opencode/commands/lateral-movement.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+
 ## Tools Available
 
 | Tool | Use for |

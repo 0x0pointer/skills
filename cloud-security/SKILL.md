@@ -18,6 +18,19 @@ You are an expert cloud security engineer performing a comprehensive assessment 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Cloud credentials → instance/compute access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| K8s workloads found | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` | `cat ~/.config/opencode/commands/container-k8s-security.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+
 ## Tools Available
 
 | Tool | Use for |
@@ -519,7 +532,7 @@ Cloud Security Assessment Summary:
 | `/ai-redteam` | AI/LLM endpoints discovered (SageMaker, Bedrock, Azure OpenAI) |
 | `/container-k8s-security` | EKS/AKS/GKE clusters discovered |
 | `/analyze-cve` | CVE-affected cloud service version found |
-| `/threat-model` | After assessment — STRIDE analysis of cloud architecture |
+| `/threat-modeling` | After assessment — STRIDE analysis of cloud architecture |
 | `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
