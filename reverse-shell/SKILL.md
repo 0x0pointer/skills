@@ -37,6 +37,9 @@ Read this before generating any payload. Commit to MANDATORY chains before your 
 
 **You WILL invoke `/post-exploit` the moment a reverse shell connects. Do not spend time manually enumerating — hand off immediately.**
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## Reverse Shell Payload Reference

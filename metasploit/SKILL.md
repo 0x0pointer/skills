@@ -28,6 +28,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **You WILL invoke `/post-exploit` the moment a session is opened. You WILL invoke `/gh-export` after `session(action="complete")`.**
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## Tools Available

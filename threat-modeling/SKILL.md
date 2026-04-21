@@ -29,6 +29,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **You WILL invoke `/remediate` after completing the threat model. This is not optional.**
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## Shostack's 4 Questions — The Session Frame

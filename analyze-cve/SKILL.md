@@ -45,6 +45,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **You WILL invoke `/gh-export` after completing the analysis if a confirmed exploitable finding was produced.**
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## Analysis Workflow

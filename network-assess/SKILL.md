@@ -47,6 +47,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write reasoning notes to session log |
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## ATT&CK Coverage

@@ -40,6 +40,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/threat-modeling` and `/gh-export` after `session(action="complete")`.**
 **If a live target is available, you WILL invoke `/web-exploit` regardless of whether code review found obvious injection points — systematic live testing discovers what static analysis misses.**
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## Tools Available
