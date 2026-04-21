@@ -30,6 +30,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
 | After `session(action="complete")` | `/threat-modeling` | **MANDATORY** | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| After `/threat-modeling` completes | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
 | After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
 | LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` | `cat ~/.config/opencode/commands/ai-redteam.md` |

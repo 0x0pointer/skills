@@ -16,6 +16,21 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| SMTP/STARTTLS weakness found | `/ssl-tls-audit` | OPTIONAL | `Skill(skill="ssl-tls-audit")` | `cat ~/.config/opencode/commands/ssl-tls-audit.md` |
+| Email credentials found | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
