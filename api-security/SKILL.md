@@ -58,9 +58,9 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Spec discovery + auto BOLA enumeration on numeric IDs + basic auth checks | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + systematic per-endpoint testing across all 10 categories + JWT analysis + GraphQL introspection | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + cross-tenant tests with two accounts + mass assignment fuzzing + business flow abuse + SSRF + schemathesis/restler-fuzzer property fuzzing + inventory drift comparison | $2.00 · 120 min · 60 calls |
+| `quick` | Spec discovery + auto BOLA enumeration on numeric IDs + basic auth checks | $0.10 | 5 min | 10 calls |
+| `standard` | Quick + systematic per-endpoint testing across all 10 categories + JWT analysis + GraphQL introspection | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + cross-tenant tests with two accounts + mass assignment fuzzing + business flow abuse + SSRF + schemathesis/restler-fuzzer property fuzzing + inventory drift comparison | unlimited | unlimited | unlimited |
 
 ---
 

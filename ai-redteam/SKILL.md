@@ -100,9 +100,9 @@ When the target exposes an MCP server or is an agent that invokes MCP tools, als
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | FuzzyAI (jailbreak + system-prompt-leak) only | $0.10 · 10 min · 5 calls |
-| `standard` | FuzzyAI (all attacks) + Garak (top probes) + PyRIT (prompt_injection) + MCP recon (if applicable) + model extraction probes (AITG-APP-09) | $0.50 · 30 min · 15 calls |
-| `thorough` | All 4 tools with full probe/plugin sets + multi-turn crescendo + MCP runtime attacks + content bias (APP-10) + evasion (MOD-01) + membership inference (MOD-04) + manual follow-up | $2.00 · 90 min · 40 calls |
+| `quick` | FuzzyAI (jailbreak + system-prompt-leak) only | $0.10 | 10 min | 5 calls |
+| `standard` | FuzzyAI (all attacks) + Garak (top probes) + PyRIT (prompt_injection) + MCP recon (if applicable) + model extraction probes (AITG-APP-09) | $0.50 | 30 min | 15 calls |
+| `thorough` | All 4 tools with full probe/plugin sets + multi-turn crescendo + MCP runtime attacks + content bias (APP-10) + evasion (MOD-01) + membership inference (MOD-04) + manual follow-up | unlimited | unlimited | unlimited |
 
 Post-access phase (3c) runs only when the skill is chained from `/post-exploit` with shell access on the AI host.
 

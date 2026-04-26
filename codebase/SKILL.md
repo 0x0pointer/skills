@@ -70,9 +70,9 @@ The review targets these ASVS chapters based on what's verifiable from source co
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Phase 1 (orientation) + Phase 4 (automated scanning) only | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + Phase 2 (attack surface) + Phase 3 (auth) + Phase 5 (dangerous patterns) | $0.50 · 45 min · 30 calls |
-| `thorough` | Standard + Phase 6 (IaC, crypto, config, logging) + full source-to-sink tracing + ASVS coverage summary | $2.00 · 120 min · 60 calls |
+| `quick` | Phase 1 (orientation) + Phase 4 (automated scanning) only | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + Phase 2 (attack surface) + Phase 3 (auth) + Phase 5 (dangerous patterns) | $0.50 | 45 min | 30 calls |
+| `thorough` | Standard + Phase 6 (IaC, crypto, config, logging) + full source-to-sink tracing + ASVS coverage summary | unlimited | unlimited | unlimited |
 
 ---
 

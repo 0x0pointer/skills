@@ -54,9 +54,9 @@ You are an expert network penetration tester performing an internal network asse
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Host discovery + top-100 ports + service ID | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + top-1000 ports + SMB/SNMP/NFS enum + broadcast protocols | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + full port scan + segmentation testing + router/switch audit + deep enumeration | $2.00 · 120 min · 60 calls |
+| `quick` | Host discovery + top-100 ports + service ID | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + top-1000 ports + SMB/SNMP/NFS enum + broadcast protocols | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + full port scan + segmentation testing + router/switch audit + deep enumeration | unlimited | unlimited | unlimited |
 
 ---
 

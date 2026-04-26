@@ -37,9 +37,9 @@ You are an expert Active Directory security assessor. Your goal: comprehensively
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Domain enum + password policy + privileged groups + Kerberoasting + AS-REP | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + ADCS (ESC1-ESC8) + delegation + GPO + ACL + FGPP + LAPS + service accounts | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + BloodHound + forest trust analysis + attack path prioritization | $2.00 · 120 min · 60 calls |
+| `quick` | Domain enum + password policy + privileged groups + Kerberoasting + AS-REP | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + ADCS (ESC1-ESC8) + delegation + GPO + ACL + FGPP + LAPS + service accounts | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + BloodHound + forest trust analysis + attack path prioritization | unlimited | unlimited | unlimited |
 
 ---
 
