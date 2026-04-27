@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="https://nullpointer.studio/design/FullLogo_Transparent.png" alt="nullpointer.studio" width="320">
-</p>
 
 # skills
 
