@@ -41,7 +41,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **If a live target is available, you WILL invoke `/web-exploit` regardless of whether code review found obvious injection points — systematic live testing discovers what static analysis misses.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -52,9 +52,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 **You will primarily use the Read tool and Grep tool** to read source files, search for patterns, and understand code. The Glob tool helps find files by pattern. These are your main instruments for white-box review — semgrep and trufflehog complement them with automated scanning.
@@ -121,10 +120,10 @@ If the request does not specify depth or focus, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with codebase path, depth, and limits
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with codebase path, depth, and limits
 1. Call `Write("pentest/codebase.json", {...})`
 2. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-3. Call `Bash("echo '<message>' >> pentest/notes.log")` — record codebase path, expected tech stack, review focus
+3. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record codebase path, expected tech stack, review focus
 
 ---
 
@@ -145,8 +144,8 @@ If the request does not specify depth or focus, ask the user:
   - Python: `openai`, `anthropic`, `langchain`, `langchain-core`, `langchain-community`, `llama-index`, `haystack-ai`, `semantic-kernel`, `crewai`, `autogen-agentchat`, `mcp`, `pydantic-ai`
   - Node.js: `openai`, `@anthropic-ai/sdk`, `langchain`, `@langchain/core`, `@modelcontextprotocol/sdk`, `ai` (Vercel AI SDK)
   - Also grep source files for: API key patterns (`sk-`, `sk-ant-`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), model name strings (`gpt-4`, `gpt-3.5`, `claude`, `o1-`, `o3-`), and LLM endpoint URLs (`api.openai.com`, `api.anthropic.com`)
-  - If any LLM framework is detected: `Bash("echo '<message>' >> pentest/notes.log")`
-- Call `Bash("echo '<message>' >> pentest/notes.log")` with: language, framework, major dependencies, framework version
+  - If any LLM framework is detected: `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")`
+- Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with: language, framework, major dependencies, framework version
 
 **Step 2 — Map project structure:**
 - Use Glob to understand the directory layout (MVC? microservice? monolith?)
@@ -164,7 +163,7 @@ Look for security-relevant settings. What matters depends on the framework — a
 - Allowed hosts / origins
 - Email / SMTP configuration with credentials
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for any hardcoded secrets or dangerous configurations found.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for any hardcoded secrets or dangerous configurations found.
 
 **Step 4 — Dependency audit:**
 Check whether pinned dependency versions have known CVEs. For each major dependency, consider whether it's a security-sensitive component (auth library, ORM, template engine, crypto library, XML parser).
@@ -204,7 +203,7 @@ For every endpoint, determine:
 - CLI commands that accept user input
 - Scheduled tasks that process external data
 
-Call `Bash("echo '<message>' >> pentest/notes.log")` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
 
 ---
 
@@ -246,7 +245,7 @@ If JWT or OAuth is used:
 - Scope validation on resource servers
 - PKCE enforcement for public clients
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every auth/authz weakness found. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with the authentication flow diagram.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every auth/authz weakness found. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with the authentication flow diagram.
 
 ---
 
@@ -266,7 +265,7 @@ This runs 58 semgrep rules covering: hardcoded API keys, missing max_tokens, pro
 
 After results come back:
 - Read each semgrep finding and verify it against the actual code — false positives are common
-- For each confirmed finding, call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` with the code context
+- For each confirmed finding, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` with the code context
 - For trufflehog findings, verify whether secrets are real or test/example values
 
 ---
@@ -314,7 +313,7 @@ For each finding, trace whether user input actually reaches the function (source
 - Are there race conditions in critical operations (double-spend, TOCTOU)?
 - Can users skip steps or replay requests?
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
 
 ---
 
@@ -388,7 +387,7 @@ Only applies when the codebase implements or consumes MCP servers.
 - **Rug-pull potential**: can MCP tool descriptions or behavior change between discovery and invocation?
 - **Upstream dependency trust**: does the MCP client validate responses from MCP servers, or trust them blindly?
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for each confirmed LLM-specific weakness. Use severity guidance:
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for each confirmed LLM-specific weakness. Use severity guidance:
 - **Critical**: LLM output reaches eval/exec/shell without sandboxing; tool handler has command injection; prompt injection enables data exfiltration
 - **High**: No tenant isolation in RAG; over-permissioned tools without approval gates; secrets in system prompts; pickle model loading
 - **Medium**: Missing max_tokens; no agent iteration limits; unpinned LLM framework versions; weak prompt/response validation
@@ -438,7 +437,7 @@ If IaC files are present (Terraform, CloudFormation, K8s manifests, Dockerfiles,
 - Hardcoded secrets in manifests
 - Unpinned base images
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for each confirmed weakness.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for each confirmed weakness.
 
 ---
 
@@ -453,7 +452,7 @@ Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with a comprehensive M
 - Identified vulnerabilities annotated on the diagram
 
 **Step 2 — Codebase security profile:**
-Call `Bash("echo '<message>' >> pentest/notes.log")` with a structured summary that downstream skills can consume:
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with a structured summary that downstream skills can consume:
 
 ```
 Codebase Security Profile:
@@ -500,7 +499,7 @@ Codebase Security Profile:
 ```
 
 **Step 3 — ASVS coverage summary (thorough only):**
-Call `Bash("echo '<message>' >> pentest/notes.log")` with which ASVS chapters were reviewed and what was found:
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with which ASVS chapters were reviewed and what was found:
 
 ```
 ASVS 5.0 Coverage:
@@ -566,14 +565,14 @@ ASVS 5.0 Coverage:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Read before you judge** — don't report a finding just because a function name appears. Verify that user input actually reaches it
 - **Source-to-sink tracing is essential** — a dangerous function with hardcoded arguments is not a vulnerability. Trace the data flow
 - **Adapt to the framework** — every framework has different patterns. Don't grep for Django patterns in a Flask app
-- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
 - **Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
-- **The security profile feeds downstream skills** — write it clearly in `Bash("echo '<message>' >> pentest/notes.log")` so other skills can parse and act on it
-- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document your understanding of each component before analyzing it
+- **The security profile feeds downstream skills** — write it clearly in `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` so other skills can parse and act on it
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document your understanding of each component before analyzing it
 - **Never fabricate findings** — only report what the code actually shows
 - **ASVS is a guide, not a checklist** — focus on high-risk areas first, not sequential chapter review
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels with spaces/special chars, no em-dashes, short alphanumeric node IDs

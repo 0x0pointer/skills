@@ -37,13 +37,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -61,9 +60,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with DC IP, depth, and limits
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with DC IP, depth, and limits
 1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record domain, DC IP, credentials, assessment objectives
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record domain, DC IP, credentials, assessment objectives
 
 ---
 
@@ -261,7 +260,7 @@ Bash("ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=domain
 Bash("nxc ldap DC_IP -u USER -p 'PASSWORD' --module laps 2>/dev/null")
 ```
 
-If passwords are returned, call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` immediately (critical — current user has LAPS read rights).
+If passwords are returned, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` immediately (critical — current user has LAPS read rights).
 
 **Count computers without LAPS (static local admin passwords):**
 ```
@@ -467,7 +466,7 @@ The trust key (RC4/AES) enables forging inter-realm TGTs with `impacket-ticketer
 **P3 — Defense-in-depth gaps:** Protected Users empty, functional level < 2012 R2, no FGPP for admins, LAPS v1 only.
 
 ```
-Bash("echo '<message>' >> pentest/notes.log"):     [list or 'none']
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl"):     [list or 'none']
   P1 (high-probability): [list or 'none']
   P2 (additional steps): [list or 'none']
   P3 (defense gaps):     [list or 'none']
@@ -479,7 +478,7 @@ Bash("echo '<message>' >> pentest/notes.log"):     [list or 'none']
 ### Phase 13 — Report & Wrap-Up
 
 1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with attack path map showing how findings chain to DA
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
 3. Call `Write("pentest/summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
@@ -509,16 +508,16 @@ Bash("echo '<message>' >> pentest/notes.log"):     [list or 'none']
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
 - When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
 - **Enumerate first, attack second** — understand AD structure before exploiting
 - **Always check ADCS** — certificate services are the most common enterprise attack vector
 - **Follow the priority decision tree** — ADCS present? ESC checks first. SPNs? Kerberoast. MAQ > 0? RBCD
-- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed weakness** — include raw tool output as evidence
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed weakness** — include raw tool output as evidence
 - **Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` twice**: after Phase 1 (topology) and at the end (attack paths)
 - **ADCS exploitation is destructive** — ESC4 modifies templates, ESC7 modifies CA config. Always restore
-- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document structure, trust analysis, ACL reasoning, attack path logic
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document structure, trust analysis, ACL reasoning, attack path logic
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

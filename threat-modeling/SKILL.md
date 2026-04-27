@@ -30,7 +30,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/remediate` after completing the threat model. This is not optional.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 

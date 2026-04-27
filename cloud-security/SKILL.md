@@ -38,13 +38,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -92,9 +91,9 @@ If the request does not specify the cloud provider or mode, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target, depth, and limits
 1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record cloud provider, mode, available credentials, target scope
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record cloud provider, mode, available credentials, target scope
 
 ---
 
@@ -133,7 +132,7 @@ Bash("aws iam get-account-authorization-details --output json > /tmp/iam.json &&
 
 #### AWS IAM Privilege Escalation Paths
 
-Test each vector. For every path that exists, call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)`.
+Test each vector. For every path that exists, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")`.
 
 **iam:PassRole + Lambda (create function with privileged role):**
 ```
@@ -480,7 +479,7 @@ flowchart TD
 
 ### Phase 12 — Cloud Compliance Mapping (thorough)
 
-Map every confirmed finding to applicable compliance frameworks. Include in `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` description.
+Map every confirmed finding to applicable compliance frameworks. Include in `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` description.
 
 | Finding type | SOC 2 TSC | PCI DSS 4.0 | HIPAA | CIS (AWS/Azure/GCP) |
 |-------------|-----------|-------------|-------|---------------------|
@@ -503,7 +502,7 @@ Map every confirmed finding to applicable compliance frameworks. Include in `# A
 
 1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with cloud architecture annotated with findings
 
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` with cloud security summary:
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with cloud security summary:
 ```
 Cloud Security Assessment Summary:
   Provider:              [AWS/Azure/GCP]
@@ -549,18 +548,18 @@ Cloud Security Assessment Summary:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
 - When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
 - **Stay within declared scope** — only test cloud resources the user authorizes
 - **Handle credentials carefully** — never log cloud access keys in findings; reference by key ID only
-- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed misconfiguration** — include resource ARN/ID, misconfiguration, risk, and compliance mapping
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed misconfiguration** — include resource ARN/ID, misconfiguration, risk, and compliance mapping
 - **Map attack paths** — individual misconfigs are less impactful than chained paths to sensitive data
 - **Check every escalation vector** — use the IAM privilege escalation matrix systematically
 - **Validate logging at every layer** — CloudTrail management + data events, VPC Flow Logs, S3 access logs, GuardDuty
 - **Test storage at object level** — bucket-level checks are insufficient; enumerate object ACLs, versioning, encryption per-object
 - **Include compliance mapping** — every finding must reference applicable SOC 2, PCI DSS, HIPAA, and CIS controls
-- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document what resources were checked and their status
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document what resources were checked and their status
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

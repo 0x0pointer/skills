@@ -39,13 +39,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -64,7 +63,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ## OSINT Confidence Scoring
 
-Every finding must be assigned a confidence level. Include the confidence and source list in every `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` call.
+Every finding must be assigned a confidence level. Include the confidence and source list in every `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` call.
 
 | Confidence | Criteria |
 |------------|----------|
@@ -104,9 +103,9 @@ If the request does not specify depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target domain, depth, and limits
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target domain, depth, and limits
 1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target domain, organization name, known info
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record target domain, organization name, known info
 
 ---
 
@@ -183,14 +182,14 @@ Bash("swaks --to target@DOMAIN --server MAIL_SERVER --quit-after RCPT 2>&1 | gre
 ```
 Bash("swaks --to definitelynotarealuser12345@DOMAIN --server MAIL_SERVER --quit-after RCPT 2>&1 | grep -E '250|550'")
 ```
-If fake address returns `250 OK`, the domain uses catch-all — SMTP cannot confirm individual addresses. Log with `Bash("echo '<message>' >> pentest/notes.log")`.
+If fake address returns `250 OK`, the domain uses catch-all — SMTP cannot confirm individual addresses. Log with `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")`.
 
 **Timing analysis — some servers accept all but respond slower for valid addresses:**
 ```
 Bash("for user in fakeuser1 fakeuser2 fakeuser3 realuser1 realuser2; do echo -n \"$user: \"; { time swaks --to $user@DOMAIN --server MAIL_SERVER --quit-after RCPT; } 2>&1 | grep real; done")
 ```
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for email pattern and verified employee list with confidence level.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for email pattern and verified employee list with confidence level.
 
 ---
 
@@ -239,7 +238,7 @@ Bash("cat /tmp/subdomains.txt | while read sub; do cname=$(dig +short CNAME $sub
 Bash("cat /tmp/subdomains.txt | while read sub; do cname=$(dig +short CNAME $sub 2>/dev/null); if [ -n \"$cname\" ]; then result=$(dig +short $cname 2>/dev/null); if [ -z \"$result\" ]; then echo \"DANGLING: $sub -> $cname\"; fi; fi; done")
 ```
 
-Dangling CNAME = **Critical** finding. Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` immediately.
+Dangling CNAME = **Critical** finding. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` immediately.
 
 ---
 
@@ -259,7 +258,7 @@ Bash("curl -s 'https://search.censys.io/api/v2/hosts/search?q=services.tls.certi
 Bash("curl -s 'https://api.shodan.io/shodan/host/IP?key=SHODAN_KEY&history=true' | jq '.data[] | {timestamp: .timestamp, port: .port, product: .product, version: .version}' | head -50")
 ```
 
-If no API keys, use web interfaces and record with `Bash("echo '<message>' >> pentest/notes.log")`. Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for exposed databases, admin panels, or unpatched software.
+If no API keys, use web interfaces and record with `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")`. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for exposed databases, admin panels, or unpatched software.
 
 ---
 
@@ -333,7 +332,7 @@ Bash("curl -s 'https://api.github.com/search/code?q=org:ORG_NAME+filename:.env.e
 Bash("curl -s 'https://api.github.com/search/code?q=DOMAIN+in:gist' -H 'Accept: application/vnd.github.v3+json' | jq '.items[] | {url: .html_url}' | head -20")
 ```
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for any leaked credentials or secrets.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for any leaked credentials or secrets.
 
 ---
 
@@ -395,7 +394,7 @@ Bash("curl -s 'https://api.securitytrails.com/v1/history/DOMAIN/dns/mx' -H 'APIK
 
 **What DNS history reveals:** A record changes = hosting migrations (old IPs may still serve content). MX changes = email provider switches. NS changes = DNS provider migrations. Old IPs = check with Shodan for residual services.
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` if old infrastructure is still reachable.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` if old infrastructure is still reachable.
 
 ---
 
@@ -404,7 +403,7 @@ Call `# Append finding to pentest/findings.json (Read → mutate JSON array → 
 ```
 Bash("curl -s 'https://haveibeenpwned.com/api/v3/breachedaccount/test@DOMAIN' -H 'hibp-api-key: KEY' 2>/dev/null || echo 'HIBP API key required'")
 ```
-Search paste sites manually. Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for confirmed leaks.
+Search paste sites manually. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for confirmed leaks.
 
 ---
 
@@ -422,7 +421,7 @@ flowchart TD
     Domains --> Takeover["Takeover candidates: N"]
 ```
 
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` with summary:
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with summary:
 ```
 OSINT Summary:
   Subdomains:        [count] ([count] crt.sh, [count] subfinder, [count] amass)
@@ -455,15 +454,15 @@ OSINT Summary:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **All techniques must be PASSIVE** — no active exploitation (SMTP VRFY/RCPT TO is acceptable as standard email verification)
 - **Batch independent tools in the same response** — they execute in parallel
 - When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
-- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for significant discoveries** — email patterns, credential leaks, exposed cloud storage, subdomain takeover candidates, secrets in repos
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for significant discoveries** — email patterns, credential leaks, exposed cloud storage, subdomain takeover candidates, secrets in repos
 - **Include confidence level in every finding** — Confirmed, Likely, or Speculative — with source list
 - **Cross-reference sources** — upgrade confidence when multiple tools agree; downgrade single-source findings
 - **Build the org map progressively** — domain, then people, infrastructure, technology, cloud
-- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document sources and confidence for each finding
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document sources and confidence for each finding
 - **Never fabricate findings** — only report what tool output confirms
 - **Respect privacy** — focus on publicly available information relevant to security assessment
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs

@@ -196,7 +196,7 @@ SESSION_REPLACEMENTS = {
     "recovery": '# Recover state: Read("pentest/coverage.json"), Read("pentest/findings.json"), Bash("tail -200 pentest/notes.log")',
     "set_skill": 'Bash("echo \'SKILL_CHAIN <skill> <reason> chained_from=<this>\' >> pentest/skill_chain.log")',
     "set_codebase": 'Write("pentest/codebase.json", {...})',
-    "status": '# Read pentest/scope.json + tail pentest/notes.log',
+    "status": '# Read pentest/scope.json + tail pentest/events.jsonl',
 }
 
 # These three are no-ops in native mode (no Docker)
@@ -508,6 +508,128 @@ def replace_syntax_line(text: str) -> str:
     return text
 
 
+# ── events.jsonl artifact migration ───────────────────────────────────────────
+#
+# Tier 2 logging redesign: collapse notes.log + skill_chain.log + findings.json
+# read-mutate-write + coverage.json read-mutate-write into a single append-only
+# pentest/events.jsonl. Skills append events; refresh.py regenerates the
+# findings.json + coverage.json snapshots. See pentester/EVENTS.md.
+#
+# Each replacement targets a literal placeholder string the migration produced
+# at an earlier stage (or the upstream form before any migration). Idempotent
+# by construction — the new value never contains the old substring, except
+# for the bootstrap mkdir which uses a negative-lookahead regex.
+
+_NOTE_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")'''
+
+_SKILL_CHAIN_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg skill '<name>' --arg reason '<1-2 sentences>' --arg parent '<parent or empty>' '{ts:$ts,type:\"skill_chain\",skill:$skill,reason:$reason,chained_from:$parent}' >> pentest/events.jsonl")'''
+
+_FINDING_ADD_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")'''
+
+_CELL_STATUS_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg cid '<cell_id>' --arg st 'in_progress' --arg tech '<technique>' --arg by '<tool>' --arg notes '<notes>' '{ts:$ts,type:\"cell_status\",cell_id:$cid,status:$st,technique:$tech,tested_by:$by,notes:$notes}' >> pentest/events.jsonl")'''
+
+_RECOVERY_BLOCK = (
+    'Bash("python3 ~/.claude/skills/pentester/refresh.py") + '
+    'Read("pentest/findings.json") + '
+    'Read("pentest/coverage.json") + '
+    'Bash("tail -500 pentest/events.jsonl")'
+)
+
+_LOGGING_BOILERPLATE_OLD = (
+    '**Logging:** Before invoking any skill above, call '
+    '`Bash("echo \'SKILL_CHAIN <skill> <reason> chained_from=<this>\' '
+    '>> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.'
+)
+_LOGGING_BOILERPLATE_NEW = (
+    '**Logging:** Before invoking any skill above, append a `skill_chain` event to '
+    '`pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).'
+)
+
+
+def replace_events_artifacts(text: str) -> str:
+    """Convert old artifact-write patterns to events.jsonl appends."""
+
+    # 1. Bootstrap mkdir: add events.jsonl touch (only if not already present).
+    text = re.sub(
+        r'mkdir -p pentest/\{pocs,diagrams\}(?! && touch pentest/events\.jsonl)',
+        'mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl',
+        text,
+    )
+
+    # 2. The shared SKILL_CHAIN logging boilerplate (19 skills + remediate)
+    #    rewrites to a one-line pointer at CLAUDE.md.
+    text = text.replace(_LOGGING_BOILERPLATE_OLD, _LOGGING_BOILERPLATE_NEW)
+
+    # 3. Other isolated skill_chain.log echoes → skill_chain jq one-liner.
+    text = text.replace(
+        '''Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")''',
+        _SKILL_CHAIN_ONELINER,
+    )
+    text = text.replace(
+        '''Bash("echo 'SKILL_CHAIN ...' >> pentest/skill_chain.log")''',
+        _SKILL_CHAIN_ONELINER,
+    )
+
+    # 4. notes.log echoes → note jq one-liner. Single literal call form covers
+    #    every instance the audit found.
+    text = text.replace(
+        '''Bash("echo '<message>' >> pentest/notes.log")''',
+        _NOTE_ONELINER,
+    )
+
+    # 5. Finding-append placeholder → finding/add jq one-liner.
+    text = text.replace(
+        '# Append finding to pentest/findings.json (Read → mutate JSON array → Write)',
+        _FINDING_ADD_ONELINER,
+    )
+
+    # 6. Coverage-upsert placeholder → cell_status jq one-liner.
+    text = text.replace(
+        '# Upsert into pentest/coverage.json (Read → update entry by cell_id/path+method → Write)',
+        _CELL_STATUS_ONELINER,
+    )
+
+    # 7. Recovery compound → four-step block (refresh + 2 reads + tail).
+    text = text.replace(
+        '# Recover state: Read("pentest/coverage.json"), Read("pentest/findings.json"), Bash("tail -200 pentest/notes.log")',
+        _RECOVERY_BLOCK,
+    )
+
+    # 8. Live-watch references.
+    text = text.replace(
+        'tail -f pentest/findings.json',
+        "tail -f pentest/events.jsonl | jq -c '.'",
+    )
+
+    # 9. Stale narrative `pentest.log` references (the upstream MCP-era
+    #    single-log file no longer exists). Runs after step 2 so it only
+    #    catches mid-paragraph mentions, not the boilerplate sentence ending.
+    text = text.replace('`pentest.log`', '`pentest/events.jsonl`')
+
+    # 10. The Tools-available table rows that survived earlier migration
+    #     (they used `...` placeholders, not literal `<message>`, so step 4
+    #     didn't catch them). Three identical rows across 19 skills get
+    #     collapsed to two rows: one for the append, one for the refresh+read.
+    old_three_rows = (
+        '| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |\n'
+        '| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |\n'
+        '| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |'
+    )
+    new_two_rows = (
+        '| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |\n'
+        '| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |'
+    )
+    text = text.replace(old_three_rows, new_two_rows)
+
+    # 11. The `session(action="status")` placeholder still references notes.log.
+    text = text.replace(
+        '# Read pentest/scope.json + tail pentest/notes.log',
+        '# Read pentest/scope.json + tail pentest/events.jsonl',
+    )
+
+    return text
+
+
 # ── Driver ─────────────────────────────────────────────────────────────────────
 
 
@@ -522,6 +644,9 @@ def migrate_file(path: Path) -> bool:
     text = replace_http(text)
     text = replace_report(text)
     text = replace_session(text)
+    # events.jsonl migration runs after replace_report/replace_session because
+    # those produce the placeholder strings this step targets.
+    text = replace_events_artifacts(text)
 
     # Tools table — runs AFTER the call rewrites. The replacer's own marker
     # check now also looks for post-rewrite stigmata (`# (no-op ...)` rows

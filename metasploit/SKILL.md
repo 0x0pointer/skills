@@ -1,7 +1,7 @@
 ---
 name: metasploit
 description: |
-  Exploit validation and exploitation using Metasploit Framework. Runs in a dedicated Docker container (separate from Kali). Validates CVEs discovered by nuclei, nikto, or other scanners with actual exploit modules. Covers exploit selection, payload configuration, exploitation, and post-exploitation pivoting.
+  Exploit validation and exploitation using Metasploit Framework. Drives `msfconsole` interactively via a dedicated `tmux` session on the Kali host (no Docker). Validates CVEs discovered by nuclei, nikto, or other scanners with actual exploit modules. Covers exploit selection, payload configuration, exploitation, and post-exploitation pivoting.
 
   Uses msfconsole, msfvenom, and the Metasploit module database. Chains from /pentester, /analyze-cve, or /post-exploit when exploitable CVEs are confirmed.
 argument-hint: <target> [cve=CVE-YYYY-NNNNN] [service=http|smb|ssh|...] [depth=quick|standard|thorough]
@@ -29,7 +29,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/post-exploit` the moment a session is opened. You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -40,9 +40,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
-| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
-| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ### How to invoke Metasploit modules
@@ -92,10 +91,10 @@ If the request does not specify a CVE or target service, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target, depth, and limits
 1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
 2. `Bash("tmux new-session -d -s msf 'msfconsole -q'")` — start a persistent msfconsole in tmux so subsequent `tmux send-keys` / `tmux capture-pane` calls drive the same REPL
-3. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target, CVE, service, available credentials
+3. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record target, CVE, service, available credentials
 
 ---
 
@@ -164,7 +163,7 @@ Bash("msfconsole TARGET ...")
 Bash("msfconsole TARGET ...")
 ```
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed vulnerable service. If depth is `quick`, stop here.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed vulnerable service. If depth is `quick`, stop here.
 
 ---
 
@@ -186,7 +185,7 @@ Call `# Append finding to pentest/findings.json (Read → mutate JSON array → 
 Bash("msfconsole TARGET ...")
 ```
 
-Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` with the full Metasploit output as evidence.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` with the full Metasploit output as evidence.
 
 ---
 
@@ -225,7 +224,7 @@ Or chain into `/reverse-shell` for payload generation with listener setup — it
 ### Phase 6 — Report & Wrap-Up
 
 1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with exploitation attack path
-2. Call `Bash("echo '<message>' >> pentest/notes.log")` with exploitation summary:
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with exploitation summary:
 ```
 Metasploit Exploitation Summary:
   Target:          [host/IP]
@@ -267,12 +266,12 @@ Metasploit Exploitation Summary:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Start with auxiliary scanners** — always validate before exploiting
 - **Stay within scope** — only exploit authorized targets
 - **Use safe payloads first** — `cmd/unix/generic` with `set CMD id` before reverse shells
-- **Document every module run** — call `Bash("echo '<message>' >> pentest/notes.log")` before and after each module
-- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed vulnerability** — include full MSF output
+- **Document every module run** — call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` before and after each module
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed vulnerability** — include full MSF output
 - **Close the msfconsole tmux session when done** — `Bash("tmux kill-session -t msf")`
 - **Never fabricate findings** — only report what Metasploit output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs

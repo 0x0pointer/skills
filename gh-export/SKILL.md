@@ -15,11 +15,15 @@ Each block follows the AppSec reporting guide format — concrete impact, reprod
 
 ## Workflow
 
-1. Read `findings.json` from the repo root (or the path provided in `$ARGUMENTS` if given)
+1. Refresh, then read `findings.json` (the snapshot is derived from `events.jsonl` — always refresh before reading):
+   ```
+   Bash("python3 ~/.claude/skills/pentester/refresh.py")
+   Read("pentest/findings.json")
+   ```
+   If `$ARGUMENTS` provides an explicit path, skip the refresh and read that path directly.
 2. For each entry in `findings[].findings` (skip diagram entries):
    - Format it using the template below
    - Check `pocs/` for any `.http` file whose name contains a keyword from the finding title — if found, read it and paste the content into the PoC block
-   - After formatting the block, call `Bash("curl ...")` with method `PATCH`, url `http://pentest/findings.json/api/findings/{finding.id}`, body `{"gh_issue": "<the formatted markdown block>"}`, and headers `{"Content-Type": "application/json"}` — this couples the block to the finding in the dashboard
 3. Write all formatted blocks to `gh-issues.md` in the repo root, separated by `---`, with a header line `# GitHub Issues — <target> — <date>` at the top. Create or overwrite the file.
 4. Print all blocks consecutively with a `---` separator between them
 5. After the last block, print a one-line summary: `X issue(s) ready to file — saved to gh-issues.md and copied above.`

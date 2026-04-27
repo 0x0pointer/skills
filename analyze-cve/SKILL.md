@@ -46,7 +46,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/gh-export` after completing the analysis if a confirmed exploitable finding was produced.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -166,7 +166,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 When chained from `/pentester` (or any time a `pentest/` directory exists in the working dir), persist findings alongside the rest of the run:
 
 11. **Log confirmed vulnerabilities**
-    - Append an entry to `pentest/findings.json` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets) — `Read("pentest/findings.json")` → mutate the JSON array → `Write("pentest/findings.json", ...)`
+    - Append a `finding`/`add` event to `pentest/events.jsonl` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets). See [pentester/EVENTS.md](../pentester/EVENTS.md) form 5 for the canonical one-liner.
 
 12. **Save a Burp-ready PoC**
     - `Write("pocs/<title>.http", ...)` with a descriptive title (e.g. `cve-2024-xxxxx-rce-upload`) — include a leading `# notes: ...` line with the vulnerability description. The `.http` file can be pasted directly into Burp Repeater.

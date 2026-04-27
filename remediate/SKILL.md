@@ -1,9 +1,9 @@
 ---
 name: remediate
 description: |
-  Generates specific, implementable fixes for every finding in findings.json. Produces code patches (unified diff), configuration changes, dependency updates, and IaC fixes — not generic advice but actual before/after code.
+  Generates specific, implementable fixes for every finding in `pentest/findings.json`. Produces code patches (unified diff), configuration changes, dependency updates, and IaC fixes — not generic advice but actual before/after code.
 
-  Uses the reproduction command from each finding as the verification step: "run this after the fix — it should now fail." Stores remediation data in findings.json so the dashboard shows a Fix button and /gh-export includes the remediation in GitHub issues.
+  Uses the reproduction command from each finding as the verification step: "run this after the fix — it should now fail." Refreshes the `findings.json` snapshot from `events.jsonl`, reads it, then appends one `finding`/`update` event per remediation back to `events.jsonl`. `/gh-export` runs `refresh.py` itself and then sees the remediation field in the regenerated snapshot.
 
   Chains from /pentester, /codebase, or any scan skill after findings are produced. Chains into /gh-export for export with remediation included.
 argument-hint: [finding-id] [depth=quick|thorough]
@@ -29,7 +29,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/gh-export` after completing remediation — this exports findings with the fix patches included in each GitHub issue.**
 
 
-**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -37,34 +37,48 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` | Define scope and limits — **always call this first** |
+| `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` | Define scope and limits — **always call this first** |
+| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` | Refresh the snapshot from `events.jsonl`, then load all findings produced by prior skills |
+| `Bash("jq -nc ... '{type:\"finding\",action:\"update\",id:..., field:\"remediation\", value:{...}}' >> pentest/events.jsonl")` | Append one `finding`/`update` event per finding with the remediation payload |
 | `Write("pentest/summary.md", "<summary>")` | Mark done and write final notes |
-| `Bash("curl ...")` | Read findings — `Bash("curl ...")` |
-| `Bash("curl ...")` | Update finding with remediation — PATCH to `/api/findings/{id}` |
-| `Bash("echo '<message>' >> pentest/notes.log")` | Write reasoning notes to session log |
+| `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` | Write reasoning notes to session log |
 
 ### Reading findings
 
+`findings.json` is a derived snapshot — always refresh from `events.jsonl` before reading:
+
 ```
-Bash("curl ...")
+Bash("python3 ~/.claude/skills/pentester/refresh.py")
+Read("pentest/findings.json")
 ```
+
+The file is a JSON array of finding objects. Parse it, then iterate.
 
 ### Updating a finding with remediation
 
+`events.jsonl` is the source of truth; `findings.json` is a derived snapshot. To attach remediation to a finding, append one `finding`/`update` event with `field: "remediation"` and the remediation object as `value`. `refresh.py` folds the update into the snapshot.
+
 ```
-Bash("curl ...")\n+    cursor.execute(\"...%s\", (name,))",
-      "before": "cursor.execute(f\"SELECT * FROM users WHERE name = '{name}'\")",
-      "after": "cursor.execute(\"SELECT * FROM users WHERE name = %s\", (name,))",
-      "file": "app/search.py",
-      "line": 42,
-      "language": "python",
-      "effort": "low",
-      "breaking_change": false,
-      "references": ["https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"],
-      "verification": "Re-run: curl 'http://target/search?q=1' OR 1=1--' — should return 400 or empty result"
-    }
-  })
+# Build the remediation object
+remediation = {
+  "fix_type": "code_patch",
+  "patch": "--- a/app/search.py\n+++ b/app/search.py\n@@\n-    cursor.execute(f\"SELECT * FROM users WHERE name = '{name}'\")\n+    cursor.execute(\"SELECT * FROM users WHERE name = %s\", (name,))",
+  "before": "cursor.execute(f\"SELECT * FROM users WHERE name = '{name}'\")",
+  "after":  "cursor.execute(\"SELECT * FROM users WHERE name = %s\", (name,))",
+  "file": "app/search.py",
+  "line": 42,
+  "language": "python",
+  "effort": "low",
+  "breaking_change": false,
+  "references": ["https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"],
+  "verification": "Re-run: curl 'http://target/search?q=1 OR 1=1--' — should return 400 or empty result"
+}
+
+# Append the update event (use --argjson for the typed remediation object)
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg field 'remediation' --argjson value '<remediation JSON>' '{ts:$ts,type:\"finding\",action:\"update\",id:$id,field:$field,value:$value}' >> pentest/events.jsonl")
 ```
+
+After all `finding`/`update` events are appended, run `Bash("python3 ~/.claude/skills/pentester/refresh.py")` once. The snapshot now contains every remediation; `/gh-export` reads the snapshot fresh on its own refresh and includes the remediation in each issue.
 
 ---
 
@@ -81,17 +95,18 @@ Bash("curl ...")\n+    cursor.execute(\"...%s\", (name,))",
 
 ### Phase 0 — Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with depth and limits
-1. Call `Bash("echo '<message>' >> pentest/notes.log")` — record whether `/codebase` ran (source code context available?)
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with depth and limits
+1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record whether `/codebase` ran (source code context available?)
 
 ### Phase 1 — Read Findings
 
-Fetch all findings from the dashboard API:
+Refresh the snapshot from `events.jsonl`, then load the findings file:
 ```
-Bash("curl ...")
+Bash("python3 ~/.claude/skills/pentester/refresh.py")
+Read("pentest/findings.json")
 ```
 
-Parse the response. For each finding, note:
+Parse the JSON array. For each finding, note:
 - `id` — needed for the PATCH
 - `title` — what vulnerability
 - `severity` — prioritize critical/high first
@@ -137,13 +152,13 @@ If the finding has a `reproduction` field, use that command as the verification:
 If there's no reproduction command, describe what the developer should test:
 > "Send a request with `' OR 1=1--` in the search parameter — should return 400 or empty result, not all records."
 
-**Step 4 — PATCH the finding:**
+**Step 4 — Attach the remediation to the finding:**
 
-Update the finding with the remediation object via the API.
+Append a `finding`/`update` event to `events.jsonl` with `field: "remediation"` and the remediation object as `value` (see "Updating a finding with remediation" above). After every finding has its update event appended, run `Bash("python3 ~/.claude/skills/pentester/refresh.py")` once to regenerate the snapshot.
 
 ### Phase 3 — Remediation Summary
 
-Call `Bash("echo '<message>' >> pentest/notes.log")` with:
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with:
 ```
 Remediation Summary:
   Total findings:    [count]
