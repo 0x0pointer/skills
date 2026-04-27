@@ -22,10 +22,10 @@ Drop them into Claude Code, OpenCode, or any MCP-capable agent and run end-to-en
 
 
 Each skill is a prompt that teaches a vulnerability *class* — the surface area, the verification logic, the chaining rules. The LLM invents the actual attacks. Two runs against the same target produce different attack paths.
-- 🛠 **Bring your own LLM.**
+- 🛠 **Native on Kali.**
 
 
-Works with Claude Code, [OpenCode](https://opencode.ai) (any provider — OpenAI, Anthropic, Google, OpenRouter, Ollama, llama.cpp, vLLM), or any MCP-capable client. Skills are plain markdown — load them however your client expects.
+Runs straight in Claude Code on a Kali host — no MCP server, no Docker. Skills drive `nmap`, `naabu`, `httpx`, `nuclei`, `ffuf`, `katana`, `subfinder`, `sqlmap`, `hydra`, `nikto`, … via the built-in `Bash` tool. Artifacts (findings, notes, coverage, PoCs, diagrams) land under `./pentest/`.
 - 🔗 **Skills chain themselves.**
 
 
@@ -38,10 +38,10 @@ Every skill is grounded in a public framework: OWASP Web/API/LLM Top 10, ASVS 5.
 
 
 Findings, PoCs (Burp-ready `.http` files), threat models, code patches, GitHub issues, and CVE submission packages — all generated for you.
-- 🔌 **Engine-agnostic.**
+- 🔌 **No external dependencies.**
 
 
-The skills assume an MCP server providing five consolidated tools (`scan`, `kali`, `http`, `report`, `session`). Pair them with [agent-smith](https://github.com/0x0pointer/agent-smith) for a turnkey setup, or wire them into your own MCP server.
+Just Claude Code + Kali. The skills speak `Bash`, `Read`, `Write`, `Edit` — Claude Code's built-in tools — so there is no MCP server to run, no Docker images to pull, no dashboard to keep alive. `tmux` covers tools that need a live PTY.
 
 ---
 
@@ -152,45 +152,43 @@ PASTA + STRIDE + 4-question framework. Outputs component map, data flow diagram,
 
 ---
 
-## Pick your LLM client
+## Setup — Claude Code on Kali (native)
 
-These skills are plain markdown — anything that speaks MCP can drive them.
+These skills run natively in Claude Code on a Kali Linux host. Every Kali tool (nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, sqlmap, hydra, nikto, enum4linux-ng, theHarvester, certipy, nxc, impacket, …) is on `PATH`, so the skills drive them straight through Claude Code's built-in `Bash` tool. No MCP server, no Docker, no dashboard — just the native tools you already have.
 
-<table>
-  <tr>
-    <th width="33%">Claude Code</th>
-    <th width="33%">OpenCode (BYO LLM)</th>
-    <th width="33%">Custom MCP client</th>
-  </tr>
-  <tr>
-    <td>
-      Anthropic's official CLI. Best UX, native skill support. Skills install into <code>~/.claude/skills/</code> and become slash commands automatically.
-      <pre><code>git clone --recursive \
-  https://github.com/0x0pointer/agent-smith
-cd agent-smith
-./installers/install.sh</code></pre>
-      Requires <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> + an Anthropic API key.
-    </td>
-    <td>
-      Open-source coding agent that supports <strong>any</strong> provider — OpenAI, Anthropic, Google, OpenRouter, Ollama, llama.cpp, vLLM, your own endpoint. Skills install into <code>~/.config/opencode/commands/</code>.
-      <pre><code>git clone --recursive \
-  https://github.com/0x0pointer/agent-smith
-cd agent-smith
-./installers/install_opencode.sh</code></pre>
-      Requires <a href="https://opencode.ai">OpenCode</a>. Configure your model in <code>~/.config/opencode/opencode.json</code>.
-    </td>
-    <td>
-      Any MCP-capable client (Cursor, Continue, Zed, custom Agent SDK app, etc.). Skills are plain markdown — load them however your client expects prompts.
-      <pre><code># wire the agent-smith MCP
-# server into your client
-poetry install
-poetry run python -m mcp_server</code></pre>
-      Five consolidated MCP tools: <code>scan</code>, <code>kali</code>, <code>http</code>, <code>report</code>, <code>session</code>.
-    </td>
-  </tr>
-</table>
+```bash
+# 1. Clone (or copy) the skills directory into Claude Code's skills folder.
+git clone https://github.com/0x0pointer/skills ~/.claude/skills
+# or, if this repo is your skills/ directly:
+ln -s "$PWD/skills" ~/.claude/skills
 
-> 🧠 **The LLM is your choice.** These skills don't care if it's Claude Opus 4.6, GPT-5, Gemini 2.5, Llama-4, or a local Qwen3 — anything strong enough to follow tool-use instructions will work. Bigger / smarter models find more interesting attack paths.
+# 2. Start Claude Code in the directory you want artifacts written to.
+cd ~/engagements/acme/
+claude
+```
+
+Each skill becomes a slash command (`/pentester`, `/web-exploit`, `/api-security`, …) and writes artifacts under `./pentest/`:
+
+| Path | Contents |
+|---|---|
+| `pentest/scope.json` | Target, depth, scope, and any custom limits set at session start |
+| `pentest/findings.json` | Every confirmed vulnerability with evidence (read → mutate → write) |
+| `pentest/notes.log` | Reasoning trail — append-only via `echo … >> pentest/notes.log` |
+| `pentest/coverage.json` | Endpoint × injection-class test matrix |
+| `pentest/pocs/<name>.http` | Burp-paste-ready raw HTTP request for each confirmed exploit |
+| `pentest/diagrams/<name>.mmd` | Mermaid diagrams (network topology, app architecture) |
+| `pentest/skill_chain.log` | Audit trail of which sub-skills were invoked from where |
+| `pentest/summary.md` | Final summary written at `session complete` |
+
+For interactive tools that need a live PTY (msfconsole, evil-winrm, responder, listeners), the skills drive a `tmux` session via `Bash`:
+
+```bash
+tmux new-session -d -s msf 'msfconsole -q'
+tmux send-keys -t msf 'use exploit/...' Enter
+tmux capture-pane -t msf -p
+```
+
+> 🧠 **Authorization only.** These skills generate real attack traffic. Run them only against systems you own or have explicit written permission to test.
 
 ---
 
@@ -207,7 +205,7 @@ poetry run python -m mcp_server</code></pre>
 | `/network-assess` | VLAN hopping, LLMNR/NBT-NS abuse, SNMP enumeration, segmentation testing |
 | `/post-exploit` | Linux/Windows privesc, persistence, credential harvesting, internal recon |
 | `/lateral-movement` | PTH, PTT, Kerberoasting, NTLM relay, delegation abuse, cross-trust pivoting |
-| `/metasploit` | Exploit validation in an isolated Docker container with msfconsole HTTP shim |
+| `/metasploit` | Exploit validation against confirmed CVEs — drives `msfconsole` in a `tmux` session |
 | `/reverse-shell` | Generates and manages reverse shells across all platforms with fallback chains |
 | `/pivot-tunnel` | Chisel + SOCKS5 tunneling and ligolo-ng pivoting after RCE |
 </details>
@@ -260,24 +258,24 @@ poetry run python -m mcp_server</code></pre>
 
 ## Requirements
 
-These skills are slash commands — they need an MCP server providing the `scan`, `kali`, `http`, `report`, and `session` tools. The recommended way to install everything is via [agent-smith](https://github.com/0x0pointer/agent-smith), which bundles:
+- A working Kali Linux install (host, VM, or WSL) with the standard offensive-security toolchain on `PATH`. A vanilla `kali-rolling` with `kali-linux-default` (or `kali-linux-large`) covers the great majority of skill workflows. Specific tools each skill expects are listed at the top of every `SKILL.md`.
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed on the same Kali host, with an Anthropic API key configured.
+- `tmux` (for skills that drive interactive REPLs like `msfconsole`).
+- Optional: `jq` (some skills use it for ad-hoc `pentest/findings.json` mutations).
 
-- The MCP server (`python -m mcp_server`)
-- Lightweight scanner Docker images (nmap, naabu, httpx, nuclei, ffuf, semgrep, trufflehog)
-- The custom Kali container (`pentest-agent/kali-mcp`) with 100+ pre-installed tools
-- The Metasploit container (`pentest-agent/metasploit`)
-- The live findings dashboard at `localhost:5000`
-- Installers for Claude Code and OpenCode
+The skills are plain markdown with YAML frontmatter — drop the directory at `~/.claude/skills/` and Claude Code picks them up automatically as slash commands.
+
+### Migrating from the MCP-based version
+
+If you have an older copy of these skills that uses the 5-tool MCP API (`session`, `scan`, `kali`, `http`, `report`), run [migrate_native.py](migrate_native.py) once to rewrite them:
 
 ```bash
-git clone --recursive https://github.com/0x0pointer/agent-smith
-cd agent-smith
-./installers/install.sh         # Claude Code
-# or
-./installers/install_opencode.sh  # OpenCode (BYO LLM)
+cd skills
+python3 migrate_native.py --dry-run   # preview
+python3 migrate_native.py              # apply
 ```
 
-Skills can also be wired into any custom MCP client that exposes the same five tools.
+The script is idempotent — re-running on already-migrated files is a no-op.
 
 ---
 
@@ -311,7 +309,7 @@ You are a [role]. Your goal: [outcome].
 
 Use `/web-exploit` or `/api-security` as a reference template — they show the full structure: phases, coverage matrix integration, reference-library lazy loading, and chaining tables.
 
-After adding a skill, update the submodule pointer in `agent-smith` (`git add skills && git commit`) and re-run the installer to deploy it.
+After adding a skill, drop the new file into `~/.claude/skills/` (or just commit it in this repo if you have it cloned there) — Claude Code picks it up on the next session.
 
 ---
 

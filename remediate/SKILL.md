@@ -22,14 +22,14 @@ You are an expert application security engineer generating specific, implementab
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After all findings remediated | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After all findings remediated | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 
 **You WILL invoke `/gh-export` after completing remediation — this exports findings with the fix patches included in each GitHub issue.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -37,28 +37,22 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define scope and limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark done and write final notes |
-| `http(action="request", ...)` | Read findings — `http(action="request", url="http://localhost:5000/api/findings")` |
-| `http(action="request", ...)` | Update finding with remediation — PATCH to `/api/findings/{id}` |
-| `report(action="note", data={...})` | Write reasoning notes to session log |
+| `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` | Define scope and limits — **always call this first** |
+| `Write("pentest/summary.md", "<summary>")` | Mark done and write final notes |
+| `Bash("curl ...")` | Read findings — `Bash("curl ...")` |
+| `Bash("curl ...")` | Update finding with remediation — PATCH to `/api/findings/{id}` |
+| `Bash("echo '<message>' >> pentest/notes.log")` | Write reasoning notes to session log |
 
 ### Reading findings
 
 ```
-http(action="request", url="http://localhost:5000/api/findings", method="GET")
+Bash("curl ...")
 ```
 
 ### Updating a finding with remediation
 
 ```
-http(action="request", url="http://localhost:5000/api/findings/FINDING_ID", method="PATCH",
-  headers={"Content-Type": "application/json"},
-  body={
-    "remediation": {
-      "summary": "Use parameterized queries",
-      "fix_type": "code_patch",
-      "diff": "--- a/app/search.py\n+++ b/app/search.py\n@@ -42 +42 @@\n-    cursor.execute(f\"...{name}...\")\n+    cursor.execute(\"...%s\", (name,))",
+Bash("curl ...")\n+    cursor.execute(\"...%s\", (name,))",
       "before": "cursor.execute(f\"SELECT * FROM users WHERE name = '{name}'\")",
       "after": "cursor.execute(\"SELECT * FROM users WHERE name = %s\", (name,))",
       "file": "app/search.py",
@@ -87,14 +81,14 @@ http(action="request", url="http://localhost:5000/api/findings/FINDING_ID", meth
 
 ### Phase 0 — Setup
 
-0. Call `session(action="start", options={...})` with depth and limits
-1. Call `report(action="note", data={...})` — record whether `/codebase` ran (source code context available?)
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with depth and limits
+1. Call `Bash("echo '<message>' >> pentest/notes.log")` — record whether `/codebase` ran (source code context available?)
 
 ### Phase 1 — Read Findings
 
 Fetch all findings from the dashboard API:
 ```
-http(action="request", url="http://localhost:5000/api/findings", method="GET")
+Bash("curl ...")
 ```
 
 Parse the response. For each finding, note:
@@ -149,7 +143,7 @@ Update the finding with the remediation object via the API.
 
 ### Phase 3 — Remediation Summary
 
-Call `report(action="note", data={...})` with:
+Call `Bash("echo '<message>' >> pentest/notes.log")` with:
 ```
 Remediation Summary:
   Total findings:    [count]
@@ -163,7 +157,7 @@ Remediation Summary:
   ...
 ```
 
-Call `session(action="complete", options={...})` with summary.
+Call `Write("pentest/summary.md", "<summary>")` with summary.
 
 ---
 

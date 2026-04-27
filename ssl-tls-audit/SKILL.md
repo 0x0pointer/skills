@@ -20,18 +20,18 @@ You are an expert cryptographic security auditor. Your goal: comprehensively ass
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| TLS weakness enables further attacks | `/pentester` | OPTIONAL | `Skill(skill="pentester")` | `cat ~/.config/opencode/commands/pentester.md` |
-| Credential interception risk identified | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Shell access obtained | `/post-exploit` | OPTIONAL | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| TLS weakness enables further attacks | `/pentester` | OPTIONAL | `Skill(skill="pentester")` |
+| Credential interception risk identified | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
+| Shell access obtained | `/post-exploit` | OPTIONAL | `Skill(skill="post-exploit")` |
+| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -39,16 +39,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `kali(command=...)` | Kali tools: testssl.sh, sslscan, sslyze, openssl s_client, curl |
-| `scan(tool="nuclei", ...)` | SSL/TLS vulnerability templates |
-| `scan(tool="nmap", ...)` | SSL/TLS NSE scripts |
-| `http(action="request", ...)` | HTTPS header checks (HSTS, CSP, etc.), raw HTTP probes |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="diagram", data={...})` | Save a Mermaid diagram to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
 
@@ -64,7 +61,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | **TLS 1.3 specific** | 0-RTT replay, PSK modes, downgrade detection, GREASE, TLS_FALLBACK_SCSV | testssl, openssl | 4.2.1.2 | 3.4 |
 | **Session management** | Ticket reuse, session ID fixation, resumption, ticket lifetime | testssl, openssl | 4.2.1 | 3.6 |
 | **Renegotiation** | Client-initiated renego DoS, secure renegotiation extension (RFC 5746) | testssl, openssl | -- | 3.6.1 |
-| **HSTS** | max-age, includeSubDomains, preload list, subdomain bypass, HTTP redirect | http(action="request", ...), curl | 6.2 | -- |
+| **HSTS** | max-age, includeSubDomains, preload list, subdomain bypass, HTTP redirect | Bash("curl ..."), curl | 6.2 | -- |
 | **Certificate revocation** | CRL distribution points, OCSP responder, OCSP stapling freshness, CRL caching | testssl, openssl | 4.2.1.1 | 3.5 |
 | **Multi-port TLS** | 20 TLS-bearing ports: SMTP, IMAP, POP3, LDAPS, RDP, DB, MQTT, etc. | testssl, nmap | 4.2.1 | 3.1 |
 
@@ -95,28 +92,28 @@ If the request does not specify depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `report(action="note", data={...})` — record target host:port, TLS requirements, compliance scope
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target host:port, TLS requirements, compliance scope
 
 ### Phase 1 — Automated Scanning
 
-**Quick:** `kali(command="testssl --quiet --color 0 TARGET:443")`
+**Quick:** `Bash("testssl --quiet --color 0 TARGET:443")`
 
 **Standard — add in parallel:**
 ```
-kali(command="testssl --quiet --color 0 --full TARGET:443")
-kali(command="sslscan --no-colour TARGET:443")
-scan(tool="nuclei", target="https://TARGET", options={"templates": "ssl,tls,cve"})
+Bash("testssl --quiet --color 0 --full TARGET:443")
+Bash("sslscan --no-colour TARGET:443")
+Bash("nuclei https://TARGET ...")
 ```
 
 **Thorough — add:**
 ```
-scan(tool="nmap", target=HOST, options={"ports": "443", "flags": "--script ssl-enum-ciphers,ssl-cert,ssl-heartbleed,ssl-poodle,ssl-dh-params,ssl-known-key -sV"})
-kali(command="sslyze --regular TARGET:443")
+Bash("nmap ...")
+Bash("sslyze --regular TARGET:443")
 ```
 
-After each tool: `report(action="note", data={...})` summary + `report(action="finding", data={...})` for confirmed vulns.
+After each tool: `Bash("echo '<message>' >> pentest/notes.log")` summary + `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for confirmed vulns.
 
 ### Phase 2 — Protocol Version Analysis
 
@@ -131,7 +128,7 @@ After each tool: `report(action="note", data={...})` summary + `report(action="f
 
 **Manual protocol probing** (thorough):
 ```
-kali(command="for v in ssl2 ssl3 tls1 tls1_1 tls1_2 tls1_3; do echo \"=== $v ===\"; echo | openssl s_client -connect TARGET:443 -$v 2>&1 | head -3; done")
+Bash("for v in ssl2 ssl3 tls1 tls1_1 tls1_2 tls1_3; do echo \"=== $v ===\"; echo | openssl s_client -connect TARGET:443 -$v 2>&1 | head -3; done")
 ```
 
 ### Phase 3 — Cipher Suite & Ordering Analysis
@@ -148,8 +145,8 @@ kali(command="for v in ssl2 ssl3 tls1 tls1_1 tls1_2 tls1_3; do echo \"=== $v ===
 
 **Cipher order preference testing** — determine if server enforces its own preference:
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -cipher 'AES128-SHA:AES256-SHA' 2>/dev/null | grep 'Cipher is'")
-kali(command="echo | openssl s_client -connect TARGET:443 -cipher 'AES256-SHA:AES128-SHA' 2>/dev/null | grep 'Cipher is'")
+Bash("echo | openssl s_client -connect TARGET:443 -cipher 'AES128-SHA:AES256-SHA' 2>/dev/null | grep 'Cipher is'")
+Bash("echo | openssl s_client -connect TARGET:443 -cipher 'AES256-SHA:AES128-SHA' 2>/dev/null | grep 'Cipher is'")
 ```
 If both return the same cipher, server enforces preference (good). If different: **Low** — server defers to client.
 
@@ -158,8 +155,8 @@ If both return the same cipher, server enforces preference (good). If different:
 ### Phase 4 — Certificate Chain Deep Validation
 
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET 2>/dev/null | openssl x509 -noout -text")
-kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET -showcerts 2>/dev/null")
+Bash("echo | openssl s_client -connect TARGET:443 -servername TARGET 2>/dev/null | openssl x509 -noout -text")
+Bash("echo | openssl s_client -connect TARGET:443 -servername TARGET -showcerts 2>/dev/null")
 ```
 
 | Issue | Severity | Check |
@@ -174,20 +171,20 @@ kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET -sh
 
 **Intermediate pinning & cross-signed cert detection:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET -showcerts 2>/dev/null | grep -E 's:|i:' | head -20")
+Bash("echo | openssl s_client -connect TARGET:443 -servername TARGET -showcerts 2>/dev/null | grep -E 's:|i:' | head -20")
 ```
 Look for: root CA in chain (unnecessary), cross-signed intermediates (affects pinning decisions), missing intermediates (**Medium**).
 
 **Certificate Transparency log verification:**
 ```
-kali(command="curl -s 'https://crt.sh/?q=TARGET&output=json' | python3 -m json.tool | head -50")
-kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET -ct 2>&1 | grep -A5 'SCT'")
+Bash("curl -s 'https://crt.sh/?q=TARGET&output=json' | python3 -m json.tool | head -50")
+Bash("echo | openssl s_client -connect TARGET:443 -servername TARGET -ct 2>&1 | grep -A5 'SCT'")
 ```
 SCT delivery: embedded in cert (preferred), TLS extension, or OCSP staple. Missing CT logs: **Low**.
 
 **OCSP stapling verification:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET -status 2>/dev/null | grep -A15 'OCSP Response'")
+Bash("echo | openssl s_client -connect TARGET:443 -servername TARGET -status 2>/dev/null | grep -A15 'OCSP Response'")
 ```
 `no response sent` = stapling not enabled (**Low**). Check `This Update`/`Next Update` for freshness.
 
@@ -196,7 +193,7 @@ kali(command="echo | openssl s_client -connect TARGET:443 -servername TARGET -st
 ### Phase 5 — ECDHE Curve Analysis
 
 ```
-kali(command="for c in P-256 P-384 P-521 X25519; do echo \"=== $c ===\"; echo | openssl s_client -connect TARGET:443 -servername TARGET -curves $c 2>/dev/null | grep 'Server Temp Key'; done")
+Bash("for c in P-256 P-384 P-521 X25519; do echo \"=== $c ===\"; echo | openssl s_client -connect TARGET:443 -servername TARGET -curves $c 2>/dev/null | grep 'Server Temp Key'; done")
 ```
 
 | Curve | Security | Notes |
@@ -209,8 +206,8 @@ kali(command="for c in P-256 P-384 P-521 X25519; do echo \"=== $c ===\"; echo | 
 
 **Curve preference detection:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -curves 'P-256:P-384' 2>/dev/null | grep 'Server Temp Key'")
-kali(command="echo | openssl s_client -connect TARGET:443 -curves 'P-384:P-256' 2>/dev/null | grep 'Server Temp Key'")
+Bash("echo | openssl s_client -connect TARGET:443 -curves 'P-256:P-384' 2>/dev/null | grep 'Server Temp Key'")
+Bash("echo | openssl s_client -connect TARGET:443 -curves 'P-384:P-256' 2>/dev/null | grep 'Server Temp Key'")
 ```
 Same curve both times = server enforces preference (good). Brainpool accepted: **Medium**. No X25519 for TLS 1.3: **Low**. No server-side curve preference: **Low**.
 
@@ -218,28 +215,28 @@ Same curve both times = server enforces preference (good). Brainpool accepted: *
 
 **0-RTT replay attack testing:**
 ```
-kali(command="echo -e 'GET / HTTP/1.1\r\nHost: TARGET\r\n\r\n' > /tmp/earlydata.txt")
-kali(command="echo | openssl s_client -connect TARGET:443 -tls1_3 -sess_out /tmp/sess.pem 2>/dev/null | grep -E 'Early data|Max Early'")
-kali(command="echo | openssl s_client -connect TARGET:443 -tls1_3 -sess_in /tmp/sess.pem -early_data /tmp/earlydata.txt 2>/dev/null | grep -E 'Early data'")
+Bash("echo -e 'GET / HTTP/1.1\r\nHost: TARGET\r\n\r\n' > /tmp/earlydata.txt")
+Bash("echo | openssl s_client -connect TARGET:443 -tls1_3 -sess_out /tmp/sess.pem 2>/dev/null | grep -E 'Early data|Max Early'")
+Bash("echo | openssl s_client -connect TARGET:443 -tls1_3 -sess_in /tmp/sess.pem -early_data /tmp/earlydata.txt 2>/dev/null | grep -E 'Early data'")
 ```
 0-RTT accepted: **Medium** — early data is replayable. Non-idempotent requests can be replayed by attackers.
 
 **PSK mode validation:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -tls1_3 2>/dev/null | grep -E 'psk|PSK|Reused|session'")
+Bash("echo | openssl s_client -connect TARGET:443 -tls1_3 2>/dev/null | grep -E 'psk|PSK|Reused|session'")
 ```
 PSK without (EC)DHE loses forward secrecy: **Medium** if accepted.
 
 **Downgrade detection (GREASE + TLS_FALLBACK_SCSV):**
 ```
-kali(command="testssl --quiet --color 0 -p TARGET:443 2>&1 | grep -i -E 'downgrad|fallback|grease'")
-kali(command="echo | openssl s_client -connect TARGET:443 -fallback_scsv -no_tls1_3 2>&1 | grep -i 'alert'")
+Bash("testssl --quiet --color 0 -p TARGET:443 2>&1 | grep -i -E 'downgrad|fallback|grease'")
+Bash("echo | openssl s_client -connect TARGET:443 -fallback_scsv -no_tls1_3 2>&1 | grep -i 'alert'")
 ```
 Missing `inappropriate_fallback` alert: **Medium** — enables downgrade attacks.
 
 **TLS 1.3 cipher suite validation:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -tls1_3 -ciphersuites 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256' 2>/dev/null | grep 'Cipher is'")
+Bash("echo | openssl s_client -connect TARGET:443 -tls1_3 -ciphersuites 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256' 2>/dev/null | grep 'Cipher is'")
 ```
 TLS_AES_128_CCM_8_SHA256 present: **Low** — truncated auth tag, only for constrained IoT.
 
@@ -247,19 +244,19 @@ TLS_AES_128_CCM_8_SHA256 present: **Low** — truncated auth tag, only for const
 
 **Ticket reuse:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -tls1_2 -sess_out /tmp/sess12.pem 2>/dev/null | grep -E 'Session-ID|TLS session ticket'")
-kali(command="echo | openssl s_client -connect TARGET:443 -tls1_2 -sess_in /tmp/sess12.pem 2>/dev/null | grep -i 'reused'")
+Bash("echo | openssl s_client -connect TARGET:443 -tls1_2 -sess_out /tmp/sess12.pem 2>/dev/null | grep -E 'Session-ID|TLS session ticket'")
+Bash("echo | openssl s_client -connect TARGET:443 -tls1_2 -sess_in /tmp/sess12.pem 2>/dev/null | grep -i 'reused'")
 ```
 
 **Session ID fixation:**
 ```
-kali(command="for i in 1 2 3; do echo | openssl s_client -connect TARGET:443 2>/dev/null | grep 'Session-ID:'; done")
+Bash("for i in 1 2 3; do echo | openssl s_client -connect TARGET:443 2>/dev/null | grep 'Session-ID:'; done")
 ```
 Same Session-ID across fresh connections: **Medium** — possible fixation.
 
 **Ticket lifetime:**
 ```
-kali(command="testssl --quiet --color 0 -S TARGET:443 2>&1 | grep -i -E 'ticket|lifetime|session'")
+Bash("testssl --quiet --color 0 -S TARGET:443 2>&1 | grep -i -E 'ticket|lifetime|session'")
 ```
 NIST: ticket lifetime should not exceed 24h. Over 48h: **Low**.
 
@@ -267,17 +264,17 @@ NIST: ticket lifetime should not exceed 24h. Over 48h: **Low**.
 
 **Client-initiated renegotiation DoS:**
 ```
-kali(command="echo 'R' | openssl s_client -connect TARGET:443 2>&1 | grep -i -E 'renegotiat|error|DONE'")
+Bash("echo 'R' | openssl s_client -connect TARGET:443 2>&1 | grep -i -E 'renegotiat|error|DONE'")
 ```
 Allowed: **Medium** — each renegotiation costs ~10x more server CPU than client CPU.
 
 **Secure renegotiation extension (RFC 5746):**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 2>/dev/null | grep -i 'secure renegotiation'")
+Bash("echo | openssl s_client -connect TARGET:443 2>/dev/null | grep -i 'secure renegotiation'")
 ```
 `IS NOT supported`: **High** — vulnerable to CVE-2009-3555 (prefix injection).
 
-**Extended test:** `kali(command="testssl --quiet --color 0 -R TARGET:443")`
+**Extended test:** `Bash("testssl --quiet --color 0 -R TARGET:443")`
 
 ### Phase 9 — Known Vulnerability Testing
 
@@ -297,7 +294,7 @@ kali(command="echo | openssl s_client -connect TARGET:443 2>/dev/null | grep -i 
 ### Phase 10 — HSTS Analysis Deep-Dive
 
 ```
-kali(command="curl -sI https://TARGET 2>/dev/null | grep -i 'strict-transport-security'")
+Bash("curl -sI https://TARGET 2>/dev/null | grep -i 'strict-transport-security'")
 ```
 
 | Directive | Expected | Finding if wrong |
@@ -308,38 +305,38 @@ kali(command="curl -sI https://TARGET 2>/dev/null | grep -i 'strict-transport-se
 
 **Preload list membership:**
 ```
-kali(command="curl -s 'https://hstspreload.org/api/v2/status?domain=TARGET' | python3 -m json.tool")
+Bash("curl -s 'https://hstspreload.org/api/v2/status?domain=TARGET' | python3 -m json.tool")
 ```
 `preload` directive set but not in list: **Low** — aspirational without submission.
 
 **HSTS bypass via subdomain** (when `includeSubDomains` missing):
 ```
-kali(command="for sub in www mail api; do echo \"=== $sub ===\"; curl -sI http://$sub.TARGET 2>/dev/null | head -3; done")
+Bash("for sub in www mail api; do echo \"=== $sub ===\"; curl -sI http://$sub.TARGET 2>/dev/null | head -3; done")
 ```
 Subdomains responding over HTTP: **Medium** combined with missing `includeSubDomains`.
 
-**HTTP-to-HTTPS redirect:** `kali(command="curl -sI http://TARGET 2>/dev/null | head -10")`
+**HTTP-to-HTTPS redirect:** `Bash("curl -sI http://TARGET 2>/dev/null | head -10")`
 200 on HTTP: **Medium**. No redirect and no HSTS: **High**.
 
 ### Phase 11 — Certificate Revocation Checking
 
 **CRL distribution point validation:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 2>/dev/null | openssl x509 -noout -text | grep -A3 'CRL Distribution'")
-kali(command="curl -sI CRL_URL | head -5")
+Bash("echo | openssl s_client -connect TARGET:443 2>/dev/null | openssl x509 -noout -text | grep -A3 'CRL Distribution'")
+Bash("curl -sI CRL_URL | head -5")
 ```
 CRL unreachable: **Low**. CRL validity > 7 days (check `nextUpdate`): **Low** — revoked certs accepted too long.
 
 **OCSP responder testing:**
 ```
-kali(command="OCSP_URI=$(echo | openssl s_client -connect TARGET:443 2>/dev/null | openssl x509 -noout -ocsp_uri) && echo $OCSP_URI")
-kali(command="openssl ocsp -issuer /tmp/chain.pem -cert /tmp/target_cert.pem -url $OCSP_URI -text 2>&1 | head -30")
+Bash("OCSP_URI=$(echo | openssl s_client -connect TARGET:443 2>/dev/null | openssl x509 -noout -ocsp_uri) && echo $OCSP_URI")
+Bash("openssl ocsp -issuer /tmp/chain.pem -cert /tmp/target_cert.pem -url $OCSP_URI -text 2>&1 | head -30")
 ```
 `Cert Status: revoked`: **Critical**. Responder unreachable: **Low**.
 
 **Stapled response freshness:**
 ```
-kali(command="echo | openssl s_client -connect TARGET:443 -status 2>/dev/null | grep -A10 'OCSP Response Data'")
+Bash("echo | openssl s_client -connect TARGET:443 -status 2>/dev/null | grep -A10 'OCSP Response Data'")
 ```
 Response > 7 days old: **Low**. Expired (`Next Update` passed): **Medium**.
 
@@ -351,11 +348,11 @@ Response > 7 days old: **Low**. Expired (`Next Update` passed): **Medium**.
 
 **Batch discovery:**
 ```
-scan(tool="nmap", target=HOST, options={"ports": "25,110,143,389,443,465,587,636,993,995,1433,3306,3389,5432,5900,5985,8443,8883,9200,9443", "flags": "-sV --script ssl-enum-ciphers"})
+Bash("nmap ...")
 ```
 
-Per TLS port: `kali(command="testssl --quiet --color 0 TARGET:PORT")`
-Per STARTTLS port: `kali(command="testssl --quiet --color 0 --starttls smtp TARGET:25")`
+Per TLS port: `Bash("testssl --quiet --color 0 TARGET:PORT")`
+Per STARTTLS port: `Bash("testssl --quiet --color 0 --starttls smtp TARGET:25")`
 
 ### Phase 13 — Extended Compliance Mapping (thorough)
 
@@ -398,7 +395,7 @@ Note: X25519 and CHACHA20 are NOT FIPS-approved. Flag as **Informational** in Fe
 
 ### Phase 14 — Report & Wrap-Up
 
-1. Call `report(action="diagram", data={...})` with TLS configuration summary:
+1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with TLS configuration summary:
 ```mermaid
 flowchart TD
     Client["Client"] --> TLS["TLS Handshake"]
@@ -411,8 +408,8 @@ flowchart TD
     TLS --> Session["Session: Tickets rotated, no 0-RTT"]
     TLS --> Vulns["Known Vulns: None"]
 ```
-2. Call `report(action="note", data={...})` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
-3. Call `session(action="complete", options={...})` with summary
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
+3. Call `Write("pentest/summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -426,7 +423,7 @@ flowchart TD
 | `/network-assess` | Internal network found — test segmentation, SNMP, broadcast protocols |
 | `/credential-audit` | Weak TLS enables credential interception — test authentication strength |
 | `/post-exploit` | Weak TLS enables MitM credential capture — post-exploitation with harvested credentials |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
@@ -443,10 +440,10 @@ flowchart TD
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
-- **Call `report(action="finding", data={...})` for every confirmed TLS weakness** — include protocol/cipher/vuln and compliance impact
+- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed TLS weakness** — include protocol/cipher/vuln and compliance impact
 - **Always run testssl first** — most comprehensive single-tool output
 - **Map findings to compliance** — PCI DSS 4.0 + NIST 800-52r2; include FedRAMP if in scope
 - **Full certificate chain validation** — validity, chain, SAN, key size, sig algo, CT logs, OCSP, CRL
@@ -454,7 +451,7 @@ flowchart TD
 - **TLS 1.3 specific tests** — 0-RTT, PSK modes, downgrade protection are distinct from TLS 1.2
 - **Session management** — ticket reuse, resumption, lifetime are often overlooked
 - **Renegotiation** — test both secure renegotiation support and client-initiated DoS
-- **Use `report(action="note", data={...})` liberally** — document findings and compliance decisions
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document findings and compliance decisions
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax**: `flowchart TD`, quote labels, no em-dashes, short node IDs
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

@@ -20,17 +20,17 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| SMTP/STARTTLS weakness found | `/ssl-tls-audit` | OPTIONAL | `Skill(skill="ssl-tls-audit")` | `cat ~/.config/opencode/commands/ssl-tls-audit.md` |
-| Email credentials found | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| SMTP/STARTTLS weakness found | `/ssl-tls-audit` | OPTIONAL | `Skill(skill="ssl-tls-audit")` |
+| Email credentials found | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
+| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -38,15 +38,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `kali(command=...)` | Kali tools: swaks, dig, nmap, smtp-user-enum, openssl s_client |
-| `scan(tool="nmap", ...)` | SMTP service detection and NSE scripts |
-| `http(action="request", ...)` | Check MTA-STS policy, web-based mail config |
-| `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
-| `report(action="diagram", data={...})` | Save email infrastructure diagrams |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write reasoning notes to session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
 
@@ -58,7 +56,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | **DKIM** | Selector discovery, key size, algorithm | dig | High if missing |
 | **DMARC** | Record exists, policy (none/quarantine/reject), rua/ruf reporting | dig | High if p=none or missing |
 | **STARTTLS** | SMTP STARTTLS supported, certificate valid | openssl, nmap | Medium |
-| **MTA-STS** | Policy published, mode (enforce/testing/none) | http(action="request", ...) | Low-Medium |
+| **MTA-STS** | Policy published, mode (enforce/testing/none) | Bash("curl ...") | Low-Medium |
 | **TLS-RPT** | TLSRPT DNS record for failure reporting | dig | Low |
 | **Open relay** | Test if server relays mail for external domains | swaks | Critical |
 | **Spoofing** | Send spoofed email, check if accepted/rejected | swaks | High |
@@ -81,9 +79,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target domain, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `report(action="note", data={...})` — record target domain, known mail provider
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target domain, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target domain, known mail provider
 
 ---
 
@@ -92,11 +90,11 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 Run in parallel:
 
 ```
-kali(command="dig DOMAIN MX +short")
-kali(command="dig DOMAIN TXT +short | grep -i spf")
-kali(command="dig _dmarc.DOMAIN TXT +short")
-kali(command="dig _mta-sts.DOMAIN TXT +short")
-kali(command="dig _smtp._tls.DOMAIN TXT +short")
+Bash("dig DOMAIN MX +short")
+Bash("dig DOMAIN TXT +short | grep -i spf")
+Bash("dig _dmarc.DOMAIN TXT +short")
+Bash("dig _mta-sts.DOMAIN TXT +short")
+Bash("dig _smtp._tls.DOMAIN TXT +short")
 ```
 
 **SPF analysis:**
@@ -121,12 +119,12 @@ kali(command="dig _smtp._tls.DOMAIN TXT +short")
 
 Start with common selectors, then expand if needed. Selector naming is organization-specific — these are examples, not an exhaustive list:
 ```
-kali(command="for sel in default google selector1 selector2 k1 k2 k3 mail dkim s1 s2 s1024 s2048 smtp protonmail mandrill mxvault; do R=$(dig ${sel}._domainkey.DOMAIN TXT +short 2>/dev/null); [ -n \"$R\" ] && echo \"$sel: $R\"; done")
+Bash("for sel in default google selector1 selector2 k1 k2 k3 mail dkim s1 s2 s1024 s2048 smtp protonmail mandrill mxvault; do R=$(dig ${sel}._domainkey.DOMAIN TXT +short 2>/dev/null); [ -n \"$R\" ] && echo \"$sel: $R\"; done")
 ```
 
 If no selectors found, try brute-forcing with a wordlist or checking email headers from the domain for the `s=` tag:
 ```
-kali(command="swaks --to test@DOMAIN --server MX_HOST 2>&1 | grep -i 'dkim-signature' | grep -oP 's=\\K[^;]+'")
+Bash("swaks --to test@DOMAIN --server MX_HOST 2>&1 | grep -i 'dkim-signature' | grep -oP 's=\\K[^;]+'")
 ```
 
 ---
@@ -135,18 +133,18 @@ kali(command="swaks --to test@DOMAIN --server MX_HOST 2>&1 | grep -i 'dkim-signa
 
 **SMTP service detection:**
 ```
-scan(tool="nmap", target=MX_HOST, options={"ports": "25,465,587", "flags": "--script smtp-commands,smtp-enum-users,smtp-open-relay,smtp-ntlm-info -sV"})
+Bash("nmap ...")
 ```
 
 **STARTTLS check:**
 ```
-kali(command="echo 'QUIT' | openssl s_client -connect MX_HOST:25 -starttls smtp -brief 2>/dev/null | head -20")
-kali(command="echo 'QUIT' | openssl s_client -connect MX_HOST:587 -starttls smtp -brief 2>/dev/null | head -20")
+Bash("echo 'QUIT' | openssl s_client -connect MX_HOST:25 -starttls smtp -brief 2>/dev/null | head -20")
+Bash("echo 'QUIT' | openssl s_client -connect MX_HOST:587 -starttls smtp -brief 2>/dev/null | head -20")
 ```
 
 **Check certificate:**
 ```
-kali(command="echo 'QUIT' | openssl s_client -connect MX_HOST:25 -starttls smtp 2>/dev/null | openssl x509 -noout -subject -issuer -dates -fingerprint 2>/dev/null")
+Bash("echo 'QUIT' | openssl s_client -connect MX_HOST:25 -starttls smtp 2>/dev/null | openssl x509 -noout -subject -issuer -dates -fingerprint 2>/dev/null")
 ```
 
 ---
@@ -155,7 +153,7 @@ kali(command="echo 'QUIT' | openssl s_client -connect MX_HOST:25 -starttls smtp 
 
 **Test open relay with swaks:**
 ```
-kali(command="swaks --to test@example.com --from spoofed@DOMAIN --server MX_HOST --timeout 10 2>&1 | tail -20")
+Bash("swaks --to test@example.com --from spoofed@DOMAIN --server MX_HOST --timeout 10 2>&1 | tail -20")
 ```
 
 If the mail is accepted for delivery to an external domain, this is a **Critical** finding.
@@ -166,12 +164,12 @@ If the mail is accepted for delivery to an external domain, this is a **Critical
 
 **Test email spoofing:**
 ```
-kali(command="swaks --to real-user@DOMAIN --from ceo@DOMAIN --server MX_HOST --header 'Subject: Test Spoofing Resilience' --body 'This is a spoofing test.' --timeout 10 2>&1 | tail -20")
+Bash("swaks --to real-user@DOMAIN --from ceo@DOMAIN --server MX_HOST --header 'Subject: Test Spoofing Resilience' --body 'This is a spoofing test.' --timeout 10 2>&1 | tail -20")
 ```
 
 **Test from external server (bypasses internal relay):**
 ```
-kali(command="swaks --to real-user@DOMAIN --from ceo@DOMAIN --header 'Subject: External Spoof Test' --body 'External spoofing test.' --timeout 10 2>&1 | tail -20")
+Bash("swaks --to real-user@DOMAIN --from ceo@DOMAIN --header 'Subject: External Spoof Test' --body 'External spoofing test.' --timeout 10 2>&1 | tail -20")
 ```
 
 ---
@@ -180,8 +178,8 @@ kali(command="swaks --to real-user@DOMAIN --from ceo@DOMAIN --header 'Subject: E
 
 **SMTP user enumeration:**
 ```
-kali(command="smtp-user-enum -M VRFY -U /usr/share/seclists/Usernames/top-usernames-shortlist.txt -t MX_HOST 2>/dev/null | head -30")
-kali(command="smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/top-usernames-shortlist.txt -D DOMAIN -t MX_HOST 2>/dev/null | head -30")
+Bash("smtp-user-enum -M VRFY -U /usr/share/seclists/Usernames/top-usernames-shortlist.txt -t MX_HOST 2>/dev/null | head -30")
+Bash("smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/top-usernames-shortlist.txt -D DOMAIN -t MX_HOST 2>/dev/null | head -30")
 ```
 
 ---
@@ -190,7 +188,7 @@ kali(command="smtp-user-enum -M RCPT -U /usr/share/seclists/Usernames/top-userna
 
 **Fetch MTA-STS policy:**
 ```
-http(action="request", url="https://mta-sts.DOMAIN/.well-known/mta-sts.txt", method="GET")
+Bash("curl ...")
 ```
 
 **Verify:**
@@ -202,7 +200,7 @@ http(action="request", url="https://mta-sts.DOMAIN/.well-known/mta-sts.txt", met
 
 ### Phase 7 — Report & Wrap-Up
 
-1. Call `report(action="diagram", data={...})` with email infrastructure:
+1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with email infrastructure:
 ```mermaid
 flowchart TD
     Sender["External Sender"] --> DNS["DNS Lookup"]
@@ -216,7 +214,7 @@ flowchart TD
     MX --> MTASTS["MTA-STS: enforce"]
 ```
 
-2. Call `report(action="note", data={...})` with email security summary:
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` with email security summary:
 ```
 Email Security Assessment Summary:
   Domain:          [domain]
@@ -231,7 +229,7 @@ Email Security Assessment Summary:
   User enumeration: [possible/blocked]
 ```
 
-3. Call `session(action="complete", options={...})` with summary
+3. Call `Write("pentest/summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -243,18 +241,18 @@ Email Security Assessment Summary:
 | `/osint` | Email addresses discovered — expand OSINT reconnaissance |
 | `/credential-audit` | SMTP credentials needed — test authentication |
 | `/ssl-tls-audit` | STARTTLS weaknesses found — deep TLS assessment |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent DNS lookups** — SPF, DKIM, DMARC, MTA-STS can all run in parallel
 - **Test spoofing carefully** — only send test emails to authorized addresses
-- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the DNS record and specific misconfiguration
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed weakness** — include the DNS record and specific misconfiguration
 - **SPF + DKIM + DMARC must all be present** — missing any one is a finding
-- **Use `report(action="note", data={...})` liberally** — document DNS records and analysis decisions
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document DNS records and analysis decisions
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

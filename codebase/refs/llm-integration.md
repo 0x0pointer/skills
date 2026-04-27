@@ -207,7 +207,7 @@ Known CVEs in LLM frameworks. Check detected dependency versions against this ta
 1. Read the detected package version from the manifest (Phase 1)
 2. Compare against affected versions
 3. If vulnerable version found: grep for the specific pattern to determine if the vulnerable code path is used
-4. If the pattern is present: `report(action="finding", data={...})` with CVE ID, affected file, and vulnerable code path
+4. If the pattern is present: `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` with CVE ID, affected file, and vulnerable code path
 
 ---
 

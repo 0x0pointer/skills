@@ -75,7 +75,7 @@ AITG-only tests (no LLM Top 10 parallel): **APP-04, APP-09, APP-10, MOD-01, MOD-
 
 ### 3.1 Confidence / logprob probing
 
-Send each of these via `http(action="request", ...)` to the target API. Any that succeed expose model internals that enable distillation / boundary mapping.
+Send each of these via `Bash("curl ...")` to the target API. Any that succeed expose model internals that enable distillation / boundary mapping.
 
 ```http
 # OpenAI-style logprobs request
@@ -554,34 +554,24 @@ file /path/to/chroma.sqlite
 
 ## 9. Reporting Template Snippets
 
-When `report(action="finding", data={...})`-ing an AITG or MCP test, include the test ID in both the title and description so downstream skills (`/gh-export`) preserve the framework mapping:
+When `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)`-ing an AITG or MCP test, include the test ID in both the title and description so downstream skills (`/gh-export`) preserve the framework mapping:
 
 ```python
-report(action="finding", data={
-  title="AITG-APP-09 — Model decision boundary extractable via logprobs",
-  severity="medium",
-  target=URL,
-  description=(
-    "AITG-APP-09 (Model Extraction). The endpoint accepts `logprobs: true` and "
+# Append finding to pentest/findings.json (Read → mutate JSON array → Write). The endpoint accepts `logprobs: true` and "
     "returns per-token confidence scores with no rate limit on the logprobs "
     "field. This enables efficient distillation / substitute-model training."
   ),
   evidence=raw_http_response,
-  tool_used="http(action="request", ...)",
+  tool_used="Bash("curl ...")",
 )
 ```
 
 ```python
-report(action="finding", data={
-  title="MCP05 — Command injection via <tool_name> argument",
-  severity="high",
-  target=URL,
-  description=(
-    "MCP05 (Command Injection). The `<tool_name>` MCP tool passes the `query` "
+# Append finding to pentest/findings.json (Read → mutate JSON array → Write). The `<tool_name>` MCP tool passes the `query` "
     "argument to a shell without escaping. Injecting `; id` returns uid=1000, "
     "confirming arbitrary command execution under the tool-server user."
   ),
   evidence=tool_response_with_uid,
-  tool_used="http(action="request", ...)",
+  tool_used="Bash("curl ...")",
 )
 ```

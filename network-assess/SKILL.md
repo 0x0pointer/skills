@@ -20,35 +20,29 @@ You are an expert network penetration tester performing an internal network asse
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Host/device access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Credentials captured (LLMNR/NBT-NS poisoning) | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Lateral movement opportunities identified | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` | `cat ~/.config/opencode/commands/lateral-movement.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Host/device access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
+| Credentials captured (LLMNR/NBT-NS poisoning) | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
+| Lateral movement opportunities identified | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `scan(tool="nmap", ...)` | Port scanning and service detection |
-| `scan(tool="naabu", ...)` | Fast port scanning across large networks |
-| `scan(tool="httpx", ...)` | HTTP service probing |
-| `scan(tool="nuclei", ...)` | Network service vulnerability templates |
-| `kali(command=...)` | Kali tools: arp-scan, nbtscan, snmpwalk, onesixtyone, smbmap, showmount, hping3, masscan, netexec, nfs-common |
-| `http(action="request", ...)` | Probe web management interfaces |
-| `http(action="save_poc", ...)` | Save confirmed exploits |
-| `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
-| `report(action="diagram", data={...})` | Save network topology diagrams |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write reasoning notes to session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -80,9 +74,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target CIDR, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `report(action="note", data={...})` — record network range, gateway, VLAN, assessment objectives
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target CIDR, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record network range, gateway, VLAN, assessment objectives
 
 ---
 
@@ -90,17 +84,17 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **ARP scan (most reliable on local network):**
 ```
-kali(command="arp-scan --localnet 2>/dev/null | head -50")
+Bash("arp-scan --localnet 2>/dev/null | head -50")
 ```
 
 **Ping sweep:**
 ```
-kali(command="nmap -sn NETWORK/24 -oG - 2>/dev/null | grep 'Up' | head -50")
+Bash("nmap -sn NETWORK/24 -oG - 2>/dev/null | grep 'Up' | head -50")
 ```
 
 **NetBIOS enumeration:**
 ```
-kali(command="nbtscan NETWORK/24 2>/dev/null | head -50")
+Bash("nbtscan NETWORK/24 2>/dev/null | head -50")
 ```
 
 ---
@@ -109,20 +103,20 @@ kali(command="nbtscan NETWORK/24 2>/dev/null | head -50")
 
 **Fast scan:**
 ```
-scan(tool="naabu", target="NETWORK/24", options={"ports": "top-100"})
+Bash("naabu NETWORK/24 ...")
 ```
 
 **Service detection on live hosts:**
 ```
-scan(tool="nmap", target=HOST, options={"ports": "top-1000", "flags": "-sV -sC"})
+Bash("nmap ...")
 ```
 
 **Full port scan (thorough):**
 ```
-scan(tool="naabu", target="NETWORK/24", options={"ports": "full"})
+Bash("naabu NETWORK/24 ...")
 ```
 
-After discovery, call `report(action="diagram", data={...})` with network topology:
+After discovery, call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with network topology:
 ```mermaid
 flowchart TD
     GW["Gateway: 10.0.0.1"] --> VLAN10["VLAN 10: Servers"]
@@ -142,15 +136,15 @@ flowchart TD
 
 **LLMNR/NBT-NS/mDNS detection:**
 ```
-kali(command="responder -I eth0 -A 2>&1 | head -30", timeout=15000)
+Bash("responder -I eth0 -A 2>&1 | head -30", timeout=15000)
 ```
 
 **Check for broadcast protocols:**
 ```
-kali(command="tcpdump -i any -c 50 'udp port 5355 or udp port 137 or udp port 5353' -nn 2>/dev/null | head -30", timeout=15000)
+Bash("tcpdump -i any -c 50 'udp port 5355 or udp port 137 or udp port 5353' -nn 2>/dev/null | head -30", timeout=15000)
 ```
 
-If LLMNR/NBT-NS responses are detected, call `report(action="finding", data={...})` — these can be poisoned for credential capture.
+If LLMNR/NBT-NS responses are detected, call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` — these can be poisoned for credential capture.
 
 ---
 
@@ -158,12 +152,12 @@ If LLMNR/NBT-NS responses are detected, call `report(action="finding", data={...
 
 **Community string brute-force:**
 ```
-kali(command="onesixtyone NETWORK/24 -c /usr/share/seclists/Discovery/SNMP/common-snmp-community-strings-onesixtyone.txt 2>/dev/null | head -30")
+Bash("onesixtyone NETWORK/24 -c /usr/share/seclists/Discovery/SNMP/common-snmp-community-strings-onesixtyone.txt 2>/dev/null | head -30")
 ```
 
 **SNMP walk (if community string found):**
 ```
-kali(command="snmpwalk -v2c -c COMMUNITY HOST 2>/dev/null | head -100")
+Bash("snmpwalk -v2c -c COMMUNITY HOST 2>/dev/null | head -100")
 ```
 
 **Extract useful info:**
@@ -181,16 +175,16 @@ kali(command="snmpwalk -v2c -c COMMUNITY HOST 2>/dev/null | head -100")
 
 **SMB shares:**
 ```
-kali(command="nxc smb NETWORK/24 --shares -u '' -p '' 2>/dev/null | head -30")
-kali(command="smbmap -H HOST -u '' -p '' 2>/dev/null")
+Bash("nxc smb NETWORK/24 --shares -u '' -p '' 2>/dev/null | head -30")
+Bash("smbmap -H HOST -u '' -p '' 2>/dev/null")
 ```
 
 **NFS exports:**
 ```
-kali(command="showmount -e HOST 2>/dev/null")
+Bash("showmount -e HOST 2>/dev/null")
 ```
 
-If NFS exports are world-readable, call `report(action="finding", data={...})`.
+If NFS exports are world-readable, call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)`.
 
 ---
 
@@ -198,17 +192,17 @@ If NFS exports are world-readable, call `report(action="finding", data={...})`.
 
 **Test inter-VLAN access:**
 ```
-kali(command="for vlan in 10 20 30; do for port in 22 80 443 445 3389; do (echo > /dev/tcp/10.0.$vlan.1/$port) 2>/dev/null && echo \"VLAN$vlan:$port OPEN\"; done; done")
+Bash("for vlan in 10 20 30; do for port in 22 80 443 445 3389; do (echo > /dev/tcp/10.0.$vlan.1/$port) 2>/dev/null && echo \"VLAN$vlan:$port OPEN\"; done; done")
 ```
 
 **Test firewall rules:**
 ```
-kali(command="hping3 -S -p 80 -c 3 TARGET 2>/dev/null")
+Bash("hping3 -S -p 80 -c 3 TARGET 2>/dev/null")
 ```
 
 **Test DNS segmentation:**
 ```
-kali(command="dig @DC_IP internal.domain.com ANY 2>/dev/null")
+Bash("dig @DC_IP internal.domain.com ANY 2>/dev/null")
 ```
 
 ---
@@ -217,26 +211,26 @@ kali(command="dig @DC_IP internal.domain.com ANY 2>/dev/null")
 
 **Router/switch discovery:**
 ```
-kali(command="nmap -sV -p 22,23,80,443,161,162,830 GATEWAY 2>/dev/null")
+Bash("nmap -sV -p 22,23,80,443,161,162,830 GATEWAY 2>/dev/null")
 ```
 
 **Check for default credentials on network devices:**
 ```
-scan(tool="nuclei", target="http://GATEWAY", options={"templates": "default-login,misconfig"})
+Bash("nuclei http://GATEWAY ...")
 ```
 
 **SSH audit on network devices:**
 ```
-kali(command="ssh-audit GATEWAY 2>/dev/null | head -50")
+Bash("ssh-audit GATEWAY 2>/dev/null | head -50")
 ```
 
 ---
 
 ### Phase 8 — Report & Wrap-Up
 
-1. Call `report(action="diagram", data={...})` with final annotated network topology
+1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with final annotated network topology
 
-2. Call `report(action="note", data={...})` with assessment summary:
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` with assessment summary:
 ```
 Internal Network Assessment Summary:
   Network range:           [CIDR]
@@ -250,7 +244,7 @@ Internal Network Assessment Summary:
   Network devices:         [count] with default creds or weak config
 ```
 
-3. Call `session(action="complete", options={...})` with summary
+3. Call `Write("pentest/summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -265,20 +259,20 @@ Internal Network Assessment Summary:
 | `/container-k8s-security` | Docker/K8s services discovered — container and K8s assessment |
 | `/osint` | Passive recon before active network assessment |
 | `/post-exploit` | Access obtained on network device or host — privilege escalation, credential harvesting, pivot prep |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
+- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
 - **Start with ARP scan** — it's the most reliable host discovery on local networks
 - **Test segmentation actively** — attempt to reach hosts in other VLANs/segments
-- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the specific service, protocol, or misconfiguration
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed weakness** — include the specific service, protocol, or misconfiguration
 - **Map the full topology** — update the network diagram as you discover new segments
-- **Use `report(action="note", data={...})` liberally** — document network structure discoveries
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document network structure discoveries
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

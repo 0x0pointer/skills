@@ -37,16 +37,16 @@ This workflow provides a structured methodology for analyzing whether a CVE affe
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` (confirmed exploitable finding) | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Exploitable CVE confirmed + live target available | `/web-exploit` | OPTIONAL | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| Exploitable CVE confirmed + Metasploit module available | `/metasploit` | OPTIONAL | `Skill(skill="metasploit")` | `cat ~/.config/opencode/commands/metasploit.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` (confirmed exploitable finding) | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Exploitable CVE confirmed + live target available | `/web-exploit` | OPTIONAL | `Skill(skill="web-exploit")` |
+| Exploitable CVE confirmed + Metasploit module available | `/metasploit` | OPTIONAL | `Skill(skill="metasploit")` |
 
 **You WILL invoke `/gh-export` after completing the analysis if a confirmed exploitable finding was produced.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -60,7 +60,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
    - Understand attack vector and vulnerability type
    - Note affected version range
    - Document any PoC or exploit details
-   - Search Exploit-DB for existing exploits: `kali(command="searchsploit <product> <version>")`
+   - Search Exploit-DB for existing exploits: `Bash("searchsploit <product> <version>")`
 
 2. **Trust User-Provided Version Information**
    - **IMPORTANT**: Trust the user's input about dependency version and CVE applicability
@@ -161,20 +161,17 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
     - Explain verification steps
     - Provide exploitation indicators
 
-### Phase 5b: Report to Dashboard (when MCP tools are available)
+### Phase 5b: Persist to pentest/ artifacts (when running inside an engagement)
 
-If pentest-agent MCP tools are available (e.g. when chained from `/pentester`), report findings to the live dashboard:
+When chained from `/pentester` (or any time a `pentest/` directory exists in the working dir), persist findings alongside the rest of the run:
 
 11. **Log confirmed vulnerabilities**
-    - Call `report(action="finding", data={...})` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets)
-    - This makes the finding visible in the live dashboard at localhost:5000
+    - Append an entry to `pentest/findings.json` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets) — `Read("pentest/findings.json")` → mutate the JSON array → `Write("pentest/findings.json", ...)`
 
-12. **Route PoC through Burp Suite**
-    - Call `http(action="request", options={"poc": true})` with the crafted exploit request — this lands it in Burp HTTP History
-    - Call `http(action="save_poc", ...)` with a descriptive title (e.g. `cve-2024-xxxxx-rce-upload`) and include the vulnerability description in `notes`
-    - This produces a `.http` file in `pocs/` that can be pasted directly into Burp Repeater
+12. **Save a Burp-ready PoC**
+    - `Write("pocs/<title>.http", ...)` with a descriptive title (e.g. `cve-2024-xxxxx-rce-upload`) — include a leading `# notes: ...` line with the vulnerability description. The `.http` file can be pasted directly into Burp Repeater.
 
-> **Skip this phase** if MCP tools are not available (standalone analysis). The markdown report is always produced regardless.
+> **Skip this phase** for standalone analysis (no `pentest/` directory). The markdown report is always produced regardless.
 
 ### Phase 6: Report Generation
 

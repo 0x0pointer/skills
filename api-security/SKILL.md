@@ -3,7 +3,7 @@ name: api-security
 description: |
   Deep API security assessment beyond surface scanning. Covers the full OWASP API Security Top 10 (2023): Broken Object Level Authorization (BOLA / IDOR), Broken Authentication, Broken Object Property Level Authorization (mass assignment + excessive data exposure), Unrestricted Resource Consumption, Broken Function Level Authorization (BFLA / vertical privilege escalation), Unrestricted Access to Sensitive Business Flows, Server-Side Request Forgery via API parameters, Security Misconfiguration, Improper Inventory Management (shadow/zombie/deprecated endpoints, v1/v2 drift), and Unsafe Consumption of third-party APIs. Works across REST, GraphQL, gRPC, SOAP, and MCP servers.
 
-  Discovers APIs from OpenAPI/Swagger specs, GraphQL introspection, gRPC reflection, .well-known endpoints, JS bundles, and traffic capture. Uses kiterunner, ffuf, schemathesis, restler-fuzzer, openapi-fuzzer, graphql-cop, clairvoyance, batchql, inql, jwt_tool, postman, mitmproxy, and manual http(action="request", ...) payloads. Every technique includes actual payloads, commands, and verification logic. Chains from /pentester or /codebase when API endpoints are discovered, chains into /web-exploit when classic injection points are found in API parameters, chains into /post-exploit when RCE is achieved, and chains into /ai-redteam when an LLM/AI endpoint is discovered (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers).
+  Discovers APIs from OpenAPI/Swagger specs, GraphQL introspection, gRPC reflection, .well-known endpoints, JS bundles, and traffic capture. Uses kiterunner, ffuf, schemathesis, restler-fuzzer, openapi-fuzzer, graphql-cop, clairvoyance, batchql, inql, jwt_tool, postman, mitmproxy, and manual Bash("curl ...") payloads. Every technique includes actual payloads, commands, and verification logic. Chains from /pentester or /codebase when API endpoints are discovered, chains into /web-exploit when classic injection points are found in API parameters, chains into /post-exploit when RCE is achieved, and chains into /ai-redteam when an LLM/AI endpoint is discovered (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers).
 argument-hint: <target-url> [api-type=rest|graphql|grpc|soap|mcp] [vuln-class=bola|auth|bopla|consumption|bfla|business-flow|ssrf|misconfig|inventory|consumption-unsafe] [depth=quick|standard|thorough]
 user-invocable: true
 ---
@@ -22,34 +22,29 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Injection points or deep vuln found | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
-| CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Injection points or deep vuln found | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
+| CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `kali(command=...)` | Kali tools: kiterunner, ffuf, schemathesis, restler-fuzzer, openapi-fuzzer, graphql-cop, clairvoyance, batchql, inql, jwt_tool, grpcurl, grpcui, sqlmap, nuclei, postman, curl |
-| `http(action="request", ...)` | Raw HTTP — manual payload crafting, BOLA enumeration, mass assignment probes, JWT manipulation, PoC verification. Set `poc=True` for confirmed exploits |
-| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
-| `scan(tool="nuclei", ...)` | Template scan for known API CVEs, exposed Swagger docs, default credentials |
-| `scan(tool="ffuf", ...)` | Fuzz API paths, version segments, parameter names |
-| `scan(tool="spider", ...)` | Crawl HTML pages and JS bundles for embedded API endpoints |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="diagram", data={...})` | Save a Mermaid diagram (auth flow, exploit chain, data exfil path) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -57,16 +52,16 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | ID | Category | Key Techniques | Primary Tools |
 |----|----------|----------------|---------------|
-| **API1** | Broken Object Level Authorization (BOLA / IDOR) | Sequential ID enumeration, UUID prediction, encoded ID decoding, cross-tenant access, nested object IDOR, GraphQL node-by-id abuse | `http(action="request", ...)`, `ffuf`, manual scripting |
-| **API2** | Broken Authentication | JWT none/key confusion/kid injection, weak signing key brute, credential stuffing, OAuth flow abuse, API key in URL/header leakage, missing token revocation, password reset poisoning | `jwt_tool`, `http(action="request", ...)`, `kali(command=...)` |
-| **API3** | Broken Object Property Level Authorization (BOPLA) | Mass assignment (role/isAdmin/balance), excessive data exposure (returning hidden fields), GraphQL field-level auth bypass | `http(action="request", ...)` |
-| **API4** | Unrestricted Resource Consumption | Missing rate limits, GraphQL query depth/aliasing/batching DoS, large request bodies, regex DoS, expensive endpoint amplification | `kali(command=...)`, `batchql`, `http(action="request", ...)` |
-| **API5** | Broken Function Level Authorization (BFLA) | Admin endpoint access as low-priv user, HTTP verb tampering for privilege escalation, hidden admin paths via JS bundle/spec leak | `http(action="request", ...)`, `ffuf` |
-| **API6** | Unrestricted Access to Sensitive Business Flows | Coupon stacking, OTP brute, gift card draining, signup/abuse loops, account scraping, ticket/inventory hoarding | `http(action="request", ...)`, scripted parallel requests |
-| **API7** | Server-Side Request Forgery | URL parameter SSRF (webhook, image-proxy, PDF-render, OG-preview, file-import), DNS rebinding, cloud IMDS, internal port scan | `http(action="request", ...)`, `kali(command=...)` |
-| **API8** | Security Misconfiguration | Verbose errors, debug endpoints, default creds, missing security headers, open CORS, exposed admin/actuator/swagger UI, unauthenticated metrics | `nuclei`, `http(action="request", ...)` |
-| **API9** | Improper Inventory Management | Shadow/zombie endpoints, deprecated v1 still live, staging/dev hosts in prod, undocumented internal APIs, GraphQL introspection in prod | `ffuf`, `kiterunner`, `http(action="request", ...)` |
-| **API10** | Unsafe Consumption of APIs | Trusting third-party API responses, no validation of upstream data, server-side processing of attacker-controlled URLs, supply-chain via downstream API | `http(action="request", ...)`, code review via `/codebase` |
+| **API1** | Broken Object Level Authorization (BOLA / IDOR) | Sequential ID enumeration, UUID prediction, encoded ID decoding, cross-tenant access, nested object IDOR, GraphQL node-by-id abuse | `Bash("curl ...")`, `ffuf`, manual scripting |
+| **API2** | Broken Authentication | JWT none/key confusion/kid injection, weak signing key brute, credential stuffing, OAuth flow abuse, API key in URL/header leakage, missing token revocation, password reset poisoning | `jwt_tool`, `Bash("curl ...")`, `Bash(...)` |
+| **API3** | Broken Object Property Level Authorization (BOPLA) | Mass assignment (role/isAdmin/balance), excessive data exposure (returning hidden fields), GraphQL field-level auth bypass | `Bash("curl ...")` |
+| **API4** | Unrestricted Resource Consumption | Missing rate limits, GraphQL query depth/aliasing/batching DoS, large request bodies, regex DoS, expensive endpoint amplification | `Bash(...)`, `batchql`, `Bash("curl ...")` |
+| **API5** | Broken Function Level Authorization (BFLA) | Admin endpoint access as low-priv user, HTTP verb tampering for privilege escalation, hidden admin paths via JS bundle/spec leak | `Bash("curl ...")`, `ffuf` |
+| **API6** | Unrestricted Access to Sensitive Business Flows | Coupon stacking, OTP brute, gift card draining, signup/abuse loops, account scraping, ticket/inventory hoarding | `Bash("curl ...")`, scripted parallel requests |
+| **API7** | Server-Side Request Forgery | URL parameter SSRF (webhook, image-proxy, PDF-render, OG-preview, file-import), DNS rebinding, cloud IMDS, internal port scan | `Bash("curl ...")`, `Bash(...)` |
+| **API8** | Security Misconfiguration | Verbose errors, debug endpoints, default creds, missing security headers, open CORS, exposed admin/actuator/swagger UI, unauthenticated metrics | `nuclei`, `Bash("curl ...")` |
+| **API9** | Improper Inventory Management | Shadow/zombie endpoints, deprecated v1 still live, staging/dev hosts in prod, undocumented internal APIs, GraphQL introspection in prod | `ffuf`, `kiterunner`, `Bash("curl ...")` |
+| **API10** | Unsafe Consumption of APIs | Trusting third-party API responses, no validation of upstream data, server-side processing of attacker-controlled URLs, supply-chain via downstream API | `Bash("curl ...")`, code review via `/codebase` |
 
 ---
 
@@ -100,9 +95,9 @@ If the request does not specify what to test, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with target URL, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-2. Call `report(action="note", data={...})` — record target, API type, known endpoints, auth state, available test accounts
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with target URL, depth, and limits
+1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+2. Call `Bash("echo '<message>' >> pentest/notes.log")` — record target, API type, known endpoints, auth state, available test accounts
 
 ---
 
@@ -128,11 +123,11 @@ The single biggest mistake in API testing is testing only what you were given. M
 | `/sitemap.xml`, `/robots.txt` | Sometimes lists API paths |
 
 ```
-http(action="request", url="https://TARGET/swagger.json")
-http(action="request", url="https://TARGET/openapi.json")
-http(action="request", url="https://TARGET/v3/api-docs")
-http(action="request", url="https://TARGET/graphql", method="POST", body='{"query":"{__schema{types{name}}}"}')
-http(action="request", url="https://TARGET/actuator/mappings")
+Bash("curl ...")
+Bash("curl ...")
+Bash("curl ...")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 **Step 1b — JS bundle & HTML scraping:**
@@ -140,8 +135,8 @@ http(action="request", url="https://TARGET/actuator/mappings")
 Front-end JS often contains the complete API surface as `fetch(...)` and `axios.get(...)` calls. Most production sites also contain hardcoded API base URLs and version numbers.
 
 ```
-kali(command="curl -sL https://TARGET/ | grep -oE '/(api|v[0-9])/[a-zA-Z0-9_/-]+' | sort -u")
-kali(command="curl -sL https://TARGET/main.js https://TARGET/app.js https://TARGET/bundle.js 2>/dev/null | grep -oE '\"/[a-zA-Z0-9_/-]+\"' | sort -u")
+Bash("curl -sL https://TARGET/ | grep -oE '/(api|v[0-9])/[a-zA-Z0-9_/-]+' | sort -u")
+Bash("curl -sL https://TARGET/main.js https://TARGET/app.js https://TARGET/bundle.js 2>/dev/null | grep -oE '\"/[a-zA-Z0-9_/-]+\"' | sort -u")
 ```
 
 For SPAs: download every JS bundle linked from the HTML and grep for `fetch(`, `axios.`, `XMLHttpRequest`, `apiBase`, `endpoint:`, `url:`. JS bundles are the #1 source of undocumented endpoints.
@@ -149,16 +144,16 @@ For SPAs: download every JS bundle linked from the HTML and grep for `fetch(`, `
 **Step 1c — Wordlist-based path fuzzing (kiterunner):**
 
 ```
-kali(command="kr brute https://TARGET/ -w /usr/share/wordlists/seclists/Discovery/Web-Content/api/api-endpoints.txt -A=apiroutes-220828 -x 10")
+Bash("kr brute https://TARGET/ -w /usr/share/wordlists/seclists/Discovery/Web-Content/api/api-endpoints.txt -A=apiroutes-220828 -x 10")
 ```
 
 `kiterunner` is purpose-built for API discovery — unlike ffuf/gobuster it sends method+content-type combinations from a route DB, not just GETs.
 
 Fallback if kiterunner unavailable:
 ```
-scan(tool="ffuf", target="https://TARGET/FUZZ", options={"wordlist": "api-endpoints.txt"})
-scan(tool="ffuf", target="https://TARGET/api/v1/FUZZ", options={"wordlist": "api-endpoints.txt"})
-scan(tool="ffuf", target="https://TARGET/api/v2/FUZZ", options={"wordlist": "api-endpoints.txt"})
+Bash("ffuf https://TARGET/FUZZ ...")
+Bash("ffuf https://TARGET/api/v1/FUZZ ...")
+Bash("ffuf https://TARGET/api/v2/FUZZ ...")
 ```
 
 **Step 1d — Version drift discovery (API9):**
@@ -166,22 +161,20 @@ scan(tool="ffuf", target="https://TARGET/api/v2/FUZZ", options={"wordlist": "api
 For every endpoint found at `/api/v2/foo`, also probe `/api/v1/foo`, `/api/v0/foo`, `/api/foo`, `/api/internal/foo`, `/api/staging/foo`, `/api/test/foo`, `/api/legacy/foo`. **Older versions are almost always less hardened** — this is the single most productive gap in modern APIs.
 
 ```
-http(action="request", url="https://TARGET/api/v1/users/1")
-http(action="request", url="https://TARGET/api/v0/users/1")
-http(action="request", url="https://TARGET/api/internal/users/1")
+Bash("curl ...")
+Bash("curl ...")
+Bash("curl ...")
 ```
 
 **Step 1e — GraphQL introspection (if GraphQL endpoint found):**
 
 ```
-http(action="request", url="https://TARGET/graphql", method="POST",
-     headers={"Content-Type": "application/json"},
-     body='{"query":"query IntrospectionQuery { __schema { queryType { name } mutationType { name } subscriptionType { name } types { ...FullType } directives { name description locations args { ...InputValue } } } } fragment FullType on __Type { kind name description fields(includeDeprecated: true) { name description args { ...InputValue } type { ...TypeRef } isDeprecated deprecationReason } inputFields { ...InputValue } interfaces { ...TypeRef } enumValues(includeDeprecated: true) { name description isDeprecated deprecationReason } possibleTypes { ...TypeRef } } fragment InputValue on __InputValue { name description type { ...TypeRef } defaultValue } fragment TypeRef on __Type { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } } } } } }"}')
+Bash("curl ...") { name description args { ...InputValue } type { ...TypeRef } isDeprecated deprecationReason } inputFields { ...InputValue } interfaces { ...TypeRef } enumValues(includeDeprecated: true) { name description isDeprecated deprecationReason } possibleTypes { ...TypeRef } } fragment InputValue on __InputValue { name description type { ...TypeRef } defaultValue } fragment TypeRef on __Type { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } } } } } }"}')
 ```
 
 If introspection is disabled (returns "GraphQL introspection is not allowed"):
 ```
-kali(command="clairvoyance https://TARGET/graphql -w /usr/share/wordlists/seclists/Discovery/Web-Content/graphql.txt")
+Bash("clairvoyance https://TARGET/graphql -w /usr/share/wordlists/seclists/Discovery/Web-Content/graphql.txt")
 ```
 `clairvoyance` reconstructs the schema from field-suggestion error messages even when introspection is disabled.
 
@@ -220,9 +213,9 @@ The server does `User.objects.filter(**json.loads(search))` and returns admin ro
 **Step 1f — gRPC reflection (if gRPC endpoint found):**
 
 ```
-kali(command="grpcurl -plaintext TARGET:443 list")
-kali(command="grpcurl -plaintext TARGET:443 list <service>")
-kali(command="grpcurl -plaintext TARGET:443 describe <service>.<method>")
+Bash("grpcurl -plaintext TARGET:443 list")
+Bash("grpcurl -plaintext TARGET:443 list <service>")
+Bash("grpcurl -plaintext TARGET:443 describe <service>.<method>")
 ```
 
 If reflection is disabled, look for `.proto` files in JS bundles or GitHub repos. Without protos you cannot meaningfully test gRPC — escalate to source code review (`/codebase`) if available.
@@ -230,22 +223,13 @@ If reflection is disabled, look for `.proto` files in JS bundles or GitHub repos
 **Step 1g — Register everything in the coverage matrix:**
 
 ```
-report(action="coverage", data={
-  "type": "endpoint",
-  "path": "/api/v2/users/{id}",
-  "method": "GET",
-  "params": [
-    {"name": "id", "type": "path", "value_hint": "integer"}
-  ],
-  "discovered_by": "openapi-spec",
-  "auth_context": "user-token"
-})
+# Upsert into pentest/coverage.json (Read → update entry by cell_id/path+method → Write)
 ```
 
 Param type values: `path`, `query`, `body_form`, `body_json`, `header`, `cookie`
 Each registration auto-generates BOLA, BFLA, BOPLA, SSRF, injection, and consumption test cells.
 
-Call `report(action="note", data={...})` with total endpoints and cells registered. Always include the **source** of discovery (spec / JS / kiterunner / version drift) so you can prove inventory completeness in the report.
+Call `Bash("echo '<message>' >> pentest/notes.log")` with total endpoints and cells registered. Always include the **source** of discovery (spec / JS / kiterunner / version drift) so you can prove inventory completeness in the report.
 
 ---
 
@@ -267,9 +251,9 @@ Before testing anything else, characterize how the API authenticates. Auth is th
 
 **JWT-specific tests (API2):**
 1. Decode header — note the `alg` and `kid`
-2. **`alg=none` attack** — change `alg` to `none`, strip signature, send: `kali(command="jwt_tool -X a TOKEN")`
-3. **HS256 brute-force** — if `alg=HS256`, try common keys (`secret`, `password`, `your-256-bit-secret`): `kali(command="jwt_tool -C -d /usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt TOKEN")`
-4. **RS256→HS256 confusion** — if `alg=RS256`, try re-signing with the public key as HMAC secret: `kali(command="jwt_tool -X k -pk public.pem TOKEN")`
+2. **`alg=none` attack** — change `alg` to `none`, strip signature, send: `Bash("jwt_tool -X a TOKEN")`
+3. **HS256 brute-force** — if `alg=HS256`, try common keys (`secret`, `password`, `your-256-bit-secret`): `Bash("jwt_tool -C -d /usr/share/wordlists/seclists/Passwords/Common-Credentials/10-million-password-list-top-1000000.txt TOKEN")`
+4. **RS256→HS256 confusion** — if `alg=RS256`, try re-signing with the public key as HMAC secret: `Bash("jwt_tool -X k -pk public.pem TOKEN")`
 5. **`kid` injection** — if `kid` header exists, try `kid=../../../dev/null`, `kid=' UNION SELECT 'AAAA`, `kid=/tmp/known-file`
 6. **`jku`/`jwk`/`x5u` header injection** — try pointing these at attacker-controlled URLs returning a key the attacker holds
 7. **Token expiration** — check `exp`, then sleep past it and try reusing — **most APIs do not validate `exp` correctly**
@@ -329,17 +313,13 @@ For each endpoint with an object ID parameter:
 
 **For every confirmed BOLA:**
 ```
-report(action="finding", data={
-  "title": "BOLA: Cross-tenant access on /api/v2/users/{id}",
-  "severity": "high",
-  "target": "https://TARGET/api/v2/users/1002",
-  "description": "API1:2023 — Account A (id=1001, role=user) can fetch Account B (id=1002) full profile including email, phone, and PII via GET /api/v2/users/1002 with Account A's bearer token. The endpoint validates the token but does not check whether the requesting user owns the requested object.",
+# Append finding to pentest/findings.json (Read → mutate JSON array → Write) can fetch Account B (id=1002) full profile including email, phone, and PII via GET /api/v2/users/1002 with Account A's bearer token. The endpoint validates the token but does not check whether the requesting user owns the requested object.",
   "evidence": "<raw request and response>",
-  "tool_used": "http(action="request", ...)"
+  "tool_used": "Bash("curl ...")"
 })
 ```
 
-Then `http(action="request", options={"poc": true})` and `http(action="save_poc", ...)` with title `bola-users-cross-tenant`.
+Then `Bash("curl ...")` and `Write("pocs/<title>.http", ...)` with title `bola-users-cross-tenant`.
 
 ---
 
@@ -465,8 +445,8 @@ Compare object responses across roles — admin endpoint returns 30 fields, user
 
 GraphQL-specific:
 ```
-kali(command="batchql -e https://TARGET/graphql")
-kali(command="graphql-cop -t https://TARGET/graphql -o json")
+Bash("batchql -e https://TARGET/graphql")
+Bash("graphql-cop -t https://TARGET/graphql -o json")
 ```
 
 For every missing limit, report a finding. Resource consumption findings are usually **high** when they cost the target money (SMS, cloud egress, third-party API quota) and **medium** otherwise.
@@ -525,7 +505,7 @@ APIs are full of URL parameters: webhooks, image proxies, PDF renders, OG previe
 
 For blind SSRF, set up a Burp Collaborator or interactsh listener:
 ```
-kali(command="interactsh-client -n 1")
+Bash("interactsh-client -n 1")
 # Then use the generated URL as the SSRF payload
 ```
 
@@ -551,7 +531,7 @@ For every confirmed SSRF that reaches cloud metadata or internal services, **alw
 | Cloud bucket exposure for asset URLs | If API returns S3 URLs, check the buckets for listing | Public bucket |
 
 ```
-scan(tool="nuclei", target="https://TARGET", options={"templates": "exposures,misconfiguration,default-logins"})
+Bash("nuclei https://TARGET ...")
 ```
 
 ---
@@ -566,7 +546,7 @@ Compare every endpoint across versions:
 - Check `staging.target.com`, `dev.target.com`, `api-test.target.com`, `internal-api.target.com` — same endpoints, less protection?
 
 ```
-kali(command="for v in v0 v1 v2 v3 internal admin legacy beta test; do echo \"--- $v ---\"; curl -s -o /dev/null -w '%{http_code} ' https://TARGET/api/$v/users/1; done")
+Bash("for v in v0 v1 v2 v3 internal admin legacy beta test; do echo \"--- $v ---\"; curl -s -o /dev/null -w '%{http_code} ' https://TARGET/api/$v/users/1; done")
 ```
 
 For every endpoint where the v-1 version returns sensitive data without the auth/hardening of v-N, report a finding citing API9.
@@ -589,19 +569,19 @@ For thorough scans, run a property-based fuzzer over the OpenAPI spec to find cr
 
 **schemathesis (best for OpenAPI):**
 ```
-kali(command="schemathesis run https://TARGET/openapi.json --base-url https://TARGET --header 'Authorization: Bearer TOKEN' --checks all --hypothesis-max-examples=50 --hypothesis-deadline=5000")
+Bash("schemathesis run https://TARGET/openapi.json --base-url https://TARGET --header 'Authorization: Bearer TOKEN' --checks all --hypothesis-max-examples=50 --hypothesis-deadline=5000")
 ```
 
 `--checks all` includes: `not_a_server_error`, `status_code_conformance`, `content_type_conformance`, `response_schema_conformance`, `response_headers_conformance`.
 
 **restler-fuzzer (best for stateful sequences):**
 ```
-kali(command="restler compile --api_spec /tmp/openapi.json && restler test --grammar_file ./Compile/grammar.py --dictionary_file ./Compile/dict.json --settings ./Compile/engine_settings.json")
+Bash("restler compile --api_spec /tmp/openapi.json && restler test --grammar_file ./Compile/grammar.py --dictionary_file ./Compile/dict.json --settings ./Compile/engine_settings.json")
 ```
 
 **openapi-fuzzer:**
 ```
-kali(command="openapi-fuzzer run -s /tmp/openapi.json -u https://TARGET")
+Bash("openapi-fuzzer run -s /tmp/openapi.json -u https://TARGET")
 ```
 
 For every crash / 500 / schema mismatch, save the request and verify manually. Many of these are info-disclosure or DoS findings.
@@ -612,9 +592,9 @@ For every crash / 500 / schema mismatch, save the request and verify manually. M
 
 Review the coverage matrix for any remaining pending or skipped cells:
 
-1. Call `session(action="status")` — check coverage stats
+1. Call `# Read pentest/scope.json + tail pentest/notes.log` — check coverage stats
 2. For any pending cells: either test them now or mark as `skipped` with a documented reason
-3. Call `report(action="note", data={...})` with a coverage summary: `"Coverage: X/Y tested, Z vulnerable, W N/A, V skipped"`
+3. Call `Bash("echo '<message>' >> pentest/notes.log")` with a coverage summary: `"Coverage: X/Y tested, Z vulnerable, W N/A, V skipped"`
 4. The session completion gate requires ≥80% of cells addressed (tested + N/A + skipped)
 
 ---
@@ -623,11 +603,11 @@ Review the coverage matrix for any remaining pending or skipped cells:
 
 For every confirmed finding:
 
-1. Call `report(action="note", data={...})` explaining what you're verifying
-2. Reproduce with `http(action="request", ...)` — craft the minimal working payload (no extra headers, no auth if anonymous, no fluff)
-3. Call `http(action="request", options={"poc": true})` to route through Burp Suite
-4. Call `http(action="save_poc", ...)` with descriptive title (e.g., `bola-orders-cross-tenant`, `bfla-admin-users-via-verb-tampering`, `mass-assignment-isadmin`)
-5. Call `report(action="finding", data={...})` with:
+1. Call `Bash("echo '<message>' >> pentest/notes.log")` explaining what you're verifying
+2. Reproduce with `Bash("curl ...")` — craft the minimal working payload (no extra headers, no auth if anonymous, no fluff)
+3. Call `Bash("curl ...")` to route through Burp Suite
+4. Call `Write("pocs/<title>.http", ...)` with descriptive title (e.g., `bola-orders-cross-tenant`, `bfla-admin-users-via-verb-tampering`, `mass-assignment-isadmin`)
+5. Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` with:
    - `severity`: critical (PII exfil at scale, cross-tenant write, RCE), high (cross-tenant read, BFLA, JWT bypass), medium (mass assignment of low-impact fields, info disclosure), low (verbose errors, missing headers)
    - `description`: **always cite the OWASP API Top 10 ID** (`API1:2023`, `API5:2023`, etc.)
    - `evidence`: Raw request/response — both the failed-as-expected request AND the successful-bypass request, side by side
@@ -636,7 +616,7 @@ For every confirmed finding:
 
 ### Phase 14 — Report & Wrap-Up
 
-1. Call `report(action="diagram", data={...})` with an attack flow showing the most impactful chain:
+1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with an attack flow showing the most impactful chain:
 
 ```mermaid
 flowchart TD
@@ -649,13 +629,13 @@ flowchart TD
     SSRF --> AWS["AWS credentials extracted"]
 ```
 
-2. Call `session(action="complete", options={...})` with summary of all confirmed findings (organized by API Top 10 category)
+2. Call `Write("pentest/summary.md", "<summary>")` with summary of all confirmed findings (organized by API Top 10 category)
 3. **Chain to `/web-exploit`** if classic injection points (SQLi, XSS in error responses, SSTI in template engines) were found in API parameters
 4. **Chain to `/post-exploit`** if RCE was achieved (e.g., via Jolokia, deserialization, SSRF→IMDS→IAM)
 5. **Chain to `/ai-redteam`** if an LLM/AI endpoint was discovered during exploitation (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers). API testing often touches these surfaces — when it does, hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing
 6. **Chain to `/credential-audit`** if credential material (hashes, tokens, user lists) was recovered
 7. **Chain to `/analyze-cve`** if a vulnerable framework / library version was disclosed
-8. **Export GitHub Issues** — invoke `/gh-export` after `complete_scan` to format all confirmed findings as GitHub issue blocks
+8. **Export GitHub Issues** — invoke `/gh-export` after `Write("pentest/summary.md", ...)` to format all confirmed findings as GitHub issue blocks
 
 ---
 
@@ -664,7 +644,7 @@ flowchart TD
 When your context is compacted mid-scan:
 
 1. **Re-invoke `/api-security`** — use the Skill tool to reload this full workflow
-2. **Call `session(action="status")`** — coverage stats in the response tell you exactly where you are
+2. **Call `# Read pentest/scope.json + tail pentest/notes.log`** — coverage stats in the response tell you exactly where you are
 3. **Pending cells tell you where to resume** — the matrix persists in `coverage_matrix.json`
 4. **Do NOT re-discover endpoints** — they persist across context compactions
 5. **Resume Phase 3** (BOLA loop) from pending cells — that is the most productive place to restart
@@ -673,19 +653,19 @@ When your context is compacted mid-scan:
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Discovery before testing** — run Phase 1 in full before testing any endpoint. The biggest API findings are on endpoints you didn't know existed.
 - **Two accounts are required for thorough depth** — without them you cannot detect cross-tenant BOLA, which is the most common API1 finding. If the user did not provide two accounts, ask for them or downgrade to standard depth.
 - **Always cite the OWASP API Top 10 ID** in finding descriptions (`API1:2023`, `API5:2023`, etc.) — this is non-negotiable for API findings
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `session(action="complete", options={...})`
-- **`http(action="request", ...)` with `poc=True`** — only set this flag when the request is a confirmed, report-worthy exploit. Routes through Burp Suite for HTTP History capture. Do NOT use for recon probes.
-- **`http(action="save_poc", ...)`** — call alongside every `http(action="request", options={"poc": true})`. Write a descriptive `title` that names the vulnerability class and endpoint
+- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- **`Bash("curl ...")` with `poc=True`** — only set this flag when the request is a confirmed, report-worthy exploit. Routes through Burp Suite for HTTP History capture. Do NOT use for recon probes.
+- **`Write("pocs/<title>.http", ...)`** — call alongside every `Bash("curl ...")`. Write a descriptive `title` that names the vulnerability class and endpoint
 - **Never fabricate findings** — only report what you actually verified end-to-end with a request/response pair
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- **Use `report(action="note", data={...})` liberally** — call it before every tool to explain *why* you are running it and after every significant result to record what you concluded. This is the audit trail.
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — call it before every tool to explain *why* you are running it and after every significant result to record what you concluded. This is the audit trail.
 - **Investigate every clue to exhaustion** — a BOLA on `/users/{id}` should always be followed by mass-assignment tests on `/users/me`, BFLA tests on `/admin/users`, and inventory drift tests on `/api/v1/users/{id}` vs `/api/v2/users/{id}`. The chain matters more than the individual finding.
-- Call `session(action="stop_kali")` at the end if `kali(command=...)` was used
+- Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used
 
 ---
 
@@ -700,4 +680,4 @@ When your context is compacted mid-scan:
 | `/ai-redteam` | **LLM/AI endpoint discovered** — chat APIs, completion endpoints, RAG search, agentic tool-use endpoints, MCP servers. Hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing instead of stopping at the HTTP layer. Common signals: prompt-shaped POST bodies, `messages[]` arrays, `system`/`user`/`assistant` roles, streaming SSE responses, model name parameters, tool/function-calling schemas |
 | `/codebase` | Source code available — pivot to white-box review for API10 (unsafe consumption) and to find every router definition, decorator, and middleware that black-box discovery missed |
 | `/cloud-security` | SSRF reached cloud metadata service and credentials were extracted — assess full IAM blast radius |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |

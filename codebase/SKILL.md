@@ -27,21 +27,21 @@ This review is structured around the **OWASP Application Security Verification S
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/threat-modeling` | **MANDATORY** | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
-| After `/threat-modeling` completes | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` | `cat ~/.config/opencode/commands/ai-redteam.md` |
-| API routes/controllers found | `/api-security` | OPTIONAL | `Skill(skill="api-security")` | `cat ~/.config/opencode/commands/api-security.md` |
-| CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+| Trigger | Chain | Mandatory? | Claude Code |
+|------|------|------|------|
+| After `Write("pentest/summary.md", "<summary>")` | `/threat-modeling` | **MANDATORY** | `Skill(skill="threat-modeling")` |
+| After `/threat-modeling` completes | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` |
+| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` |
+| LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` |
+| API routes/controllers found | `/api-security` | OPTIONAL | `Skill(skill="api-security")` |
+| CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` |
 
-**You WILL invoke `/threat-modeling` and `/gh-export` after `session(action="complete")`.**
+**You WILL invoke `/threat-modeling` and `/gh-export` after `Write("pentest/summary.md", "<summary>")`.**
 **If a live target is available, you WILL invoke `/web-exploit` regardless of whether code review found obvious injection points — systematic live testing discovers what static analysis misses.**
 
 
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+**Logging:** Before invoking any skill above, call `Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -49,15 +49,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
-| `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `set_codebase` | Set the local codebase path — `session(action="set_codebase", options={"path": "/path"})` |
-| `scan(tool="semgrep", ...)` | SAST scanning — `scan(tool="semgrep", target="/target")` |
-| `scan(tool="trufflehog", ...)` | Secret scanning — `scan(tool="trufflehog", target="/target")` |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="diagram", data={...})` | Save a Mermaid diagram (architecture, data flow, attack surface) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
-| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+| `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
+| `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
+| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |
+| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |
+| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |
+| `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 **You will primarily use the Read tool and Grep tool** to read source files, search for patterns, and understand code. The Glob tool helps find files by pattern. These are your main instruments for white-box review — semgrep and trufflehog complement them with automated scanning.
 
@@ -123,10 +121,10 @@ If the request does not specify depth or focus, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `session(action="start", options={...})` with codebase path, depth, and limits
-1. Call `session(action="set_codebase", options={"path": "/absolute/path"})`
-2. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
-3. Call `report(action="note", data={...})` — record codebase path, expected tech stack, review focus
+0. Call `Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` with codebase path, depth, and limits
+1. Call `Write("pentest/codebase.json", {...})`
+2. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
+3. Call `Bash("echo '<message>' >> pentest/notes.log")` — record codebase path, expected tech stack, review focus
 
 ---
 
@@ -147,8 +145,8 @@ If the request does not specify depth or focus, ask the user:
   - Python: `openai`, `anthropic`, `langchain`, `langchain-core`, `langchain-community`, `llama-index`, `haystack-ai`, `semantic-kernel`, `crewai`, `autogen-agentchat`, `mcp`, `pydantic-ai`
   - Node.js: `openai`, `@anthropic-ai/sdk`, `langchain`, `@langchain/core`, `@modelcontextprotocol/sdk`, `ai` (Vercel AI SDK)
   - Also grep source files for: API key patterns (`sk-`, `sk-ant-`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), model name strings (`gpt-4`, `gpt-3.5`, `claude`, `o1-`, `o3-`), and LLM endpoint URLs (`api.openai.com`, `api.anthropic.com`)
-  - If any LLM framework is detected: `report(action="note", data={"message": "LLM_DETECTED: [frameworks list]. Phase 5b will run.")`
-- Call `report(action="note", data={...})` with: language, framework, major dependencies, framework version
+  - If any LLM framework is detected: `Bash("echo '<message>' >> pentest/notes.log")`
+- Call `Bash("echo '<message>' >> pentest/notes.log")` with: language, framework, major dependencies, framework version
 
 **Step 2 — Map project structure:**
 - Use Glob to understand the directory layout (MVC? microservice? monolith?)
@@ -166,12 +164,12 @@ Look for security-relevant settings. What matters depends on the framework — a
 - Allowed hosts / origins
 - Email / SMTP configuration with credentials
 
-Call `report(action="finding", data={...})` for any hardcoded secrets or dangerous configurations found.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for any hardcoded secrets or dangerous configurations found.
 
 **Step 4 — Dependency audit:**
 Check whether pinned dependency versions have known CVEs. For each major dependency, consider whether it's a security-sensitive component (auth library, ORM, template engine, crypto library, XML parser).
 
-Call `report(action="diagram", data={...})` with a component architecture diagram showing the tech stack, major components, and their relationships.
+Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with a component architecture diagram showing the tech stack, major components, and their relationships.
 
 ---
 
@@ -206,7 +204,7 @@ For every endpoint, determine:
 - CLI commands that accept user input
 - Scheduled tasks that process external data
 
-Call `report(action="note", data={...})` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
+Call `Bash("echo '<message>' >> pentest/notes.log")` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
 
 ---
 
@@ -248,7 +246,7 @@ If JWT or OAuth is used:
 - Scope validation on resource servers
 - PKCE enforcement for public clients
 
-Call `report(action="finding", data={...})` for every auth/authz weakness found. Call `report(action="diagram", data={...})` with the authentication flow diagram.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every auth/authz weakness found. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with the authentication flow diagram.
 
 ---
 
@@ -256,19 +254,19 @@ Call `report(action="finding", data={...})` for every auth/authz weakness found.
 
 Run both in the same response:
 ```
-scan(tool="semgrep", target="/target")
-scan(tool="trufflehog", target="/target")
+Bash("semgrep /target ...")
+Bash("trufflehog /target ...")
 ```
 
 **If LLM detected in Phase 1**, also run in the same parallel batch:
 ```
-scan(tool="semgrep", target="/target", flags="--config p/ai-best-practices")
+Bash("semgrep /target ...")
 ```
 This runs 58 semgrep rules covering: hardcoded API keys, missing max_tokens, prompt injection taint flow, MCP command injection, LLM output passed to eval/exec, and insecure model loading.
 
 After results come back:
 - Read each semgrep finding and verify it against the actual code — false positives are common
-- For each confirmed finding, call `report(action="finding", data={...})` with the code context
+- For each confirmed finding, call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` with the code context
 - For trufflehog findings, verify whether secrets are real or test/example values
 
 ---
@@ -316,7 +314,7 @@ For each finding, trace whether user input actually reaches the function (source
 - Are there race conditions in critical operations (double-spend, TOCTOU)?
 - Can users skip steps or replay requests?
 
-Call `report(action="finding", data={...})` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
 
 ---
 
@@ -390,7 +388,7 @@ Only applies when the codebase implements or consumes MCP servers.
 - **Rug-pull potential**: can MCP tool descriptions or behavior change between discovery and invocation?
 - **Upstream dependency trust**: does the MCP client validate responses from MCP servers, or trust them blindly?
 
-Call `report(action="finding", data={...})` for each confirmed LLM-specific weakness. Use severity guidance:
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for each confirmed LLM-specific weakness. Use severity guidance:
 - **Critical**: LLM output reaches eval/exec/shell without sandboxing; tool handler has command injection; prompt injection enables data exfiltration
 - **High**: No tenant isolation in RAG; over-permissioned tools without approval gates; secrets in system prompts; pickle model loading
 - **Medium**: Missing max_tokens; no agent iteration limits; unpinned LLM framework versions; weak prompt/response validation
@@ -440,14 +438,14 @@ If IaC files are present (Terraform, CloudFormation, K8s manifests, Dockerfiles,
 - Hardcoded secrets in manifests
 - Unpinned base images
 
-Call `report(action="finding", data={...})` for each confirmed weakness.
+Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for each confirmed weakness.
 
 ---
 
 ### Phase 7 — Security Profile & Report (all depths)
 
 **Step 1 — Architecture diagram:**
-Call `report(action="diagram", data={...})` with a comprehensive Mermaid diagram showing:
+Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with a comprehensive Mermaid diagram showing:
 - All components (web server, app server, database, cache, queue, external APIs)
 - Trust boundaries (public internet, DMZ, internal network)
 - Data flows with sensitivity labels
@@ -455,7 +453,7 @@ Call `report(action="diagram", data={...})` with a comprehensive Mermaid diagram
 - Identified vulnerabilities annotated on the diagram
 
 **Step 2 — Codebase security profile:**
-Call `report(action="note", data={...})` with a structured summary that downstream skills can consume:
+Call `Bash("echo '<message>' >> pentest/notes.log")` with a structured summary that downstream skills can consume:
 
 ```
 Codebase Security Profile:
@@ -502,7 +500,7 @@ Codebase Security Profile:
 ```
 
 **Step 3 — ASVS coverage summary (thorough only):**
-Call `report(action="note", data={...})` with which ASVS chapters were reviewed and what was found:
+Call `Bash("echo '<message>' >> pentest/notes.log")` with which ASVS chapters were reviewed and what was found:
 
 ```
 ASVS 5.0 Coverage:
@@ -524,7 +522,7 @@ ASVS 5.0 Coverage:
   V16 Logging/Error Handling:   REVIEWED — [findings or "no issues"]
 ```
 
-**Step 4:** Call `session(action="complete", options={...})` with summary.
+**Step 4:** Call `Write("pentest/summary.md", "<summary>")` with summary.
 
 **Step 5:** Chain into downstream skills — see CHAIN COMMITMENTS section at the top for mandatory chains. Summary:
 - **MUST** → `/threat-modeling` (always — real architecture from code)
@@ -551,7 +549,7 @@ ASVS 5.0 Coverage:
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
 | `/ai-redteam` | LLM integration detected — pass system prompts, tool definitions, guardrails, RAG architecture, and endpoint URLs as white-box context |
 | `/remediate` | Findings produced — generate specific code fixes with full source context |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
 
 ---
 
@@ -568,14 +566,14 @@ ASVS 5.0 Coverage:
 
 ## Rules
 
-- **`session(action="start", options={...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
 - **Read before you judge** — don't report a finding just because a function name appears. Verify that user input actually reaches it
 - **Source-to-sink tracing is essential** — a dangerous function with hardcoded arguments is not a vulnerability. Trace the data flow
 - **Adapt to the framework** — every framework has different patterns. Don't grep for Django patterns in a Flask app
-- **Call `report(action="finding", data={...})` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
-- **Call `report(action="diagram", data={...})` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
-- **The security profile feeds downstream skills** — write it clearly in `report(action="note", data={...})` so other skills can parse and act on it
-- **Use `report(action="note", data={...})` liberally** — document your understanding of each component before analyzing it
+- **Call `# Append finding to pentest/findings.json (Read → mutate JSON array → Write)` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
+- **Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
+- **The security profile feeds downstream skills** — write it clearly in `Bash("echo '<message>' >> pentest/notes.log")` so other skills can parse and act on it
+- **Use `Bash("echo '<message>' >> pentest/notes.log")` liberally** — document your understanding of each component before analyzing it
 - **Never fabricate findings** — only report what the code actually shows
 - **ASVS is a guide, not a checklist** — focus on high-risk areas first, not sequential chapter review
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels with spaces/special chars, no em-dashes, short alphanumeric node IDs
