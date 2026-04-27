@@ -7,22 +7,22 @@ Drop them into Claude Code on a Kali host and run end-to-end engagements with a 
 > ⚠️ **Authorized testing only.** Use these skills against systems you own or have explicit written permission to test. Unauthorized access is illegal.
 
 > 🍴 **This is a fork.** The upstream project is [`0x0pointer/skills`](https://github.com/0x0pointer/skills), designed to run through an MCP server ([`0x0pointer/agent-smith`](https://github.com/0x0pointer/agent-smith)) that brokers five consolidated tools (`session`, `scan`, `kali`, `http`, `report`) and ships a Docker bundle (Kali container, scanner images, Metasploit container, live findings dashboard). If you want that turnkey, MCP-driven, multi-client (Claude Code / OpenCode / any MCP client) experience, use the upstream repo.
->
-> **What this fork changes:** every skill has been rewritten to run **natively in Claude Code on Kali** — no MCP server, no Docker, no dashboard. The five MCP tools have been replaced with Claude Code's built-in `Bash`, `Read`, `Write`, and `Edit`:
->
-> | Upstream (MCP) | This fork (native) |
-> |---|---|
-> | `kali(command="...")` | `Bash("...")` |
-> | `scan(tool="nmap", ...)` | `Bash("nmap ...")` (same for naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog) |
-> | `http(action="request", ...)` | `Bash("curl ...")` |
-> | `http(action="save_poc", ...)` | `Write("pocs/<name>.http", ...)` |
-> | `report(action="finding"/"diagram"/"note"/"coverage"/"dashboard", ...)` | `Read`/`Write` against `pentest/findings.json`, `pentest/coverage.json`, `pentest/diagrams/*.mmd`, `pentest/notes.log` (no dashboard) |
-> | `session(action="start"/"complete"/"recovery"/"set_skill"/"set_codebase", ...)` | `mkdir -p pentest/{pocs,diagrams}` + `Write` on `pentest/scope.json`, `pentest/summary.md`, `pentest/skill_chain.log` |
-> | `session(action="start_kali"/"stop_kali"/"pull_images")` | dropped — tools are native on Kali |
-> | Interactive PTY tools (msfconsole, evil-winrm, responder, listeners) | `tmux new-session` + `send-keys` / `capture-pane` |
-> | Dual-mode chain blocks (`# Claude Code: ...` + `# READ THIS FILE NOW (opencode): cat ~/.config/opencode/commands/...`) | single `Skill(skill="<name>", args="...")` call |
->
-> See [`migrate_native.py`](migrate_native.py) for the rewrite logic — it's idempotent, so you can re-run it after pulling fresh upstream changes to re-apply the conversion. The trade-off: this fork does not work with OpenCode, other MCP clients, or hosts without the Kali toolchain on `PATH`. Burp routing (`poc=True`) is gone too — confirmed exploits are saved as `.http` files for paste-into-Repeater instead of being live-tunneled. If any of those constraints are deal-breakers, use upstream.
+
+ **What this fork changes:** every skill has been rewritten to run **natively in Claude Code on Kali** — no MCP server, no Docker, no dashboard. The five MCP tools have been replaced with Claude Code's built-in `Bash`, `Read`, `Write`, and `Edit`:
+
+| Upstream (MCP) | This fork (native) |
+|---|---|
+| `kali(command="...")` | `Bash("...")` |
+| `scan(tool="nmap", ...)` | `Bash("nmap ...")` (same for naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog) |
+| `http(action="request", ...)` | `Bash("curl ...")` |
+| `http(action="save_poc", ...)` | `Write("pocs/<name>.http", ...)` |
+| `report(action="finding"/"diagram"/"note"/"coverage"/"dashboard", ...)` | `Read`/`Write` against `pentest/findings.json`, `pentest/coverage.json`, `pentest/diagrams/*.mmd`, `pentest/notes.log` (no dashboard) |
+| `session(action="start"/"complete"/"recovery"/"set_skill"/"set_codebase", ...)` | `mkdir -p pentest/{pocs,diagrams}` + `Write` on `pentest/scope.json`, `pentest/summary.md`, `pentest/skill_chain.log` |
+| `session(action="start_kali"/"stop_kali"/"pull_images")` | dropped — tools are native on Kali |
+| Interactive PTY tools (msfconsole, evil-winrm, responder, listeners) | `tmux new-session` + `send-keys` / `capture-pane` |
+| Dual-mode chain blocks (`# Claude Code: ...` + `# READ THIS FILE NOW (opencode): cat ~/.config/opencode/commands/...`) | single `Skill(skill="<name>", args="...")` call |
+
+See [`migrate_native.py`](migrate_native.py) for the rewrite logic — it's idempotent, so you can re-run it after pulling fresh upstream changes to re-apply the conversion. The trade-off: this fork does not work with OpenCode, other MCP clients, or hosts without the Kali toolchain on `PATH`. Burp routing (`poc=True`) is gone too — confirmed exploits are saved as `.http` files for paste-into-Repeater instead of being live-tunneled. If any of those constraints are deal-breakers, use upstream.
 
 <p align="center">
   <img src="https://nullpointer.studio/design/FullLogo_Transparent.png" alt="skills hero" width="0" height="0">
