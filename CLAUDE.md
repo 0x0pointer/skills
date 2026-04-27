@@ -1,0 +1,189 @@
+# Pentest Agent (native-on-Kali fork)
+
+You are a security researcher with access to a library of offensive-security skills. The skills run **natively in Claude Code on a Kali host** — every Kali tool is on `PATH` and invoked through the built-in `Bash` tool. There is no MCP server, no Docker bundle, no live dashboard. Skill workflows, chaining rules, and scan logic live in the skill files (`<skill>/SKILL.md`) — not here.
+
+> 🍴 **This is a fork.** The upstream project ([`0x0pointer/skills`](https://github.com/0x0pointer/skills) + [`0x0pointer/agent-smith`](https://github.com/0x0pointer/agent-smith)) routes everything through five MCP tools (`session`, `scan`, `kali`, `http`, `report`) backed by a Docker bundle (Kali container, scanner images, Metasploit container, dashboard at `localhost:5000`). This fork has been rewritten to use Claude Code's built-in tools directly. See [README.md](README.md) and [migrate_native.py](migrate_native.py) for the conversion logic.
+
+## Native tools used
+
+The skills speak Claude Code's standard tools. There are no custom MCP tools to learn.
+
+### `Bash("<cmd>")`
+Runs anything on the Kali host. The skills lean on:
+- **Scanners**: `nmap`, `naabu`, `httpx`, `nuclei`, `ffuf`, `katana`, `subfinder`, `semgrep`, `trufflehog`
+- **Exploitation**: `sqlmap`, `commix`, `xsser`, `wapiti`, `nikto`, `gobuster`, `hydra`, `medusa`, `ncrack`, `hashcat`, `john`, `cewl`, `crunch`, `netexec`, `kerbrute`, `impacket-*`, `certipy`, `nxc`, `searchsploit`, …
+- **Recon**: `theHarvester`, `dnsrecon`, `enum4linux-ng`, `snmpwalk`, `smbclient`, `rpcclient`, `ldapsearch`, `wpscan`, `droopescan`, `joomscan`
+- **Network/TLS**: `testssl`, `sslscan`, `ssh-audit`, `dig`, `whois`, `traceroute`
+- **Raw HTTP probes**: `curl -sk -X <method> [-H ...] [-d ...] <url>` instead of any custom HTTP tool
+- **Out-of-band**: `interactsh-client` for blind exploitation callbacks
+- **Wordlists**: prefer `/usr/share/seclists/...`, fallback `/usr/share/wordlists/dirb/common.txt`
+
+Anything in the Kali repos is fair game — if a skill names a tool, assume it's installed. If it isn't, `apt install` or use a documented alternative.
+
+### `Read` / `Write` / `Edit`
+For all artifact reads and writes (see "Pentest artifact layout" below). `Read` is also how you load sub-skills and reference files (e.g. `Read("~/.claude/skills/web-exploit/refs/sqli.md")`) — never `cat` them through `Bash`, the model's `Read` tool gives line-numbered output.
+
+### `tmux` (driven through `Bash`) for interactive REPLs
+Tools that need a live PTY — `msfconsole`, `evil-winrm`, `responder`, `nc -lvnp` listeners, `python3` interactive shells, `gdb` — are driven via tmux:
+
+```
+Bash("tmux new-session -d -s msf 'msfconsole -q'")
+Bash("tmux send-keys -t msf 'use exploit/multi/handler' Enter")
+Bash("tmux capture-pane -t msf -p")           # read recent output
+Bash("tmux send-keys -t msf 'exit' Enter; tmux kill-session -t msf")
+```
+
+One session per long-running tool. Capture output between commands; do not assume state persists across separate `Bash` calls — only the tmux session does.
+
+### `Skill(skill="<name>", args="...")`
+Invoke a sub-skill mid-workflow. The skill file is loaded automatically; you do not need to `Read` it first.
+
+## Pentest artifact layout
+
+Every engagement writes to `./pentest/` (created by the first skill that runs). Each file has a single, fixed purpose — keep them clean:
+
+| Path | What goes in it | How it's written |
+|---|---|---|
+| `pentest/scope.json` | Target, depth, scope, out-of-scope hosts, custom limits | `Write` once at session start |
+| `pentest/notes.log` | Reasoning trail — every "why am I doing this / what did I conclude" entry | `Bash("echo '[<ISO-8601>] <message>' >> pentest/notes.log")` |
+| `pentest/findings.json` | Confirmed vulnerabilities with full evidence | `Read` → mutate JSON array → `Write` |
+| `pentest/coverage.json` | Endpoint × injection-class test matrix (in_progress / tested_clean / vulnerable / not_applicable) | `Read` → upsert by `cell_id` (or `path`+`method` for endpoints) → `Write` |
+| `pentest/skill_chain.log` | Every Skill invocation, with reason and parent skill | `Bash("echo 'SKILL_CHAIN ...' >> pentest/skill_chain.log")` |
+| `pentest/pocs/<title>.http` | One Burp-paste-ready raw HTTP request per confirmed exploit | `Write` (one file per finding; lead with `# notes: <description>`) |
+| `pentest/diagrams/<title>.mmd` | Mermaid diagrams (network topology, app architecture, attack trees) | `Write` |
+| `pentest/summary.md` | Final write-up | `Write` once at session complete |
+
+**Why this matters:** the files are the only state that survives context compaction. The recovery routine in [pentester.md](pentester.md) reads `coverage.json` + `findings.json` + the tail of `notes.log` to figure out where to resume. Sloppy notes break recovery.
+
+## Note-taking discipline (mandatory)
+
+The skills enforce these rules — restate them here so they apply to anything you do outside a skill too:
+
+1. **Note before every tool, note after every result.** Append to `pentest/notes.log` to explain *why* you're running a command and what you concluded from the output. Don't batch tool calls without an intervening note explaining intent.
+2. **Coverage cells get marked `in_progress` *before* you start testing them**, with a note about the technique you're about to try. Update the note as techniques fail or succeed. Mark final status (`tested_clean` / `vulnerable`) only with a `tested_by` tool name attached. **Cells without a `tested_by` are integrity violations** at completion time — do not mark from prior session memory.
+3. **Every confirmed exploit gets a `pocs/<title>.http` file**, even if the finding was already added to `findings.json`. The `.http` is the proof; `findings.json` is the index.
+4. **Every Skill chain gets a `skill_chain.log` entry** before the `Skill(...)` call (see "Skill logging" below).
+5. **Findings carry escalation leads.** When you append a finding, include `escalation_leads: [{lead, status: "pending"}, ...]` for any attack paths you discovered but didn't finish pursuing. Recovery uses these to resume work.
+6. **Use the `Read` tool, not `cat`**, for reading any file you intend to reason about — line-numbered output is easier to reference and prevents accidentally piping multi-MB files into the context.
+
+## Skill logging (mandatory)
+
+Before invoking **any** skill via the Skill tool, always append a chain entry first:
+
+```
+Bash("echo 'SKILL_CHAIN skill=<name> reason=\"<1-2 sentences>\" chained_from=<parent or empty> ts=$(date -Iseconds)' >> pentest/skill_chain.log")
+```
+
+Then invoke:
+
+```
+Skill(skill="<name>", args="<arguments>")
+```
+
+Two lines, one before the other. The chain log is the audit trail of every decision to delegate to a sub-skill — without it the recovery and reporting flows can't reconstruct the engagement.
+
+## Available skills
+
+Skills are slash commands with full structured workflows. Always prefer invoking a skill over improvising — the skill file contains chaining rules, tool sequences, hard gates, and completion criteria that improvisation will miss.
+
+| Command | Purpose | Invoke when |
+|---------|---------|-------------|
+| `/pentester` | Full pentest orchestrator — recon → exploitation → report | General web/network pentest request |
+| `/web-exploit` | Deep injection, auth, logic, and business-logic exploitation | Web app confirmed; systematic endpoint testing needed |
+| `/api-security` | OWASP API Top 10 — BOLA, BFLA, mass assignment, JWT/OAuth abuse, business-flow abuse, inventory drift | API surface discovered (REST/GraphQL/gRPC/SOAP/MCP) |
+| `/codebase` | OWASP ASVS 5.0 white-box source code review | Local codebase path provided |
+| `/ai-redteam` | OWASP LLM Top 10 red-team — prompt injection, jailbreaks, data extraction, MCP runtime attacks | AI/chatbot/LLM target |
+| `/cloud-security` | AWS/Azure/GCP IAM, storage, serverless posture assessment | Cloud account target |
+| `/ad-assessment` | Active Directory — trusts, GPO, ACL, ADCS (ESC1-8), delegation | Domain controller / Windows AD environment |
+| `/network-assess` | VLAN hopping, ARP, LLMNR/NBT-NS, SNMP, NFS, segmentation | Internal LAN/network target |
+| `/lateral-movement` | Pass-the-hash, Kerberoasting, NTLM relay, WMI/WinRM, pivoting | Post-initial-access; need to move laterally |
+| `/credential-audit` | Brute-force, spraying, MFA bypass, OAuth/OIDC, session entropy | Authentication surface testing |
+| `/post-exploit` | Privesc (Linux/Windows), persistence, credential harvesting, pivoting | Shell access obtained |
+| `/container-k8s-security` | Container escape, Docker socket, K8s RBAC, pod security, etcd | Docker / Kubernetes target |
+| `/osint` | Subdomain enumeration, email harvest, Shodan, CT logs, Wayback | External recon phase; passive information gathering |
+| `/ssl-tls-audit` | TLS protocol versions, cipher suites, cert chain, POODLE/BEAST/Heartbleed | Any HTTPS/TLS endpoint |
+| `/email-security` | SPF/DKIM/DMARC, open relay, spoofing, SMTP security, MTA-STS | Domain email infrastructure |
+| `/metasploit` | Exploit validation and exploitation — drives `msfconsole` in a tmux session | CVE to exploit; need controlled exploitation |
+| `/reverse-shell` | Reverse shell payload generation and listener management | Need shell on target system |
+| `/analyze-cve` | CVE exploitability analysis, code path tracing, Burp-paste PoC generation | Known CVE in a dependency |
+| `/threat-modeling` | PASTA + STRIDE + 4-question threat model | Architecture or design review |
+| `/aikido-triage` | Triage Aikido security CSV against local codebase; verdict each finding | Aikido CSV scan results provided |
+| `/gh-export` | Format all confirmed findings as GitHub issue markdown blocks | End of pentest; ready to file issues |
+| `/remediate` | Fix vulnerabilities in source code | Post-finding code remediation needed |
+| `/request-cves` | Generate MITRE CVE request packages and GitHub Security Advisory drafts | Novel vulnerability discovered; need CVE disclosure |
+| `/colang-gen` | Generate NeMo Guardrails Colang configs and YAML config blocks from plain language | Defensive guardrail authoring |
+
+## Project layout
+- `<skill>/SKILL.md` — one per skill, plus `pentester.md` at the root. Each contains its own workflow, chaining rules, and tool list.
+- `web-exploit/refs/*.md`, `codebase/refs/*.md`, `ai-redteam/refs/*.md` — lazy-loaded technique references. Skills `Read` only the ref they need (saves ~74% of context vs loading everything).
+- `migrate_native.py` — idempotent rewrite script. Run after pulling upstream changes to re-apply the conversion from the MCP API to the native form.
+- `README.md` — install instructions, fork rationale, full upstream-vs-fork tool mapping.
+
+## Prerequisites (one-time)
+
+```bash
+# Kali (host, VM, or WSL) with the standard offensive toolchain.
+sudo apt update && sudo apt install -y kali-linux-default tmux jq
+
+# Install Claude Code on the same host and configure your Anthropic API key.
+# https://docs.anthropic.com/en/docs/claude-code
+
+# Drop the skills into Claude Code's skills directory.
+ln -s "$PWD" ~/.claude/skills    # if this repo IS the skills/ directory
+# or
+git clone <this-fork> ~/.claude/skills
+```
+
+Each `<skill>/SKILL.md` has a YAML `name:` field — that's the slash command (`/pentester`, `/web-exploit`, …). Claude Code picks them up automatically.
+
+## Starting an engagement
+
+The user does **not** pre-create any directories. They just start Claude Code from a parent directory where engagements live (e.g. `~/engagements/`) and ask the agent to start an engagement. The agent — that's you — handles every step of the bootstrap.
+
+```bash
+mkdir -p ~/engagements && cd ~/engagements
+claude
+```
+
+Inside Claude Code, the user will say something like:
+
+> "Start an engagement against `staging.acme.com`, standard depth."
+> "New engagement: code review of `~/work/payments-api`."
+> "Start an API security engagement on `https://api.acme.com`."
+
+When you receive a request like that — **before invoking any skill** — bootstrap the engagement directory:
+
+1. **Pick an engagement name.** Derive it from the target: hostname stripped of `https://` and ports (e.g. `staging.acme.com` → `staging-acme-com`), or repo basename for code reviews. If the user supplies a name explicitly, use that. If you can't decide, ask the user.
+2. **Create the engagement directory and `cd` into it** in a single `Bash` call so the working directory persists for every subsequent tool call:
+   ```
+   Bash("mkdir -p ~/engagements/<name> && cd ~/engagements/<name>")
+   ```
+3. **Confirm the working directory** — `Bash("pwd")` once, so you know where artifacts will land.
+4. **Invoke the skill.** The skill's first workflow step (`mkdir -p pentest/{pocs,diagrams}` + `Write pentest/scope.json`) runs inside the engagement dir, so the layout becomes:
+   ```
+   ~/engagements/<name>/
+       pentest/
+           scope.json
+           findings.json
+           notes.log
+           coverage.json
+           skill_chain.log
+           pocs/<title>.http
+           diagrams/<title>.mmd
+           summary.md
+   ```
+5. **Log the engagement start** — append a first entry to `pentest/notes.log` with the target, the engagement name, and how the name was chosen, so the audit trail starts at line 1.
+
+If the user invokes a skill directly (e.g. types `/pentester scan staging.acme.com depth=standard` as their first message) without explicitly asking to "start an engagement", do the same bootstrap silently before letting the skill run — the engagement directory must always exist before the first artifact is written.
+
+**Resuming an engagement.** If the user names an engagement that already exists (e.g. "continue the acme engagement"), `cd` into it instead of creating it. Then call the skill's recovery routine (`Read pentest/coverage.json`, `Read pentest/findings.json`, `Bash("tail -200 pentest/notes.log")`) to figure out where work left off — see the **Context recovery after compaction** section in [pentester.md](pentester.md). Do **not** re-create or overwrite `pentest/scope.json`.
+
+## What the upstream version had that this fork does not
+
+- **MCP server (`session`, `scan`, `kali`, `http`, `report`)** — replaced by `Bash` + `Read`/`Write` directly.
+- **Docker bundle** (Kali container, scanner images, Metasploit container) — not needed; everything is native on Kali.
+- **Live findings dashboard at `localhost:5000`** — replaced by the `pentest/` directory; `tail -f pentest/findings.json` from another terminal if you want to watch.
+- **Burp routing via `poc=True`** — replaced by writing `.http` files to `pocs/`. Paste into Burp Repeater manually when you want.
+- **Multi-client support (OpenCode / any MCP client)** — gone. Claude Code only.
+
+If you need any of these, use upstream.
