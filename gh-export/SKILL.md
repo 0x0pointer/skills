@@ -17,7 +17,7 @@ Each block follows the AppSec reporting guide format — concrete impact, reprod
 
 1. Refresh, then read `findings.json` (the snapshot is derived from `events.jsonl` — always refresh before reading):
    ```
-   Bash("python3 ~/.claude/skills/pentester/refresh.py")
+   Bash("uv run python ~/.claude/skills/pentester/refresh.py")
    Read("pentest/findings.json")
    ```
    If `$ARGUMENTS` provides an explicit path, skip the refresh and read that path directly.

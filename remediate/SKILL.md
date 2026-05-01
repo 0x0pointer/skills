@@ -38,7 +38,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | Tool | Use for |
 |------|---------|
 | `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` | Define scope and limits — **always call this first** |
-| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` | Refresh the snapshot from `events.jsonl`, then load all findings produced by prior skills |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` | Refresh the snapshot from `events.jsonl`, then load all findings produced by prior skills |
 | `Bash("jq -nc ... '{type:\"finding\",action:\"update\",id:..., field:\"remediation\", value:{...}}' >> pentest/events.jsonl")` | Append one `finding`/`update` event per finding with the remediation payload |
 | `Write("pentest/summary.md", "<summary>")` | Mark done and write final notes |
 | `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` | Write reasoning notes to session log |
@@ -48,7 +48,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 `findings.json` is a derived snapshot — always refresh from `events.jsonl` before reading:
 
 ```
-Bash("python3 ~/.claude/skills/pentester/refresh.py")
+Bash("uv run python ~/.claude/skills/pentester/refresh.py")
 Read("pentest/findings.json")
 ```
 
@@ -78,7 +78,7 @@ remediation = {
 Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg field 'remediation' --argjson value '<remediation JSON>' '{ts:$ts,type:\"finding\",action:\"update\",id:$id,field:$field,value:$value}' >> pentest/events.jsonl")
 ```
 
-After all `finding`/`update` events are appended, run `Bash("python3 ~/.claude/skills/pentester/refresh.py")` once. The snapshot now contains every remediation; `/gh-export` reads the snapshot fresh on its own refresh and includes the remediation in each issue.
+After all `finding`/`update` events are appended, run `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` once. The snapshot now contains every remediation; `/gh-export` reads the snapshot fresh on its own refresh and includes the remediation in each issue.
 
 ---
 
@@ -102,7 +102,7 @@ After all `finding`/`update` events are appended, run `Bash("python3 ~/.claude/s
 
 Refresh the snapshot from `events.jsonl`, then load the findings file:
 ```
-Bash("python3 ~/.claude/skills/pentester/refresh.py")
+Bash("uv run python ~/.claude/skills/pentester/refresh.py")
 Read("pentest/findings.json")
 ```
 
@@ -154,7 +154,7 @@ If there's no reproduction command, describe what the developer should test:
 
 **Step 4 — Attach the remediation to the finding:**
 
-Append a `finding`/`update` event to `events.jsonl` with `field: "remediation"` and the remediation object as `value` (see "Updating a finding with remediation" above). After every finding has its update event appended, run `Bash("python3 ~/.claude/skills/pentester/refresh.py")` once to regenerate the snapshot.
+Append a `finding`/`update` event to `events.jsonl` with `field: "remediation"` and the remediation object as `value` (see "Updating a finding with remediation" above). After every finding has its update event appended, run `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` once to regenerate the snapshot.
 
 ### Phase 3 — Remediation Summary
 

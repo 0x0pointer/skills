@@ -275,6 +275,7 @@ tmux capture-pane -t msf -p
 
 - A working Kali Linux install (host, VM, or WSL) with the standard offensive-security toolchain on `PATH`. A vanilla `kali-rolling` with `kali-linux-default` (or `kali-linux-large`) covers the great majority of skill workflows. Specific tools each skill expects are listed at the top of every `SKILL.md`.
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed on the same Kali host, with an Anthropic API key configured.
+- [`uv`](https://docs.astral.sh/uv/) on `PATH`. Every Python invocation the skills emit goes through `uv run` / `uvx` — never plain `python3`/`pip`. Install with `curl -LsSf https://astral.sh/uv/install.sh | sh` and confirm `~/.local/bin` is on `PATH`.
 - `tmux` (for skills that drive interactive REPLs like `msfconsole`).
 - Optional: `jq` (some skills use it for ad-hoc `pentest/findings.json` mutations).
 
@@ -286,8 +287,8 @@ If you have an older copy of these skills that uses the 5-tool MCP API (`session
 
 ```bash
 cd skills
-python3 migrate_native.py --dry-run   # preview
-python3 migrate_native.py              # apply
+uv run python migrate_native.py --dry-run   # preview
+uv run python migrate_native.py              # apply
 ```
 
 The script is idempotent — re-running on already-migrated files is a no-op.

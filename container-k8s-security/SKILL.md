@@ -39,7 +39,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
 | `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
@@ -132,7 +132,7 @@ Bash("nmap ...")
 
 **Enumerate NodePort services via API (if authenticated):**
 ```
-Bash("kubectl get svc --all-namespaces -o json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: type={s[\"spec\"][\"type\"]} ports={[(p.get(\"nodePort\",\"N/A\"),p[\"port\"],p[\"targetPort\"]) for p in s[\"spec\"].get(\"ports\",[])]}\" ) for s in d.get(\"items\",[]) if s[\"spec\"].get(\"type\") == \"NodePort\"]'")
+Bash("kubectl get svc --all-namespaces -o json 2>/dev/null | uv run python -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: type={s[\"spec\"][\"type\"]} ports={[(p.get(\"nodePort\",\"N/A\"),p[\"port\"],p[\"targetPort\"]) for p in s[\"spec\"].get(\"ports\",[])]}\" ) for s in d.get(\"items\",[]) if s[\"spec\"].get(\"type\") == \"NodePort\"]'")
 ```
 
 **For each discovered NodePort, probe the service:**
@@ -155,8 +155,8 @@ Bash("curl ...")
 
 **Anonymous pod and secret enumeration:**
 ```
-Bash("curl -sk https://TARGET:6443/api/v1/pods 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{p[\"metadata\"][\"namespace\"]}/{p[\"metadata\"][\"name\"]}: {[c[\"image\"] for c in p[\"spec\"][\"containers\"]]}\") for p in d.get(\"items\",[])]' 2>/dev/null | head -30")
-Bash("curl -sk https://TARGET:6443/api/v1/secrets 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(f\"Secrets accessible: {len(d.get(\"items\",[]))}\"); [print(f\"  {s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: keys={list(s.get(\"data\",{}).keys())}\") for s in d.get(\"items\",[])[:20]]' 2>/dev/null")
+Bash("curl -sk https://TARGET:6443/api/v1/pods 2>/dev/null | uv run python -c 'import json,sys; d=json.load(sys.stdin); [print(f\"{p[\"metadata\"][\"namespace\"]}/{p[\"metadata\"][\"name\"]}: {[c[\"image\"] for c in p[\"spec\"][\"containers\"]]}\") for p in d.get(\"items\",[])]' 2>/dev/null | head -30")
+Bash("curl -sk https://TARGET:6443/api/v1/secrets 2>/dev/null | uv run python -c 'import json,sys; d=json.load(sys.stdin); print(f\"Secrets accessible: {len(d.get(\"items\",[]))}\"); [print(f\"  {s[\"metadata\"][\"namespace\"]}/{s[\"metadata\"][\"name\"]}: keys={list(s.get(\"data\",{}).keys())}\") for s in d.get(\"items\",[])[:20]]' 2>/dev/null")
 ```
 
 **etcd direct access (unauthenticated):**
@@ -200,7 +200,7 @@ Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with discovered K8s to
 
 **Comprehensive pod security audit — check ALL dangerous configurations:**
 ```
-Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for p in d.get(\"items\", []):
@@ -262,7 +262,7 @@ Test from inside containers (via exec or compromised pod perspective).
 
 **5a. Container runtime socket discovery:**
 ```
-Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 sockets = [\"/var/run/docker.sock\", \"/run/containerd/containerd.sock\", \"/run/crio/crio.sock\", \"/var/run/cri-dockerd.sock\"]
@@ -348,7 +348,7 @@ cat /etc/resolv.conf
 
 **6a. Overly permissive ClusterRoleBindings:**
 ```
-Bash("kubectl get clusterrolebindings -o json 2>/dev/null | python3 -c '
+Bash("kubectl get clusterrolebindings -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for b in d.get(\"items\", []):
@@ -367,7 +367,7 @@ for b in d.get(\"items\", []):
 
 **6b. Wildcard and overly broad Roles/ClusterRoles:**
 ```
-Bash("kubectl get clusterroles -o json 2>/dev/null | python3 -c '
+Bash("kubectl get clusterroles -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for r in d.get(\"items\", []):
@@ -391,7 +391,7 @@ for r in d.get(\"items\", []):
 
 **6c. Default ServiceAccount token auto-mount:**
 ```
-Bash("kubectl get serviceaccounts --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get serviceaccounts --all-namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for sa in d.get(\"items\", []):
@@ -438,7 +438,7 @@ kubectl auth can-i create clusterrolebindings 2>/dev/null
 
 **7a. Enumerate all K8s secrets:**
 ```
-Bash("kubectl get secrets --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get secrets --all-namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys, base64
 d = json.load(sys.stdin)
 for s in d.get(\"items\", []):
@@ -461,7 +461,7 @@ for s in d.get(\"items\", []):
 
 **7b. Check for secrets injected as environment variables (worse than volume mounts):**
 ```
-Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for p in d.get(\"items\", []):
@@ -560,7 +560,7 @@ Images live inside cluster nodes, not accessible via Docker CLI. Use `crictl` on
 kubectl debug node/NODE_NAME -it --image=busybox -- crictl inspecti IMAGE:TAG
 
 # Or via docker exec if kind cluster:
-docker exec NODE_NAME crictl inspecti IMAGE:TAG 2>/dev/null | python3 -c "
+docker exec NODE_NAME crictl inspecti IMAGE:TAG 2>/dev/null | uv run python -c "
 import json,sys; d=json.load(sys.stdin)
 c=d.get('info',{}).get('imageSpec',{}).get('config',{})
 for e in c.get('Env',[]): print(f'ENV: {e}')
@@ -630,8 +630,8 @@ Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG 2>/dev/null | head
 
 Look for environment variables with secrets in image manifests:
 ```
-Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); config_digest=d.get(\"config\",{}).get(\"digest\",\"\"); print(f\"Config digest: {config_digest}\")' 2>/dev/null")
-Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/blobs/CONFIG_DIGEST 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); env=d.get(\"config\",{}).get(\"Env\",[]); [print(f\"ENV: {e}\") for e in env]' 2>/dev/null")
+Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/manifests/TAG -H 'Accept: application/vnd.docker.distribution.manifest.v2+json' 2>/dev/null | uv run python -c 'import json,sys; d=json.load(sys.stdin); config_digest=d.get(\"config\",{}).get(\"digest\",\"\"); print(f\"Config digest: {config_digest}\")' 2>/dev/null")
+Bash("curl -s http://REGISTRY:5000/v2/REPO_NAME/blobs/CONFIG_DIGEST 2>/dev/null | uv run python -c 'import json,sys; d=json.load(sys.stdin); env=d.get(\"config\",{}).get(\"Env\",[]); [print(f\"ENV: {e}\") for e in env]' 2>/dev/null")
 ```
 
 ---
@@ -858,7 +858,7 @@ No admission webhooks = **Medium** finding — no policy enforcement beyond buil
 
 **11b. Pod Security Standards enforcement:**
 ```
-Bash("kubectl get namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for ns in d.get(\"items\", []):
@@ -899,7 +899,7 @@ No LimitRange or ResourceQuota = **Medium** finding — pods can consume unlimit
 
 **11f. Image pull policy and allowed registries:**
 ```
-Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | python3 -c '
+Bash("kubectl get pods --all-namespaces -o json 2>/dev/null | uv run python -c '
 import json, sys
 d = json.load(sys.stdin)
 for p in d.get(\"items\", []):

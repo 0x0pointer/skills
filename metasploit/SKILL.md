@@ -41,7 +41,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
 | `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ### How to invoke Metasploit modules
@@ -186,6 +186,19 @@ Bash("msfconsole TARGET ...")
 ```
 
 Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` with the full Metasploit output as evidence.
+
+#### Running a standalone Python PoC instead of an msfconsole module
+
+If the chosen exploit is a standalone Python script (searchsploit returns `.py`, no Metasploit module exists, or you cloned a public PoC from GitHub), run it via `uv` — never plain `python3`:
+
+1. **`Read` the script first** — confirm what it does and note its imports.
+2. **Spot non-stdlib imports** — `requests`, `impacket`, `pycryptodome`, `paramiko`, etc.
+3. **Invoke via `uv run`:**
+   - Stdlib-only: `Bash("uv run python /tmp/<poc>.py --target TARGET …")`
+   - With third-party deps: `Bash("uv run --with requests --with impacket python /tmp/<poc>.py …")`
+   - PoC has PEP 723 metadata: `Bash("uv run --script /tmp/<poc>.py …")`
+
+Pre-installed external tools at fixed paths (`/opt/sqlmap/sqlmap.py`, `/opt/jwt_tool/jwt_tool.py`) are exempt — keep their original invocation.
 
 ---
 

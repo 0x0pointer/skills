@@ -39,7 +39,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
 | `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
 | `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
@@ -127,7 +127,7 @@ Bash("curl ...")
 
 ```
 Bash("aws iam get-account-summary")
-Bash("aws iam get-account-authorization-details --output json > /tmp/iam.json && python3 -c 'import json; d=json.load(open(\"/tmp/iam.json\")); [print(f\"User: {u[\"UserName\"]}, Policies: {[p[\"PolicyName\"] for p in u.get(\"AttachedManagedPolicies\",[])]}\") for u in d.get(\"UserDetailList\",[])]'")
+Bash("aws iam get-account-authorization-details --output json > /tmp/iam.json && uv run python -c 'import json; d=json.load(open(\"/tmp/iam.json\")); [print(f\"User: {u[\"UserName\"]}, Policies: {[p[\"PolicyName\"] for p in u.get(\"AttachedManagedPolicies\",[])]}\") for u in d.get(\"UserDetailList\",[])]'")
 ```
 
 #### AWS IAM Privilege Escalation Paths
@@ -164,7 +164,7 @@ Bash("aws iam put-user-policy --user-name CURRENT_USER --policy-name admin --pol
 
 **sts:AssumeRole chains + cross-account trust abuse:**
 ```
-Bash("aws iam list-roles --output json | python3 -c 'import json,sys; roles=json.load(sys.stdin)[\"Roles\"]; [print(f\"DANGEROUS: {r[\"RoleName\"]} trusts {s.get(\"Principal\",{})}\") for r in roles for s in r[\"AssumeRolePolicyDocument\"][\"Statement\"] if s.get(\"Effect\")==\"Allow\" and (\"*\" in str(s.get(\"Principal\",{})) or \":root\" in str(s.get(\"Principal\",{})))]'")
+Bash("aws iam list-roles --output json | uv run python -c 'import json,sys; roles=json.load(sys.stdin)[\"Roles\"]; [print(f\"DANGEROUS: {r[\"RoleName\"]} trusts {s.get(\"Principal\",{})}\") for r in roles for s in r[\"AssumeRolePolicyDocument\"][\"Statement\"] if s.get(\"Effect\")==\"Allow\" and (\"*\" in str(s.get(\"Principal\",{})) or \":root\" in str(s.get(\"Principal\",{})))]'")
 Bash("aws sts assume-role --role-arn arn:aws:iam::TARGET_ACCOUNT:role/ROLE --role-session-name audit-test")
 ```
 
@@ -360,7 +360,7 @@ Bash("aws configservice describe-configuration-recorders --query 'ConfigurationR
 ```
 Bash("az security assessment list --query '[?status.code!=`Healthy`].{Name:displayName,Status:status.code,Severity:metadata.severity}' --output table | head -30")
 Bash("gcloud logging sinks list --format='table(name,destination,filter)'")
-Bash("gcloud projects get-iam-policy PROJECT --format=json | python3 -c 'import json,sys; [print(f\"Service: {c[\"service\"]}, Types: {[l[\"logType\"] for l in c.get(\"auditLogConfigs\",[])]}\") for c in json.load(sys.stdin).get(\"auditConfigs\",[])]'")
+Bash("gcloud projects get-iam-policy PROJECT --format=json | uv run python -c 'import json,sys; [print(f\"Service: {c[\"service\"]}, Types: {[l[\"logType\"] for l in c.get(\"auditLogConfigs\",[])]}\") for c in json.load(sys.stdin).get(\"auditConfigs\",[])]'")
 ```
 
 ---
@@ -409,12 +409,12 @@ Bash("aws rds describe-db-instances --query 'DBInstances[?ReadReplicaDBInstanceI
 
 **Managed identity abuse (IMDS to token to resource access):**
 ```
-Bash("curl -s -H 'Metadata:true' 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://vault.azure.net' | python3 -m json.tool")
+Bash("curl -s -H 'Metadata:true' 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://vault.azure.net' | uv run python -m json.tool")
 ```
 
 **Azure AD App registrations (client secrets, excessive API permissions):**
 ```
-Bash("az ad app list --query '[].{AppId:appId,Name:displayName,Creds:passwordCredentials[].{Hint:hint,Expiry:endDateTime}}' --output json | python3 -c 'import json,sys; [print(f\"App: {a[\"Name\"]}, Creds: {len(a.get(\"Creds\") or [])}\") for a in json.load(sys.stdin) if a.get(\"Creds\")]'")
+Bash("az ad app list --query '[].{AppId:appId,Name:displayName,Creds:passwordCredentials[].{Hint:hint,Expiry:endDateTime}}' --output json | uv run python -c 'import json,sys; [print(f\"App: {a[\"Name\"]}, Creds: {len(a.get(\"Creds\") or [])}\") for a in json.load(sys.stdin) if a.get(\"Creds\")]'")
 Bash("az ad app permission list --id APP_ID --output table")
 ```
 

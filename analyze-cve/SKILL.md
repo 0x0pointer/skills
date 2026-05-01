@@ -161,6 +161,29 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
     - Explain verification steps
     - Provide exploitation indicators
 
+#### Running a downloaded PoC script
+
+When a PoC is a Python script (from `searchsploit -m`, GitHub clone, exploit-db link, or any script you author yourself), run it via `uv` — never plain `python3`:
+
+1. **`Read` the PoC first** — confirm what it does and identify imports.
+2. **Spot non-stdlib imports** — `requests`, `impacket`, `pycryptodome`, `paramiko`, `cryptography`, `lxml`, `pwntools`, etc. Anything not in the Python standard library.
+3. **Run it via `uv run`:**
+   - Stdlib-only PoC: `Bash("uv run python /tmp/<poc>.py --target TARGET …")`
+   - Has third-party deps: `Bash("uv run --with requests --with impacket python /tmp/<poc>.py --target TARGET …")`
+   - PoC ships PEP 723 inline metadata (`# /// script` block at the top): `Bash("uv run --script /tmp/<poc>.py --target TARGET …")` resolves declared deps automatically.
+4. **If you author your own PoC mid-session** — `Write` it with a PEP 723 header so future runs (yours or the user's) don't have to re-discover the deps:
+   ```python
+   # /// script
+   # requires-python = ">=3.11"
+   # dependencies = ["requests"]
+   # ///
+   import requests
+   …
+   ```
+   then `Bash("uv run --script /tmp/<your-poc>.py …")`.
+
+This rule does **not** apply to pre-installed external tools at fixed paths (`/opt/jwt_tool/jwt_tool.py`, `/opt/sqlmap/sqlmap.py`, etc.) — those keep their own dependency setup.
+
 ### Phase 5b: Persist to pentest/ artifacts (when running inside an engagement)
 
 When chained from `/pentester` (or any time a `pentest/` directory exists in the working dir), persist findings alongside the rest of the run:
