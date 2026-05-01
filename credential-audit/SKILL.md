@@ -33,6 +33,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
+## Lessons consultation (lazy) — especially important here
+
+Brute-force and spraying are the #1 cause of "wasted hours" in past engagements, so the lessons store is most valuable when invoked here. `/pentester` already loaded `~/.claude/lessons/pentester/general.md` and `index.md` at engagement start. **Before kicking off any spray or brute-force run**, scan `index.md` for matching files — typical hits: `by-target-class/<class>.md` (e.g. `internal-ad.md`), `by-tech/<service>.md` (e.g. `ssh.md`, `mssql.md`), `by-tool/hydra.md`. If a match exists, `Read` it and append a `note` event with `kind:"lesson_lookup"` recording the file. Apply any "skip" / "lockout policy" / "wordlist works fastest" guidance before launching the run — a 5-second lookup can save hours.
+
+If `index.md` is missing (first ever engagement on this host), skip silently.
+
 ---
 
 ## Chained from `/pentester` — Discovered Credential Material

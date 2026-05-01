@@ -54,6 +54,28 @@ Every engagement writes to `./pentest/` (created by the first skill that runs). 
 
 **Why this matters:** `events.jsonl` is the only state that survives context compaction. The recovery routine in [pentester.md](pentester.md) calls `refresh.py`, then reads the snapshots and tails `events.jsonl` to figure out where to resume. The full schema and write contract live in [pentester/EVENTS.md](pentester/EVENTS.md).
 
+## Cross-engagement lessons
+
+A separate, host-global store at `~/.claude/lessons/pentester/` lets the agent learn across engagements — captured at the end of one engagement, consulted at the start of the next.
+
+| Path | Loaded when | Maintained by |
+|---|---|---|
+| `~/.claude/lessons/pentester/general.md` | Auto-loaded by `/pentester` at engagement start | `/retrospective` (merge, dedupe, cap at ~200 lines) |
+| `~/.claude/lessons/pentester/index.md` | Auto-loaded by `/pentester` at engagement start | `/retrospective` (one line per specific file) |
+| `~/.claude/lessons/pentester/specific/{by-tech,by-tool,by-target-class}/<topic>.md` | Lazy — `Read` on demand when matching tech/tool encountered | `/retrospective` |
+| `~/.claude/lessons/pentester/archive/<engagement-name>.md` | Never auto-loaded; source-of-truth for traceability | `/retrospective` (write-once per engagement) |
+
+The store lives **outside** the skills repo so it survives re-clones and is not committed.
+
+**Capture is mandatory:** `/pentester` invokes `/retrospective` as a chain step after `Write("pentest/summary.md", ...)` and `verify.py`. Skipping it means the next engagement starts blind.
+
+**Lazy lookup rule:** Before invoking a long-running technique (brute force, full nuclei sweep, sqlmap on every parameter, kerberoasting), check `index.md` (already in context) for a matching specific lesson file. If one matches, `Read` it and append a `note` event with `kind:"lesson_lookup"`. Apply any "skip" / "try first" guidance.
+
+**Two `note` event conventions for the lessons flow** (no new event types — see [pentester/EVENTS.md](pentester/EVENTS.md) §Lesson note kinds):
+- `kind:"lessons_loaded"` — emitted at engagement start after `general.md` and `index.md` are read.
+- `kind:"lesson_lookup"` — emitted whenever a specific lesson file is read mid-engagement.
+- `kind:"lesson_capture"` — emitted by `/retrospective` after lesson files are written.
+
 ## Note-taking discipline (mandatory)
 
 The skills enforce these rules — restate them here so they apply to anything you do outside a skill too:
@@ -123,6 +145,7 @@ Skills are slash commands with full structured workflows. Always prefer invoking
 | `/remediate` | Fix vulnerabilities in source code | Post-finding code remediation needed |
 | `/request-cves` | Generate MITRE CVE request packages and GitHub Security Advisory drafts | Novel vulnerability discovered; need CVE disclosure |
 | `/colang-gen` | Generate NeMo Guardrails Colang configs and YAML config blocks from plain language | Defensive guardrail authoring |
+| `/retrospective` | Mine `events.jsonl` for time-wasters, fast wins, abandoned cells; write per-engagement archive; merge cross-engagement lessons into `~/.claude/lessons/pentester/` | End of every engagement (mandatory chain from `/pentester`) |
 
 ## Project layout
 - `<skill>/SKILL.md` — one per skill, plus `pentester.md` at the root. Each contains its own workflow, chaining rules, and tool list.
