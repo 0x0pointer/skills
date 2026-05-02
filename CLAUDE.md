@@ -73,7 +73,7 @@ Every engagement writes to `./pentest/` (created by the first skill that runs). 
 | `pentest/diagrams/<title>.mmd` | Mermaid diagrams (network topology, app architecture, attack trees) | `Write` |
 | `pentest/summary.md` | Final write-up — includes `## Integrity warnings` from `verify.py` | `Write` once at session complete |
 
-**Why this matters:** `events.jsonl` is the only state that survives context compaction. The recovery routine in [pentester.md](pentester.md) calls `refresh.py`, then reads the snapshots and tails `events.jsonl` to figure out where to resume. The full schema and write contract live in [pentester/EVENTS.md](pentester/EVENTS.md).
+**Why this matters:** `events.jsonl` is the only state that survives context compaction. The recovery routine in [pentester/SKILL.md](pentester/SKILL.md) calls `refresh.py`, then reads the snapshots and tails `events.jsonl` to figure out where to resume. The full schema and write contract live in [pentester/EVENTS.md](pentester/EVENTS.md).
 
 ## Note-taking discipline (mandatory)
 
@@ -146,7 +146,7 @@ Skills are slash commands with full structured workflows. Always prefer invoking
 | `/colang-gen` | Generate NeMo Guardrails Colang configs and YAML config blocks from plain language | Defensive guardrail authoring |
 
 ## Project layout
-- `<skill>/SKILL.md` — one per skill, plus `pentester.md` at the root. Each contains its own workflow, chaining rules, and tool list.
+- `<skill>/SKILL.md` — one per skill (including `pentester/SKILL.md`). Each contains its own workflow, chaining rules, and tool list.
 - `web-exploit/refs/*.md`, `codebase/refs/*.md`, `ai-redteam/refs/*.md` — lazy-loaded technique references. Skills `Read` only the ref they need (saves ~74% of context vs loading everything).
 - `migrate_native.py` — idempotent rewrite script. Run after pulling upstream changes to re-apply the conversion from the MCP API to the native form.
 - `README.md` — install instructions, fork rationale, full upstream-vs-fork tool mapping.
@@ -211,7 +211,7 @@ When you receive a request like that — **before invoking any skill** — boots
 
 If the user invokes a skill directly (e.g. types `/pentester scan staging.acme.com depth=standard` as their first message) without explicitly asking to "start an engagement", do the same bootstrap silently before letting the skill run — the engagement directory must always exist before the first artifact is written.
 
-**Resuming an engagement.** If the user names an engagement that already exists (e.g. "continue the acme engagement"), `cd` into it instead of creating it. Then call the skill's recovery routine (`Bash("uv run python ~/.claude/skills/pentester/refresh.py")`, `Read pentest/findings.json`, `Read pentest/coverage.json`, `Bash("tail -500 pentest/events.jsonl")`) to figure out where work left off — see the **Context recovery after compaction** section in [pentester.md](pentester.md). Do **not** re-create or overwrite `pentest/scope.json`.
+**Resuming an engagement.** If the user names an engagement that already exists (e.g. "continue the acme engagement"), `cd` into it instead of creating it. Then call the skill's recovery routine (`Bash("uv run python ~/.claude/skills/pentester/refresh.py")`, `Read pentest/findings.json`, `Read pentest/coverage.json`, `Bash("tail -500 pentest/events.jsonl")`) to figure out where work left off — see the **Context recovery after compaction** section in [pentester/SKILL.md](pentester/SKILL.md). Do **not** re-create or overwrite `pentest/scope.json`.
 
 ## What the upstream version had that this fork does not
 
