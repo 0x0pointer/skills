@@ -30,6 +30,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 **You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
 
+## Lessons consultation (lazy)
+
+`/pentester` already loaded `~/.claude/lessons/pentester/general.md` and `index.md` at engagement start. Before invoking long-running AD operations — Kerberoasting sweeps across all SPNs, AS-REP roasting at scale, full BloodHound collection on a large domain, ADCS ESC1-8 scans, password-spraying through `nxc smb` — scan `index.md` for matching files (e.g. `by-target-class/internal-ad.md`, `by-tool/bloodhound.md`, `by-tool/certipy.md`). If a match exists, `Read` it and append a `note` event with `kind:"lesson_lookup"` recording the file. Apply any "skip" / "try first" / "domain-policy gotcha" guidance before launching.
+
+If `index.md` is missing (first ever engagement on this host), skip silently.
+
 ## Tools Available
 
 | Tool | Use for |
