@@ -22,12 +22,11 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
 | AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
 | Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` | `cat ~/.config/opencode/commands/cloud-security.md` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`.**
 **If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
 
 
@@ -562,7 +561,6 @@ Credential Audit Summary:
   Kerberos:               [AS-REP/Kerberoast] — [findings]
 ```
 3. `session(action="complete", options={...})`
-4. Invoke `/gh-export`
 
 ---
 
@@ -584,7 +582,7 @@ Credential Audit Summary:
 | `/post-exploit` | Valid credentials obtained — post-exploitation and lateral movement |
 | `/lateral-movement` | Credentials work across multiple services — test lateral movement paths |
 | `/analyze-cve` | Auth library has a known CVE — trace exploitability |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

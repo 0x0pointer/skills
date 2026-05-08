@@ -26,13 +26,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | RCE or shell on AI host achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
 | CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
 | Shadow MCP server discovered | `/network-assess` | OPTIONAL | `Skill(skill="network-assess")` | `cat ~/.config/opencode/commands/network-assess.md` |
 | Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
 
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
@@ -561,7 +560,6 @@ OWASP Coverage:
 
 3. Call `session(action="complete", options={...})` with a summary including: target, model, tools run, findings count by severity, OWASP categories covered
 
-4. **Export GitHub Issues** — invoke the `/gh-export` skill to format all confirmed findings as copy-pasteable GitHub issue blocks
 
 ---
 
@@ -574,7 +572,7 @@ OWASP Coverage:
 | `/post-exploit` | AI endpoint exploitation achieved server access — post-exploitation on the AI host. Also the entry point back INTO this skill's Phase 3c (post-access AI infrastructure tests: AITG-APP-04, MOD-02, INF-05/06, DAT-01/02) |
 | `/network-assess` | Shadow MCP server discovery (MCP09) — scan for undocumented MCP endpoints on the internal network |
 | `/container-k8s-security` | AI workload running in Kubernetes — check model storage volumes, GPU access, sidecar MCP servers, and service-account token scoping |
-| `/gh-export` | Always — after `session(action="complete", options={...})`. Formats findings as GitHub issue blocks |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

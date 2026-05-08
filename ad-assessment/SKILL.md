@@ -22,13 +22,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | Account compromise achieved / shell access | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
 | Hashes / credentials harvested | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
 | Lateral movement opportunities found | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` | `cat ~/.config/opencode/commands/lateral-movement.md` |
 | Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
 
 ## Tools Available
 
@@ -485,7 +484,6 @@ report(action="note", data={"message": "Attack Path Priority Assessment:
 1. Call `report(action="diagram", data={...})` with attack path map showing how findings chain to DA
 2. Call `report(action="note", data={...})` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
 3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -496,7 +494,7 @@ report(action="note", data={"message": "Attack Path Priority Assessment:
 | `/pentester` | DC or member server has web services |
 | `/analyze-cve` | CVE-affected component (Exchange, ADFS, print spooler) |
 | `/threat-modeling` | After assessment — STRIDE analysis of the AD architecture |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

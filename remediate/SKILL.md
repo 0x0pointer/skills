@@ -24,9 +24,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After all findings remediated | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After all findings remediated | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 
-**You WILL invoke `/gh-export` after completing remediation — this exports findings with the fix patches included in each GitHub issue.**
 
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
@@ -224,7 +223,7 @@ Provide the exact update command and the safe version:
 
 | Skill | When to invoke |
 |-------|----------------|
-| `/gh-export` | Always after remediation — issues now include ## Remediation section |
+| `/gh-export` | When user asks to file GitHub issues — findings now include a ## Remediation section|
 | `/codebase` | If remediation needs source context but /codebase hasn't run yet |
 
 ---

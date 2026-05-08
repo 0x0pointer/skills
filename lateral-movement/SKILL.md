@@ -22,12 +22,11 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | New host access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
 | Kerberos tickets / hashes to crack | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
 | AD domain discovered | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
 
 ## Tools Available
 
@@ -503,7 +502,6 @@ Lateral Movement Summary:
 ```
 
 2. Call `session(action="complete", options={...})` with summary
-3. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -515,7 +513,7 @@ Lateral Movement Summary:
 | `/credential-audit` | Need to crack Kerberos tickets or test credentials |
 | `/post-exploit` | Gained access to new hosts — enumerate and escalate |
 | `/network-assess` | Internal network access from new position — segmentation testing, service enumeration |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 
