@@ -18,6 +18,19 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Injection points or deep vuln found | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+
 ## Tools Available
 
 | Tool | Use for |
@@ -34,6 +47,9 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (auth flow, exploit chain, data exfil path) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -639,7 +655,7 @@ flowchart TD
 5. **Chain to `/ai-redteam`** if an LLM/AI endpoint was discovered during exploitation (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers). API testing often touches these surfaces — when it does, hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing
 6. **Chain to `/credential-audit`** if credential material (hashes, tokens, user lists) was recovered
 7. **Chain to `/analyze-cve`** if a vulnerable framework / library version was disclosed
-8. **Export GitHub Issues** — only if the user explicitly requests it. Do NOT auto-invoke `/gh-export`
+8. **Export GitHub Issues** — invoke `/gh-export` after `complete_scan` to format all confirmed findings as GitHub issue blocks
 
 ---
 

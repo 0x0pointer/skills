@@ -18,6 +18,22 @@ Use the **PASTA framework** (7 stages) as your analytical backbone. Frame the se
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After producing the threat model | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
+| After producing the threat model (if findings.json exists) | `/gh-export` | OPTIONAL | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+
+**You WILL invoke `/remediate` after completing the threat model. This is not optional.**
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
+---
+
 ## Shostack's 4 Questions — The Session Frame
 
 Answer these four questions across the full session. They're not sequential steps; they're a lens. Keep coming back to them.

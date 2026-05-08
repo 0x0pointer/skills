@@ -18,6 +18,20 @@ You are an expert OSINT analyst performing comprehensive passive reconnaissance.
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Leaked credentials found | `/credential-audit` | **MANDATORY** | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Sufficient intel gathered; active testing ready | `/pentester` | OPTIONAL | `Skill(skill="pentester")` | `cat ~/.config/opencode/commands/pentester.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`.**
+**If leaked credentials are found: MUST invoke `/credential-audit` to validate them.**
+
 ## Tools Available
 
 | Tool | Use for |
@@ -31,6 +45,9 @@ You are an expert OSINT analyst performing comprehensive passive reconnaissance.
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (org chart, infra map) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -431,7 +448,7 @@ OSINT Summary:
 | Skill | When to invoke |
 |-------|----------------|
 | `/pentester` | OSINT complete — user authorizes active scanning |
-| `/threat-model` | Use OSINT findings to build threat model before active testing |
+| `/threat-modeling` | Use OSINT findings to build threat model before active testing |
 | `/ai-redteam` | AI/LLM endpoint discovered during OSINT |
 | `/ssl-tls-audit` | TLS services discovered — deep certificate and crypto audit |
 | `/gh-export` | Always — after `session(action="complete", options={...})` |

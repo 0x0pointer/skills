@@ -18,6 +18,19 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Container escape achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Default credentials found on services | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
+
 ## Tools Available
 
 | Tool | Use for |
@@ -33,6 +46,9 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (K8s topology, attack paths) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -1018,7 +1034,7 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | `/credential-audit` | Default creds found on exposed services (Redis, dashboards) |
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
 | `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
-| `/threat-model` | Produce PASTA threat model of the K8s architecture |
+| `/threat-modeling` | Produce PASTA threat model of the K8s architecture |
 | `/gh-export` | Always — after `session(action="complete", options={...})` |
 
 ---
