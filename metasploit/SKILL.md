@@ -85,9 +85,9 @@ scan(tool="metasploit", target="10.0.0.5", options={
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Auxiliary scanner modules only — validate CVEs without exploitation | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + exploit modules with safe payloads (cmd/unix/generic) | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + reverse shells + post-exploitation + pivoting | $2.00 · 120 min · 60 calls |
+| `quick` | Auxiliary scanner modules only — validate CVEs without exploitation | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + exploit modules with safe payloads (cmd/unix/generic) | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + reverse shells + post-exploitation + pivoting | unlimited | unlimited | unlimited |
 
 ---
 

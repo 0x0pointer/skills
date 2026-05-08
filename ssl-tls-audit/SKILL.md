@@ -74,9 +74,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | testssl quick mode + HSTS check | $0.05 · 5 min · 5 calls |
-| `standard` | testssl full + sslscan + nuclei SSL templates + HTTP headers + cert chain | $0.20 · 15 min · 12 calls |
-| `thorough` | Standard + openssl manual + nmap + multi-port + TLS 1.3 deep + session + renegotiation + revocation + compliance | $0.50 · 30 min · 25 calls |
+| `quick` | testssl quick mode + HSTS check | $0.05 | 5 min | 5 calls |
+| `standard` | testssl full + sslscan + nuclei SSL templates + HTTP headers + cert chain | $0.20 | 15 min | 12 calls |
+| `thorough` | Standard + openssl manual + nmap + multi-port + TLS 1.3 deep + session + renegotiation + revocation + compliance | unlimited | unlimited | unlimited |
 
 ---
 

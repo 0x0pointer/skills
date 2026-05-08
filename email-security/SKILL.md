@@ -71,9 +71,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | SPF + DKIM + DMARC + MX lookup | $0.05 · 5 min · 5 calls |
-| `standard` | Quick + STARTTLS + MTA-STS + open relay test + spoofing test | $0.15 · 15 min · 12 calls |
-| `thorough` | Standard + user enumeration + full SMTP audit + TLS cert analysis | $0.30 · 30 min · 20 calls |
+| `quick` | SPF + DKIM + DMARC + MX lookup | $0.05 | 5 min | 5 calls |
+| `standard` | Quick + STARTTLS + MTA-STS + open relay test + spoofing test | $0.15 | 15 min | 12 calls |
+| `thorough` | Standard + user enumeration + full SMTP audit + TLS cert analysis | unlimited | unlimited | unlimited |
 
 ---
 

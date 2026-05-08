@@ -71,9 +71,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Public bucket/blob scan + IMDS probe + nuclei cloud templates | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + IAM privilege escalation + security groups + storage deep-dive | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + Prowler/ScoutSuite + serverless + databases + logging + container registry + attack paths + compliance | $2.00 · 120 min · 60 calls |
+| `quick` | Public bucket/blob scan + IMDS probe + nuclei cloud templates | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + IAM privilege escalation + security groups + storage deep-dive | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + Prowler/ScoutSuite + serverless + databases + logging + container registry + attack paths + compliance | unlimited | unlimited | unlimited |
 
 ---
 

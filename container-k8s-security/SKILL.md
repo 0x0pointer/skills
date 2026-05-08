@@ -90,9 +90,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Phase 1-3: Discovery + API probing + anonymous auth | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + Phase 4-7: Pod security + RBAC + secrets + images | $0.50 · 45 min · 30 calls |
-| `thorough` | Standard + Phase 8-11: CIS benchmarks + network segmentation + escape exploitation + defensive gap analysis | $2.00 · 120 min · 60 calls |
+| `quick` | Phase 1-3: Discovery + API probing + anonymous auth | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + Phase 4-7: Pod security + RBAC + secrets + images | $0.50 | 45 min | 30 calls |
+| `thorough` | Standard + Phase 8-11: CIS benchmarks + network segmentation + escape exploitation + defensive gap analysis | unlimited | unlimited | unlimited |
 
 ---
 

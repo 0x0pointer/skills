@@ -68,9 +68,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Credential reuse + SMB shares + basic enumeration | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + Kerberoasting + PtH + WinRM + delegation enum | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + Responder + relay + BloodHound + RBCD + trust abuse + pivoting | $2.00 · 120 min · 60 calls |
+| `quick` | Credential reuse + SMB shares + basic enumeration | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + Kerberoasting + PtH + WinRM + delegation enum | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + Responder + relay + BloodHound + RBCD + trust abuse + pivoting | unlimited | unlimited | unlimited |
 
 ---
 

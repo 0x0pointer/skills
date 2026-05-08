@@ -82,9 +82,9 @@ Every finding must be assigned a confidence level. Include the confidence and so
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | theHarvester + subfinder + WHOIS + DNS + crt.sh | $0.05 · 10 min · 8 calls |
-| `standard` | Quick + amass + dnstwist + whatweb + wafw00f + email SMTP verification + cert transparency + Wayback + document metadata | $0.20 · 30 min · 20 calls |
-| `thorough` | Standard + fierce + Shodan/Censys + subdomain takeover + cloud storage enum + social media + code repos + credential leaks + DNS history | $0.50 · 60 min · 40 calls |
+| `quick` | theHarvester + subfinder + WHOIS + DNS + crt.sh | $0.05 | 10 min | 8 calls |
+| `standard` | Quick + amass + dnstwist + whatweb + wafw00f + email SMTP verification + cert transparency + Wayback + document metadata | $0.20 | 30 min | 20 calls |
+| `thorough` | Standard + fierce + Shodan/Censys + subdomain takeover + cloud storage enum + social media + code repos + credential leaks + DNS history | unlimited | unlimited | unlimited |
 
 ---
 

@@ -104,9 +104,9 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 
 | Depth | What runs | Limits |
 |-------|-----------|--------|
-| `quick` | Default creds (nuclei) + top-100 passwords | $0.10 · 10 min · 8 calls |
-| `standard` | Quick + spraying + custom wordlist + lockout detection + timing enumeration | $0.50 · 30 min · 20 calls |
-| `thorough` | Standard + hash cracking + MFA bypass + OAuth + session analysis + Kerberos | $2.00 · 90 min · 50 calls |
+| `quick` | Default creds (nuclei) + top-100 passwords | $0.10 | 10 min | 8 calls |
+| `standard` | Quick + spraying + custom wordlist + lockout detection + timing enumeration | $0.50 | 30 min | 20 calls |
+| `thorough` | Standard + hash cracking + MFA bypass + OAuth + session analysis + Kerberos | unlimited | unlimited | unlimited |
 
 ---
 
