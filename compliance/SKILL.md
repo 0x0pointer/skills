@@ -1,5 +1,5 @@
 ---
-name: asvs-compliance
+name: compliance
 description: |
   Full ASVS 5.0 compliance assessment against a codebase and/or architecture diagrams.
   Reads all 346 controls from the companion CSV, performs targeted code analysis per control,
@@ -33,7 +33,7 @@ If `CODEBASE_PATH` is missing, ask the user before proceeding.
 
 ## Control Data
 
-All 346 ASVS 5.0 controls live in the companion CSV at `skills/asvs-compliance/refs/asvs-5.0.csv`.
+All 346 ASVS 5.0 controls live in the companion CSV at `skills/compliance/refs/asvs-5.0.csv`.
 
 **Read this file first.** It has 7 columns:
 
@@ -67,7 +67,7 @@ For chapters not assessed at the chosen depth, set every control in that chapter
 
 ### 1a — Load the ASVS CSV
 
-Read `skills/asvs-compliance/refs/asvs-5.0.csv`. Parse all rows. Group by `chapter_id`. You now have the full list of controls to assess.
+Read `skills/compliance/refs/asvs-5.0.csv`. Parse all rows. Group by `chapter_id`. You now have the full list of controls to assess.
 
 ### 1b — Detect the tech stack
 
