@@ -39,11 +39,10 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` (confirmed exploitable finding) | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` (confirmed exploitable finding) | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | Exploitable CVE confirmed + live target available | `/web-exploit` | OPTIONAL | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
 | Exploitable CVE confirmed + Metasploit module available | `/metasploit` | OPTIONAL | `Skill(skill="metasploit")` | `cat ~/.config/opencode/commands/metasploit.md` |
 
-**You WILL invoke `/gh-export` after completing the analysis if a confirmed exploitable finding was produced.**
 
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.

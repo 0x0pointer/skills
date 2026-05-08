@@ -31,13 +31,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |---------|-------|-----------|-------------|---------|
 | After `session(action="complete")` | `/threat-modeling` | **MANDATORY** | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
 | After `/threat-modeling` completes | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
 | LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` | `cat ~/.config/opencode/commands/ai-redteam.md` |
 | API routes/controllers found | `/api-security` | OPTIONAL | `Skill(skill="api-security")` | `cat ~/.config/opencode/commands/api-security.md` |
 | CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
 
-**You WILL invoke `/threat-modeling` and `/gh-export` after `session(action="complete")`.**
+**You WILL invoke `/threat-modeling` after `session(action="complete")`.**
 **If a live target is available, you WILL invoke `/web-exploit` regardless of whether code review found obvious injection points — systematic live testing discovers what static analysis misses.**
 
 
@@ -530,7 +530,6 @@ ASVS 5.0 Coverage:
 - **MUST** → `/threat-modeling` (always — real architecture from code)
 - **MUST if live target available** → `/web-exploit` (do NOT skip because code review found no injection points — systematic live testing finds what static analysis misses)
 - **MUST if LLM/AI integration detected** → `/ai-redteam` (pass system prompts, tool definitions, guardrail config, RAG architecture as white-box context)
-- **MUST** → `/gh-export` (always)
 - **If API routes/controllers found** → `/api-security` (OWASP API Top 10 with white-box context)
 - **If IaC found** → `/cloud-security` or `/container-k8s-security`
 - **If CVE-affected dependencies found** → `/analyze-cve`
@@ -551,7 +550,7 @@ ASVS 5.0 Coverage:
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
 | `/ai-redteam` | LLM integration detected — pass system prompts, tool definitions, guardrails, RAG architecture, and endpoint URLs as white-box context |
 | `/remediate` | Findings produced — generate specific code fixes with full source context |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

@@ -22,13 +22,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code | opencode |
 |---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
 | TLS weakness enables further attacks | `/pentester` | OPTIONAL | `Skill(skill="pentester")` | `cat ~/.config/opencode/commands/pentester.md` |
 | Credential interception risk identified | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
 | Shell access obtained | `/post-exploit` | OPTIONAL | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
 | Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
 
-**You WILL invoke `/gh-export` after `session(action="complete")`. This is not optional.**
 
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
@@ -413,7 +412,6 @@ flowchart TD
 ```
 2. Call `report(action="note", data={...})` with compliance summary (PCI DSS 4.0 + NIST 800-52r2 + FedRAMP)
 3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -426,7 +424,7 @@ flowchart TD
 | `/network-assess` | Internal network found — test segmentation, SNMP, broadcast protocols |
 | `/credential-audit` | Weak TLS enables credential interception — test authentication strength |
 | `/post-exploit` | Weak TLS enables MitM credential capture — post-exploitation with harvested credentials |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 
