@@ -24,12 +24,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code |
 |------|------|------|------|
-| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 | Container escape achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
 | Default credentials found on services | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
 | Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 
-**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
@@ -37,13 +37,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |------|---------|
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
-| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Write("diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -95,9 +95,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target, depth, and limits
-1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record: target type (Docker/K8s/both), perspective (external/internal/both), access level (anonymous/token/kubeconfig), cluster type (kind/EKS/GKE/AKS/vanilla)
+0. Call `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with target, depth, and limits
+1. Call `# (no dashboard — see findings.json directly)` — live findings tracker
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record: target type (Docker/K8s/both), perspective (external/internal/both), access level (anonymous/token/kubeconfig), cluster type (kind/EKS/GKE/AKS/vanilla)
 
 ---
 
@@ -192,7 +192,7 @@ Bash("curl ...")
 Bash("curl ...")
 ```
 
-Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with discovered K8s topology after this phase.
+Call `Write("diagrams/<title>.mmd", "<mermaid>")` with discovered K8s topology after this phase.
 
 ---
 
@@ -919,7 +919,7 @@ for p in d.get(\"items\", []):
 
 ### Phase 12 — Attack Path Diagram & Report
 
-1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with a comprehensive attack path map showing all discovered vectors:
+1. Call `Write("diagrams/<title>.mmd", "<mermaid>")` with a comprehensive attack path map showing all discovered vectors:
 
 ```mermaid
 flowchart TD
@@ -961,7 +961,7 @@ flowchart TD
     style SECRETS fill:#ff6b6b,color:#fff
 ```
 
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with assessment summary:
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with assessment summary:
 ```
 Container/K8s Security Assessment Summary:
   Cluster version:         [version]
@@ -986,7 +986,7 @@ Container/K8s Security Assessment Summary:
   Cloud metadata access:   [accessible/blocked]
 ```
 
-3. Call `Write("pentest/summary.md", "<summary>")` with summary
+3. Call `Write("summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -1030,15 +1030,15 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
 | `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
 | `/threat-modeling` | Produce PASTA threat model of the K8s architecture |
-| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
+| `/gh-export` | Always — after `Write("summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- When any tool returns a LIMIT message, stop immediately and call `Write("summary.md", "<summary>")`
 - **Check anonymous auth first** — unauthenticated K8s API and kubelet access are the most critical findings
 - **Enumerate service accounts** — they're the most common K8s attack vector
 - **Always check NodePort range** — these bypass ingress controls entirely
@@ -1046,9 +1046,9 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 - **Test cross-namespace connectivity** — the flat network model is a lateral movement goldmine
 - **Check for SSRF to metadata** — cloud credentials via 169.254.169.254 from pods
 - **Verify defensive controls** — the ABSENCE of Falco, Kyverno, NetworkPolicies, audit logging is itself a finding
-- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed weakness** — include the specific resource, misconfiguration, and impact
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` for every confirmed weakness** — include the specific resource, misconfiguration, and impact
 - **Test container escape only when authorized** — these can affect the underlying host
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document K8s version, RBAC findings, pod configurations
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` liberally** — document K8s version, RBAC findings, pod configurations
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

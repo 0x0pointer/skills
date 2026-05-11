@@ -24,12 +24,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code |
 |------|------|------|------|
-| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 | Cloud credentials → instance/compute access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
 | Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 | K8s workloads found | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` |
 
-**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
@@ -37,13 +37,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |------|---------|
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
-| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Write("diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -91,9 +91,9 @@ If the request does not specify the cloud provider or mode, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target, depth, and limits
-1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record cloud provider, mode, available credentials, target scope
+0. Call `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with target, depth, and limits
+1. Call `# (no dashboard — see findings.json directly)` — live findings tracker
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record cloud provider, mode, available credentials, target scope
 
 ---
 
@@ -132,7 +132,7 @@ Bash("aws iam get-account-authorization-details --output json > /tmp/iam.json &&
 
 #### AWS IAM Privilege Escalation Paths
 
-Test each vector. For every path that exists, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")`.
+Test each vector. For every path that exists, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")`.
 
 **iam:PassRole + Lambda (create function with privileged role):**
 ```
@@ -479,7 +479,7 @@ flowchart TD
 
 ### Phase 12 — Cloud Compliance Mapping (thorough)
 
-Map every confirmed finding to applicable compliance frameworks. Include in `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` description.
+Map every confirmed finding to applicable compliance frameworks. Include in `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` description.
 
 | Finding type | SOC 2 TSC | PCI DSS 4.0 | HIPAA | CIS (AWS/Azure/GCP) |
 |-------------|-----------|-------------|-------|---------------------|
@@ -500,9 +500,9 @@ Map every confirmed finding to applicable compliance frameworks. Include in `Bas
 
 ### Phase 13 — Report & Wrap-Up
 
-1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with cloud architecture annotated with findings
+1. Call `Write("diagrams/<title>.mmd", "<mermaid>")` with cloud architecture annotated with findings
 
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with cloud security summary:
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with cloud security summary:
 ```
 Cloud Security Assessment Summary:
   Provider:              [AWS/Azure/GCP]
@@ -517,7 +517,7 @@ Cloud Security Assessment Summary:
   Compliance gaps:       SOC 2: [count] | PCI: [count] | HIPAA: [count] | CIS: [count]
 ```
 
-3. Call `Write("pentest/summary.md", "<summary>")` with summary
+3. Call `Write("summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -531,7 +531,7 @@ Cloud Security Assessment Summary:
 | `/container-k8s-security` | EKS/AKS/GKE clusters discovered |
 | `/analyze-cve` | CVE-affected cloud service version found |
 | `/threat-modeling` | After assessment — STRIDE analysis of cloud architecture |
-| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
+| `/gh-export` | Always — after `Write("summary.md", "<summary>")` |
 
 ---
 
@@ -548,18 +548,18 @@ Cloud Security Assessment Summary:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- When any tool returns a LIMIT message, stop immediately and call `Write("summary.md", "<summary>")`
 - **Stay within declared scope** — only test cloud resources the user authorizes
 - **Handle credentials carefully** — never log cloud access keys in findings; reference by key ID only
-- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed misconfiguration** — include resource ARN/ID, misconfiguration, risk, and compliance mapping
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` for every confirmed misconfiguration** — include resource ARN/ID, misconfiguration, risk, and compliance mapping
 - **Map attack paths** — individual misconfigs are less impactful than chained paths to sensitive data
 - **Check every escalation vector** — use the IAM privilege escalation matrix systematically
 - **Validate logging at every layer** — CloudTrail management + data events, VPC Flow Logs, S3 access logs, GuardDuty
 - **Test storage at object level** — bucket-level checks are insufficient; enumerate object ACLs, versioning, encryption per-object
 - **Include compliance mapping** — every finding must reference applicable SOC 2, PCI DSS, HIPAA, and CIS controls
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document what resources were checked and their status
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` liberally** — document what resources were checked and their status
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

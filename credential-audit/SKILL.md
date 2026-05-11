@@ -22,16 +22,16 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code |
 |------|------|------|------|
-| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 | Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
 | AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` |
 | Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` |
 
-**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`.**
+**You WILL invoke `/gh-export` after `Write("summary.md", "<summary>")`.**
 **If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ## Lessons consultation (lazy) — especially important here
 
@@ -76,9 +76,12 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 |------|---------|
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
-| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Write("diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Write("creds/<tool>.<ext>", ...)` | **Persistent credential artifacts go here** — hashcat-cracked passwords, john output, captured hashes from hydra brute forces, JWTs, API tokens. One canonical file per category (e.g. `creds/hashcat-cracked.txt`, `creds/hydra-found.txt`). |
+| `Write("wordlists/<source>-<purpose>.txt", ...)` | Custom wordlists generated during the engagement (cewl output, derived user lists). |
+| `Write("logs/<tool>-<ts>.log", ...)` | Long-running brute-force / spraying transcripts. |
+| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 ---
@@ -127,9 +130,9 @@ If depth/service is unspecified, ask:
 
 ### Phase 0 — Scope & Setup
 
-0. `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target, depth, limits
-1. `# (no dashboard — see pentest/findings.json directly)`
-2. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record target services, known usernames, auth mechanisms
+0. `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with target, depth, limits
+1. `# (no dashboard — see findings.json directly)`
+2. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record target services, known usernames, auth mechanisms
 
 ---
 
@@ -142,7 +145,7 @@ If depth/service is unspecified, ask:
 
 2. **Probe web auth** via `Bash("curl ...")`: find login pages, identify auth type (form/basic/bearer/OAuth/SAML), check for CAPTCHA, note error messages ("Invalid username" vs "Invalid credentials" = user enumeration)
 
-3. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` + `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with auth architecture (login form, auth service, DB, LDAP, MFA, OAuth paths)
+3. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` + `Write("diagrams/<title>.mmd", "<mermaid>")` with auth architecture (login form, auth service, DB, LDAP, MFA, OAuth paths)
 
 ---
 
@@ -376,7 +379,7 @@ Bash("for proto in smb rdp ssh winrm mssql; do echo \"=== $proto ===\"; nxc $pro
 
 **Services not in netexec**: use hydra for PostgreSQL (`postgres`), Oracle (`oracle-listener`), HTTP Basic (`http-get /admin`), HTTP POST form.
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` immediately for every working credential pair.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` immediately for every working credential pair.
 
 ---
 
@@ -537,18 +540,18 @@ Bash("kerbrute userenum --dc DC_IP -d DOMAIN /usr/share/seclists/Usernames/xato-
 
 For every confirmed finding:
 
-1. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — what was confirmed
+1. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — what was confirmed
 2. Verify access — actually log in with discovered credentials
 3. `Bash("curl ...")` for web findings
 4. `Write("pocs/<title>.http", ...)` with descriptive title (e.g., `default-creds-admin`, `mfa-bypass-param-removal`, `oauth-scope-escalation`)
-5. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` — severity: Critical (admin/MFA bypass), High (user access/OAuth abuse), Medium (weak tokens/enumeration), Low (best practice gaps)
+5. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` — severity: Critical (admin/MFA bypass), High (user access/OAuth abuse), Medium (weak tokens/enumeration), Low (best practice gaps)
 
 ---
 
 ### Phase 13 — Report & Wrap-Up
 
-1. `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` — credential attack surface diagram
-2. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with summary:
+1. `Write("diagrams/<title>.mmd", "<mermaid>")` — credential attack surface diagram
+2. `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with summary:
 ```
 Credential Audit Summary:
   Default credentials:    [count] services — [findings]
@@ -562,7 +565,7 @@ Credential Audit Summary:
   Hash cracking:          [total] hashes — [cracked] cracked
   Kerberos:               [AS-REP/Kerberoast] — [findings]
 ```
-3. `Write("pentest/summary.md", "<summary>")`
+3. `Write("summary.md", "<summary>")`
 4. Invoke `/gh-export`
 
 ---
@@ -585,23 +588,23 @@ Credential Audit Summary:
 | `/post-exploit` | Valid credentials obtained — post-exploitation and lateral movement |
 | `/lateral-movement` | Credentials work across multiple services — test lateral movement paths |
 | `/analyze-cve` | Auth library has a known CVE — trace exploitability |
-| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
+| `/gh-export` | Always — after `Write("summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- When any tool returns a LIMIT message, stop immediately and call `Write("summary.md", "<summary>")`
 - **Detect lockout threshold BEFORE spraying** — binary search (Phase 3), then use `threshold - 1`
 - **Start with default credentials** — always test vendor defaults before brute-force
 - **Build custom wordlists** — cewl + john rules + mask attacks beat generic wordlists
 - **Spray over brute-force** — 2 passwords x 1000 users beats 1000 passwords x 1 user
 - **Test credential reuse cross-service** — every found credential pair must hit all discovered services
-- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed credential** — include service, username, verified access
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` for every confirmed credential** — include service, username, verified access
 - **For every confirmed exploit**: call `Bash("curl ...")` AND `Write("pocs/<title>.http", ...)`
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document reasoning for wordlist choices and attack strategy
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` liberally** — document reasoning for wordlist choices and attack strategy
 - **Never fabricate findings** — only report credentials you actually verified
 - **Mermaid syntax rules**: `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

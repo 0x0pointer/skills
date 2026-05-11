@@ -1,14 +1,14 @@
 ---
 name: retrospective
 description: |
-  End-of-engagement retrospective. Mines pentest/events.jsonl for time-wasters, fast wins, abandoned techniques, and dead-end skill chains; writes a per-engagement archive; merges cross-applicable heuristics into a global lessons store; appends topical lessons under specific/. Loaded automatically by /pentester after summary.md is written. Loaded by future engagements at startup so the agent gets better over time.
+  End-of-engagement retrospective. Mines events.jsonl for time-wasters, fast wins, abandoned techniques, and dead-end skill chains; writes a per-engagement archive; merges cross-applicable heuristics into a global lessons store; appends topical lessons under specific/. Loaded automatically by /pentester after summary.md is written. Loaded by future engagements at startup so the agent gets better over time.
 argument-hint: <engagement_name> [pentest_dir=pentest]
 user-invocable: true
 ---
 
 # Engagement Retrospective
 
-You are running the post-engagement retrospective. The engagement is finished — `pentest/summary.md` already exists, `verify.py` has been run, all findings have PoCs. Your job now is to capture what should be remembered for next time.
+You are running the post-engagement retrospective. The engagement is finished — `summary.md` already exists, `verify.py` has been run, all findings have PoCs. Your job now is to capture what should be remembered for next time.
 
 **Request:** $ARGUMENTS
 
@@ -37,11 +37,11 @@ The store lives **outside** the skills repo so it survives re-clones. Create any
 
 ```
 Bash("mkdir -p ~/.claude/lessons/pentester/{specific/by-tech,specific/by-tool,specific/by-target-class,archive}")
-Bash("uv run ~/.claude/skills/retrospective/mine.py pentest/events.jsonl pentest/scope.json > pentest/retrospective-stats.json")
-Read("pentest/retrospective-stats.json")
-Read("pentest/scope.json")
-Read("pentest/summary.md")
-Read("pentest/findings.json")
+Bash("uv run ~/.claude/skills/retrospective/mine.py events.jsonl scope.json > retrospective-stats.json")
+Read("retrospective-stats.json")
+Read("scope.json")
+Read("summary.md")
+Read("findings.json")
 ```
 
 `mine.py` derives durations from existing event timestamps — no schema change needed. It reports:
@@ -124,10 +124,10 @@ One line per file, format: `- <relative path> — <one-line summary>`.
 
 ### 5. Audit-trail event
 
-Append a `note` event to `pentest/events.jsonl` recording exactly which lesson files were touched:
+Append a `note` event to `events.jsonl` recording exactly which lesson files were touched:
 
 ```
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' --arg files '<comma-separated paths>' '{ts:$ts,type:\"note\",kind:\"lesson_capture\",msg:$msg,files:$files}' >> pentest/events.jsonl")
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' --arg files '<comma-separated paths>' '{ts:$ts,type:\"note\",kind:\"lesson_capture\",msg:$msg,files:$files}' >> events.jsonl")
 ```
 
 The `kind:"lesson_capture"` marker makes these events grep-able later.
@@ -147,5 +147,5 @@ The `kind:"lesson_capture"` marker makes these events grep-able later.
 
 ## When this skill runs
 
-- **Mandatory** at the end of every engagement. `/pentester` invokes it as a step after `Write("pentest/summary.md", ...)` and `verify.py`, before exit. See pentester.md for the chain.
+- **Mandatory** at the end of every engagement. `/pentester` invokes it as a step after `Write("summary.md", ...)` and `verify.py`, before exit. See pentester.md for the chain.
 - May also be invoked manually mid-engagement if the user wants an interim retrospective (e.g. before a long pause).
