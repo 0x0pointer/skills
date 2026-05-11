@@ -231,6 +231,14 @@ Skip this phase entirely if the target is a plain LLM chat endpoint with no tool
 
 ### Phase 2 — Automated Scanning (parallel where possible)
 
+**Dual auth-state requirement (MANDATORY):** For every automated scan and every manual test in Phases 2-3, run the attack in BOTH states:
+1. **Anonymous** — no auth headers or cookies
+2. **Authenticated** — with a valid session token or API key
+
+Many LLM security controls, guardrails, and system prompt injections are auth-state-dependent. A jailbreak blocked for anonymous users may succeed for authenticated users and vice versa. An attack that leaks nothing from the public endpoint may leak data when the model has user context loaded. Running only in one state misses half the attack surface. Log each state's result separately in `report(action="finding")`.
+
+If you only have one auth state available, log a note explaining which state was not tested.
+
 Run automated tools based on depth. **Batch independent tools in the same response.**
 
 **Quick depth:**
