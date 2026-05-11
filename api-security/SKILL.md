@@ -170,8 +170,35 @@ http(action="request", url="https://TARGET/api/v0/users/1")
 http(action="request", url="https://TARGET/api/internal/users/1")
 ```
 
-**Step 1e — GraphQL introspection (if GraphQL endpoint found):**
+**Step 1e — GraphQL introspection (MANDATORY — always probe, even when not told):**
 
+**Always probe these paths unconditionally**, regardless of whether GraphQL was mentioned:
+```
+http(action="request", url="https://TARGET/graphql", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+http(action="request", url="https://TARGET/api/graphql", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+http(action="request", url="https://TARGET/v1/graphql", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+http(action="request", url="https://TARGET/query", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+```
+
+If ANY probe returns a valid GraphQL response (even if introspection is disabled — `{errors:[{message:"..."}]}` is still GraphQL), **IMMEDIATELY register the endpoint in the coverage matrix**:
+```
+report(action="coverage", data={
+  "type": "endpoint",
+  "path": "/graphql",
+  "method": "POST",
+  "params": [{"name": "query", "type": "body_json", "value_hint": ""}, {"name": "variables", "type": "body_json", "value_hint": ""}],
+  "discovered_by": "manual_probe",
+  "auth_context": "none"
+})
+```
+The coverage system automatically opens an `api-security` trigger gate when a GraphQL endpoint is registered. This gate blocks scan completion until this skill runs.
+
+If introspection is disabled, use clairvoyance for blind schema recovery:
+```
+kali(command="clairvoyance https://TARGET/graphql -o /tmp/schema.json")
+```
+
+**Full introspection query:**
 ```
 http(action="request", url="https://TARGET/graphql", method="POST",
      headers={"Content-Type": "application/json"},

@@ -521,7 +521,19 @@ Cloud Security Assessment Summary:
   Compliance gaps:       SOC 2: [count] | PCI: [count] | HIPAA: [count] | CIS: [count]
 ```
 
-3. Call `session(action="complete", options={...})` with summary
+3. **Depth gate (thorough ONLY) — before calling `session(action="complete")`, verify you have run all 5 mandatory phases:**
+
+   | Phase | Mandatory for thorough | Gate check |
+   |-------|----------------------|------------|
+   | Phase 2 (IAM Privilege Escalation) | ✅ | `report(action="note")` with privilege escalation paths found/not found |
+   | Phase 3 (Storage Bucket Deep-Dive) | ✅ | At least one bucket/blob enumeration ran |
+   | Phase 5 (Serverless Attack Surface) | ✅ | Lambda/Azure Function/Cloud Function enumerated |
+   | Phase 6 (Database Exposure Matrix) | ✅ | RDS/Azure SQL/Cloud SQL exposure checked |
+   | Phase 10 (Automated Scanning) | ✅ | Prowler or ScoutSuite ran (or documented reason why not) |
+
+   If any mandatory phase was skipped, run it now before completing. Log a `report(action="note")` confirming each phase ran.
+
+4. Call `session(action="complete", options={...})` with summary
 
 ---
 

@@ -342,6 +342,29 @@ http(action="request", method="POST", url="<target>/api/redeem", headers={"Autho
 http(action="request", method="POST", url="<target>/api/cart/discount", body={"code": "SAVE10", "quantity": -5})
 ```
 
+#### 4b-ii — Transfer edge case matrix (MANDATORY — 5 variants)
+
+For any endpoint that transfers value (credits, funds, tokens, gift cards, licenses), test ALL five variants. Each is a separate finding if it succeeds:
+
+```
+# Variant 1: Negative amount (subtracts from recipient — attacker gains by sending -100)
+http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "victim_id", "amount": -100})
+
+# Variant 2: Zero amount (should be rejected as no-op, but often accepted and creates confusion)
+http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "victim_id", "amount": 0})
+
+# Variant 3: Non-existent recipient (orphaned value or error that reveals account enumeration)
+http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "user_does_not_exist_99999", "amount": 10})
+
+# Variant 4: Self-transfer (should be a no-op or error; some apps subtract from balance without adding back)
+http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "OWN_USER_ID", "amount": 100})
+
+# Variant 5: Over-balance transfer (should fail; if it succeeds, check for negative balance + unlimited spending)
+http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "victim_id", "amount": 999999999})
+```
+
+Log every variant as a separate `report(action="finding")` entry if it produces unexpected behaviour.
+
 #### 4c — Race condition on balance operations
 
 For any endpoint that checks a balance/quota then deducts it (see `refs/race-condition.md` for full technique):
