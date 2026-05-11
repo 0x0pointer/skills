@@ -30,7 +30,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/remediate` after completing the threat model. This is not optional.**
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -621,10 +621,10 @@ Fill in all `[CONTENT]`, `[MERMAID]`, table rows, and risk cards with actual ana
 
 When chained from `/pentester` (or run inside an existing engagement directory), persist the threat-model artifacts alongside the rest of the run:
 
-- `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` for the **Component Map** (Stage 3a) and the **Data Flow Diagram** (Stage 3b)
-- `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` for each **Attack Tree** (Stage 6)
-- For any High/Critical threats concrete enough to be actionable findings (e.g. a specific missing security control on a specific component), append an entry to `pentest/findings.json`
-- Save the full threat model as `pentest/threat-model-<app-name>.md` — keep one file per app/component so they can be reviewed independently.
+- `Write("diagrams/<title>.mmd", "<mermaid>")` for the **Component Map** (Stage 3a) and the **Data Flow Diagram** (Stage 3b)
+- `Write("diagrams/<title>.mmd", "<mermaid>")` for each **Attack Tree** (Stage 6)
+- For any High/Critical threats concrete enough to be actionable findings (e.g. a specific missing security control on a specific component), append an entry to `findings.json`
+- Save the full threat model as `threat-model-<app-name>.md` — keep one file per app/component so they can be reviewed independently.
 
 > **Skip this** if MCP tools are not available (standalone analysis). The markdown + HTML reports are always produced regardless.
 

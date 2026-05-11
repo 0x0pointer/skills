@@ -22,13 +22,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code |
 |------|------|------|------|
-| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 | Account compromise achieved / shell access | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` |
 | Hashes / credentials harvested | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` |
 | Lateral movement opportunities found | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` |
 | Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 
-**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("summary.md", "<summary>")`. This is not optional.**
 
 ## Lessons consultation (lazy)
 
@@ -42,13 +42,15 @@ If `index.md` is missing (first ever engagement on this host), skip silently.
 |------|---------|
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
-| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Write("diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Write("scans/<tool>-<target>.<ext>", ...)` | LDAP search dumps, BloodHound JSON/zip (`scans/bloodhound-DOMAIN.zip`), `enum4linux-ng` output. |
+| `Write("creds/<tool>.<ext>", ...)` | Kerberoast/AS-REP roast output, `secretsdump.ntds`, `certipy auth` tickets, machine accounts. Canonical files: `creds/kerberoast.hashes`, `creds/asrep.hashes`, `creds/ntds.dit`. |
+| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -66,9 +68,9 @@ If `index.md` is missing (first ever engagement on this host), skip silently.
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with DC IP, depth, and limits
-1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record domain, DC IP, credentials, assessment objectives
+0. Call `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with DC IP, depth, and limits
+1. Call `# (no dashboard — see findings.json directly)` — live findings tracker
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record domain, DC IP, credentials, assessment objectives
 
 ---
 
@@ -105,7 +107,7 @@ Bash("ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'CN=Protec
 Bash("ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=domain,DC=com' '(objectClass=domain)' ms-DS-MachineAccountQuota 2>/dev/null")
 ```
 
-Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with AD topology after this phase.
+Call `Write("diagrams/<title>.mmd", "<mermaid>")` with AD topology after this phase.
 
 ---
 
@@ -266,7 +268,7 @@ Bash("ldapsearch -x -H ldap://DC_IP -D 'USER@DOMAIN' -w 'PASSWORD' -b 'DC=domain
 Bash("nxc ldap DC_IP -u USER -p 'PASSWORD' --module laps 2>/dev/null")
 ```
 
-If passwords are returned, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` immediately (critical — current user has LAPS read rights).
+If passwords are returned, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` immediately (critical — current user has LAPS read rights).
 
 **Count computers without LAPS (static local admin passwords):**
 ```
@@ -398,7 +400,7 @@ Bash("bloodhound-python -u USER -p 'PASSWORD' -d DOMAIN -dc DC_IP -c All --zip -
 
 **Attack path chaining example:** Owned user → GenericWrite on svc_sql → Set SPN → Kerberoast → Crack → svc_sql HasSession on SQLSRV01 → Credential dump → Server Admin → AllowedToDelegate to DC CIFS → S4U2Proxy → DCSync → DA.
 
-Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with every discovered attack chain. Multi-hop paths are more valuable than individual findings.
+Call `Write("diagrams/<title>.mmd", "<mermaid>")` with every discovered attack chain. Multi-hop paths are more valuable than individual findings.
 
 ---
 
@@ -472,7 +474,7 @@ The trust key (RC4/AES) enables forging inter-realm TGTs with `impacket-ticketer
 **P3 — Defense-in-depth gaps:** Protected Users empty, functional level < 2012 R2, no FGPP for admins, LAPS v1 only.
 
 ```
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl"):     [list or 'none']
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl"):     [list or 'none']
   P1 (high-probability): [list or 'none']
   P2 (additional steps): [list or 'none']
   P3 (defense gaps):     [list or 'none']
@@ -483,9 +485,9 @@ Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:
 
 ### Phase 13 — Report & Wrap-Up
 
-1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with attack path map showing how findings chain to DA
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
-3. Call `Write("pentest/summary.md", "<summary>")` with summary
+1. Call `Write("diagrams/<title>.mmd", "<mermaid>")` with attack path map showing how findings chain to DA
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
+3. Call `Write("summary.md", "<summary>")` with summary
 4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
@@ -497,7 +499,7 @@ Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:
 | `/pentester` | DC or member server has web services |
 | `/analyze-cve` | CVE-affected component (Exchange, ADFS, print spooler) |
 | `/threat-modeling` | After assessment — STRIDE analysis of the AD architecture |
-| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
+| `/gh-export` | Always — after `Write("summary.md", "<summary>")` |
 
 ---
 
@@ -514,16 +516,16 @@ Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` is mandatory** — never run any other tool before it
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- When any tool returns a LIMIT message, stop immediately and call `Write("summary.md", "<summary>")`
 - **Enumerate first, attack second** — understand AD structure before exploiting
 - **Always check ADCS** — certificate services are the most common enterprise attack vector
 - **Follow the priority decision tree** — ADCS present? ESC checks first. SPNs? Kerberoast. MAQ > 0? RBCD
-- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed weakness** — include raw tool output as evidence
-- **Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` twice**: after Phase 1 (topology) and at the end (attack paths)
+- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` for every confirmed weakness** — include raw tool output as evidence
+- **Call `Write("diagrams/<title>.mmd", "<mermaid>")` twice**: after Phase 1 (topology) and at the end (attack paths)
 - **ADCS exploitation is destructive** — ESC4 modifies templates, ESC7 modifies CA config. Always restore
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document structure, trust analysis, ACL reasoning, attack path logic
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` liberally** — document structure, trust analysis, ACL reasoning, attack path logic
 - **Never fabricate findings** — only report what tool output confirms
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used

@@ -39,14 +39,14 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code |
 |------|------|------|------|
-| After `Write("pentest/summary.md", "<summary>")` (confirmed exploitable finding) | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` (confirmed exploitable finding) | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 | Exploitable CVE confirmed + live target available | `/web-exploit` | OPTIONAL | `Skill(skill="web-exploit")` |
 | Exploitable CVE confirmed + Metasploit module available | `/metasploit` | OPTIONAL | `Skill(skill="metasploit")` |
 
 **You WILL invoke `/gh-export` after completing the analysis if a confirmed exploitable finding was produced.**
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -184,17 +184,17 @@ When a PoC is a Python script (from `searchsploit -m`, GitHub clone, exploit-db 
 
 This rule does **not** apply to pre-installed external tools at fixed paths (`/opt/jwt_tool/jwt_tool.py`, `/opt/sqlmap/sqlmap.py`, etc.) — those keep their own dependency setup.
 
-### Phase 5b: Persist to pentest/ artifacts (when running inside an engagement)
+### Phase 5b: Persist to engagement artifacts (when running inside an engagement)
 
-When chained from `/pentester` (or any time a `pentest/` directory exists in the working dir), persist findings alongside the rest of the run:
+When chained from `/pentester` (or any time `events.jsonl` exists in the working directory, indicating an engagement is in flight), persist findings alongside the rest of the run:
 
 11. **Log confirmed vulnerabilities**
-    - Append a `finding`/`add` event to `pentest/events.jsonl` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets). See [pentester/EVENTS.md](../pentester/EVENTS.md) form 5 for the canonical one-liner.
+    - Append a `finding`/`add` event to `events.jsonl` with the CVE ID, affected component, exploitability rating, and raw evidence (dataflow trace, code snippets). See [pentester/EVENTS.md](../pentester/EVENTS.md) form 5 for the canonical one-liner.
 
 12. **Save a Burp-ready PoC**
     - `Write("pocs/<title>.http", ...)` with a descriptive title (e.g. `cve-2024-xxxxx-rce-upload`) — include a leading `# notes: ...` line with the vulnerability description. The `.http` file can be pasted directly into Burp Repeater.
 
-> **Skip this phase** for standalone analysis (no `pentest/` directory). The markdown report is always produced regardless.
+> **Skip this phase** for standalone analysis (no `events.jsonl` in the working directory). The markdown report is always produced regardless.
 
 ### Phase 6: Report Generation
 

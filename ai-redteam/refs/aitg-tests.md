@@ -554,10 +554,10 @@ file /path/to/chroma.sqlite
 
 ## 9. Reporting Template Snippets
 
-When `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")`-ing an AITG or MCP test, include the test ID in both the title and description so downstream skills (`/gh-export`) preserve the framework mapping:
+When `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")`-ing an AITG or MCP test, include the test ID in both the title and description so downstream skills (`/gh-export`) preserve the framework mapping:
 
 ```python
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl"). The endpoint accepts `logprobs: true` and "
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl"). The endpoint accepts `logprobs: true` and "
     "returns per-token confidence scores with no rate limit on the logprobs "
     "field. This enables efficient distillation / substitute-model training."
   ),
@@ -567,7 +567,7 @@ Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title
 ```
 
 ```python
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl"). The `<tool_name>` MCP tool passes the `query` "
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl"). The `<tool_name>` MCP tool passes the `query` "
     "argument to a shell without escaping. Injecting `; id` returns uid=1000, "
     "confirming arbitrary command execution under the tool-server user."
   ),
