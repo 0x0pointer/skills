@@ -1,34 +1,28 @@
 ---
 name: business-logic
 description: |
-  Systematic business logic vulnerability testing using an understanding-first methodology. Begins with application archaeology — mapping roles, workflows, value operations, and trust boundaries from HTTP evidence — then derives business invariants ("what must NEVER be possible?") before testing. Covers BOLA (OWASP API1 / IDOR), BFLA (OWASP API5 / vertical privilege escalation), workflow state machine bypass, value transfer and financial logic abuse (price manipulation, discount stacking, refund race, currency confusion, decimal precision attacks, cart price lock bypass), parameter trust boundary confusion (client-supplied role fields, mass assignment), limit and quota bypass, time-window and expiry abuse, and multi-tenant / SaaS isolation failures.
-
-  This skill exists because technique-first checklists miss most real business logic bugs. Real bugs come from understanding the app's model and asking "what invariant does this endpoint rely on?" — then testing whether that invariant is enforced server-side. Works as a sub-skill of /web-exploit and /api-security, or standalone when the target is a financial, SaaS, or multi-tenant web application.
-argument-hint: <target-url> [depth=quick|standard|thorough] [context=<notes about roles/workflows already known>]
+  Application-level business logic security testing for any domain. Takes an understanding-first
+  approach: map the intended workflows before probing them. Covers: value/quantity logic abuse
+  (negative, zero, overflow, rounding on any numeric field), workflow and state machine bypass
+  (skipping required steps, forcing illegal state transitions, reusing one-time tokens), trust
+  boundary violations (BOLA horizontal/vertical, BFLA, cross-tenant access, negative ownership
+  attacks), idempotency and replay attacks (duplicate submissions, double-spend, same-reference
+  reuse), multi-step flow integrity (checkout, registration, approval, verification), quota and
+  rate limit bypass, time/date manipulation, and authorization code / reference number
+  predictability. Domain-agnostic — applies to SaaS, e-commerce, banking, gaming, social
+  platforms, APIs, or any multi-user application with stateful workflows. Chains from /pentester;
+  chains into /param-fuzz when boundary violations or mass assignment are confirmed.
+argument-hint: <target-url> [focus=value|workflow|trust|replay|quota|all] [depth=quick|standard|thorough]
 user-invocable: true
 ---
 
-# Business Logic Security Assessment
+# Business Logic Security Testing
 
-You are an expert in business logic vulnerability research. Your goal: understand how the application works — its roles, its workflows, its value model, its invariants — and then systematically violate every assumption the developers made about "legitimate use." Technique-first checklists miss most real bugs. The right question is: **"What must NEVER be possible in this application, and does the server actually prevent it?"**
+You are an expert in application-level business logic security. Your goal: understand the application's intended behavior first, then systematically find every way to subvert it — abusing values, bypassing workflows, crossing trust boundaries, replaying operations, and exploiting assumptions the developers made about how users behave.
+
+This skill is domain-agnostic. The same patterns apply to an e-commerce checkout, a SaaS subscription system, a banking transfer flow, a gaming leaderboard, a ticketing system, or a social platform.
 
 **Request:** $ARGUMENTS
-
----
-
-## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
-
-Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
-
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Injection point discovered (SQLi, SSTI, SSRF, etc.) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit", args="<target> vuln-type=<type>")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| API surface confirmed | `/api-security` | OPTIONAL | `Skill(skill="api-security")` | `cat ~/.config/opencode/commands/api-security.md` |
-| RCE achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-
-
-**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"business-logic"})`.
 
 ---
 
@@ -38,15 +32,31 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |------|---------|
 | `session(action="start", options={...})` | Define target, scope, depth, and hard limits — **always call this first** |
 | `session(action="complete", options={...})` | Mark the scan done and write final notes |
-| `kali(command=...)` | Kali tools: curl (parallel requests), python3 scripts for race conditions and enumeration |
-| `http(action="request", ...)` | Raw HTTP — workflow step manipulation, parameter tampering, authorization probes, PoC verification. Set `poc=True` for confirmed exploits |
-| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/`. Include `finding_id=` to auto-link |
-| `scan(tool="spider", ...)` | Map all reachable endpoints — authenticated + unauthenticated surfaces |
-| `scan(tool="ffuf", ...)` | Fuzz hidden parameters, workflow state fields, role/tier values |
-| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence |
-| `report(action="coverage", data={...})` | Register endpoints and mark test cells |
-| `report(action="note", data={...})` | Record business model, invariants, and reasoning |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard at localhost:5000 |
+| `kali(command=...)` | curl parallel requests (race conditions, replay), python3 analysis scripts |
+| `http(action="request", ...)` | Raw HTTP — individual probes. Set `poc=True` for confirmed findings |
+| `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
+| `scan(tool="spider", ...)` | Crawl the app to discover all endpoints and flows |
+| `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
+| `report(action="diagram", data={...})` | Save a Mermaid diagram of workflows and trust boundaries |
+| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+---
+
+## Test Categories
+
+| Category | OWASP | What it finds |
+|----------|-------|---------------|
+| **Value / Quantity Logic** | A04 | Negative, zero, overflow, rounding on numeric fields |
+| **Workflow Bypass** | A04 | Skipping steps, out-of-order operations, reused one-time tokens |
+| **State Machine Abuse** | A04 | Forcing illegal state transitions |
+| **Trust Boundary / BOLA** | API1, A01 | Horizontal/vertical access to other users' resources |
+| **BFLA** | API5 | Calling functions intended for higher-privilege roles |
+| **Idempotency / Replay** | A04 | Duplicate submissions, double-spend, reference reuse |
+| **Quota / Limit Bypass** | A04 | Exceeding stated resource, rate, or usage limits |
+| **Time / Date Manipulation** | A04 | Exploiting time-based logic (expiry, windows, promotions) |
+| **Predictability** | A07 | Sequential IDs, guessable codes, enumerable references |
+| **Multi-Tenant Isolation** | A01 | Tenant A accessing Tenant B's data |
 
 ---
 
@@ -54,9 +64,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | App archaeology + BOLA/BFLA on discovered endpoints | $0.15 · 20 min · 15 calls |
-| `standard` | quick + workflow integrity + financial logic + trust boundaries | $0.50 · 60 min · 35 calls |
-| `thorough` | standard + multi-tenant isolation + limit bypass + time-window abuse + race conditions | $2.00 · 120 min · 75 calls |
+| `quick` | Value logic probes (negative/zero/overflow) + BOLA on primary resource endpoints | $0.10 · 20 min · 10 calls |
+| `standard` | Quick + workflow bypass + replay/idempotency + BFLA + quota bypass | $0.50 · 60 min · 25 calls |
+| `thorough` | Standard + full state machine mapping + multi-tenant isolation + time manipulation + predictability analysis | $2.00 · 120 min · 60 calls |
 
 ---
 
@@ -64,609 +74,349 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Before running any tool
 
-If no context is provided about roles or workflows, ask:
+**This skill is understanding-first. Do not probe until you have mapped intended behavior.**
+
+If focus or depth are not specified:
 
 > **Target:** `<extracted URL>`
->
-> **Which depth?**
-> - `quick` — archaeology + object authorization only *($0.15 · 20 min · 15 calls)*
-> - `standard` — full business logic coverage *($0.50 · 60 min · 35 calls)*
-> - `thorough` — standard + multi-tenant + races *($2.00 · 120 min · 75 calls)*
->
-> Any known roles (e.g. admin/user/guest)? Auth tokens? Transaction flows you've already observed?
+> **Focus area?** `value` | `workflow` | `trust` | `replay` | `quota` | `all`
+> **Depth?** `quick` | `standard` | `thorough`
 
 ---
 
-### Phase 0 — Scope & Setup
+### Phase 0 — Application Understanding
 
-```
-session(action="start", options={
-  "target": "<target>",
-  "depth": "<depth>",
-  "scope": ["<target-domain>"]
-})
-report(action="dashboard", data={"port": 5000})
-```
+**Do not skip this phase.** Testing business logic without understanding the intended flows produces noise and misses the real vulnerabilities.
 
----
+1. Fetch the API spec if available: try `/openapi.json`, `/swagger.json`, `/api-docs`, `/static/openapi.json`
+2. Spider the app: `scan(tool="spider", target=URL, options={"depth": 3})`
+3. Identify and document:
+   - **Value flows**: any operation that creates, transfers, or modifies a quantity (points, credits, currency, storage, API calls, seats, votes, ratings)
+   - **Stateful workflows**: multi-step processes (registration, onboarding, checkout, approval, verification, password reset, subscription management)
+   - **Role structure**: what roles exist? What can each role do?
+   - **Multi-user interactions**: can User A's actions affect User B?
+   - **Time-based logic**: expiry windows, promotional periods, rate-limiting windows, cooldowns
+4. Call `report(action="diagram", data={...})` with a Mermaid flowchart of all identified workflows and trust boundaries
+5. Call `report(action="note", data={...})` listing every flow and role found
 
-### Phase 0b — Coverage Matrix Gate (MANDATORY)
-
-```
-session(action="status")
-```
-
-| `coverage.total_cells` | Action |
-|------------------------|--------|
-| **> 0** | Matrix pre-built by caller. Skip to Phase 1b. |
-| **== 0** | Empty. MUST build it now. Continue to Phase 1. |
+Only begin probing after completing this phase.
 
 ---
 
-### Phase 1 — Application Archaeology
+### Phase 1 — Value & Quantity Logic
 
-**This phase is the core differentiator of this skill. Do NOT skip it. Do NOT jump straight to testing. You cannot derive business invariants without understanding what the application does.**
+Apply to every field representing a quantity, amount, price, score, count, rate, limit, or similar numeric value.
 
-#### 1a — Map the surface
+**1a — Sign manipulation**
+- Send `-1`, `-100`, `-99999` for any quantity or amount field
+- Does the operation succeed? Does a counter decrease instead of increase? Does the actor gain instead of lose? Does a recipient pay instead of receive?
+- Classic pattern: `quantity=-1` in a cart gives a credit; `amount=-100` in a transfer increases the sender's balance
 
-```
-scan(tool="spider", target="<target>", options={"depth": 3, "mode": "fast"})
-```
+**1b — Zero-value operations**
+- Send `0` for any quantity or amount
+- Does the operation succeed silently? Create a record? Consume a quota slot? Grant a resource?
+- Zero-value operations that succeed can be replayed indefinitely to create phantom records or exhaust rate limits
 
-Then probe for API specs:
-```
-http(action="request", url="<target>/api/docs")
-http(action="request", url="<target>/swagger.json")
-http(action="request", url="<target>/openapi.json")
-http(action="request", url="<target>/v3/api-docs")
-http(action="request", url="<target>/graphql", method="POST", body={"query":"{__schema{types{name}}}"})
-```
+**1c — Rounding and sub-unit values**
+- Send `0.001`, `0.0001`, `0.00001`
+- In systems that round to 2 decimal places: 999 × $0.001 = $0.999 → rounds to $0 → free
+- Does the system handle fractional sub-units? Does it round in the user's favor?
 
-If OpenAPI/GraphQL spec found → chain into `/api-security` immediately (it handles spec-driven testing).
+**1d — Overflow**
+- Send `2147483647` (INT32_MAX) and `2147483648` (INT32_MAX + 1)
+- Does INT32_MAX + 1 overflow to a negative value or wrap around?
+- Send `9999999999999` (large values that exceed typical field sizes)
 
-#### 1b — Register endpoints into the coverage matrix
+**1e — Exceeding stated limits**
+- If the app documents a maximum (max transfer, max order quantity, max file size, max users, API call limit): send `max + 1`, `max × 2`
+- Is the limit enforced server-side? Or only in the UI?
 
-For every discovered endpoint, register it with its parameters. Use `injection_type` hints that reflect the business logic category being tested:
+**1f — Currency / unit manipulation** (when applicable)
+- Send a different currency than expected: does the server convert, ignore, or error?
+- Inject a `rate` or `exchange_rate` field via mass assignment (cross-reference `/param-fuzz` Phase 5)
+- Send `from_currency == to_currency`: zero-fee conversion?
 
-```
-# Example: order endpoint
-report(action="coverage", data={
-  "type": "endpoint",
-  "path": "/api/orders/{id}",
-  "method": "GET",
-  "params": [{"name": "id", "type": "path", "value_hint": "integer"}],
-  "discovered_by": "spider",
-  "auth_context": "jwt"
-})
-# This auto-generates cells for: sqli, idor, traversal (path/integer)
-# and: cors, csrf, security_headers, rate_limit, method_tampering, cache, jwt, race (endpoint/default)
-```
-
-#### 1c — Role and authentication inventory
-
-For each distinct auth level (unauthenticated, basic user, premium user, admin, service account):
-
-1. Identify which requests are gated to which role from spider output
-2. Obtain or register test credentials for each level (note in session if not available)
-3. Run an authenticated re-spider for each role level you have credentials for:
-   ```
-   scan(tool="spider", target="<target>", options={"depth": 3, "mode": "fast"}, flags="-H 'Cookie: session=ROLE_TOKEN'")
-   ```
-4. Register any role-specific endpoints discovered into the coverage matrix
-
-#### 1d — Business model synthesis (MANDATORY OUTPUT)
-
-Before ANY testing, write a note with your business model synthesis:
-
-```
-report(action="note", data={"message": """
-BUSINESS MODEL SYNTHESIS
-========================
-App type: [e-commerce / SaaS subscription / banking / marketplace / social / other]
-
-ROLES:
-- [role_name]: can [do X], cannot [do Y], identified by [header/claim/row]
-  ...
-
-WORKFLOWS:
-- [workflow_name]: [step1] → [step2] → [step3] (terminal state: [state])
-  State transitions enforced by: [session / DB status field / JWT claim]
-  ...
-
-VALUE OPERATIONS (operations that move money, credits, permissions, or data ownership):
-- [endpoint]: transfers/grants [what] from [actor] to [actor]
-  ...
-
-TRUST BOUNDARIES:
-- Client supplies: [list of user-controlled fields that affect authorization/logic]
-- Server derives: [list of fields that should NEVER come from client]
-  ...
-
-INVARIANTS (what must NEVER be possible):
-- A [role_A] user must NEVER access [role_B]'s [resource]
-- A [workflow] must NEVER skip [step] and go directly to [later_step]
-- A user must NEVER [pay less than / redeem more than / exceed quota of] [X]
-- [tenant_A] data must NEVER be readable by [tenant_B]
-  ...
-"""})
-```
-
-**The testing phases below are derived from these invariants. For each invariant, you will design and run a specific test case. Do not test what you didn't derive from the model.**
+**Finding criteria**:
+- Operation succeeds with negative value and modifies a counter/balance/score → **Critical**
+- Stated limit not enforced server-side → **High**
+- Rounding manipulation produces free value → **High**
+- Zero-value operation with unintended side effects → **Medium**
 
 ---
 
-### Phase 2 — Object Authorization (BOLA + BFLA)
+### Phase 2 — Workflow Bypass & Step Skipping
 
-**BOLA (Broken Object Level Authorization / IDOR):** Can user A access user B's objects by changing an ID?
-**BFLA (Broken Function Level Authorization):** Can a lower-privilege user invoke functions restricted to higher-privilege roles?
+For each multi-step flow identified in Phase 0:
 
-#### 2a — BOLA: Cross-user object access
+**2a — Step skipping**
+Call step N without completing steps 1 through N-1. Map out which endpoint represents each step, then attempt direct access:
+- Can you access the "complete" endpoint before the "create" endpoint?
+- Can you confirm an order without adding items?
+- Can you access a paid feature before completing payment?
+- Can you reset a password without completing the identity verification step?
 
-For every endpoint with an object ID parameter (path or query integer/UUID):
+**2b — Out-of-order execution**
+Call steps in reverse or random order:
+- Confirm before approve, approve before submit, submit before fill
 
+**2c — One-time token reuse**
+After using a token (password reset link, email verification code, invite token, payment confirmation code), attempt to use it again:
+- Does the server reject it as already used?
+- Does a time delay change anything (try again after 60 seconds)?
+- Does using it from a different IP or session change the outcome?
+
+**2d — Concurrent step execution**
+Submit two instances of the same step simultaneously (within 100ms):
+```bash
+# Via kali — send step N twice concurrently
+curl -s -X POST http://TARGET/api/checkout/confirm ... &
+curl -s -X POST http://TARGET/api/checkout/confirm ... &
+wait
 ```
-# Step 1: Get your own object IDs (register as user_A, create objects)
-http(action="request", method="POST", url="<target>/api/orders", headers={"Authorization": "Bearer TOKEN_A"}, body={"item": "test"})
-# Note returned order ID: e.g., 1042
+Does both confirmations succeed? Does the resource get double-provisioned?
 
-# Step 2: Access with a different user's session
-http(action="request", method="GET", url="<target>/api/orders/1042", headers={"Authorization": "Bearer TOKEN_B"})
-# BOLA confirmed if 200 + object data returned (not 403/404)
-
-# Step 3: Mutate via B's session (BOLA on write)
-http(action="request", method="PUT", url="<target>/api/orders/1042", headers={"Authorization": "Bearer TOKEN_B"}, body={"status": "cancelled"})
-
-# Step 4: Also test indirect references — search, filter, include params
-http(action="request", method="GET", url="<target>/api/search?user_id=USER_A_ID", headers={"Authorization": "Bearer TOKEN_B"})
-```
-
-For UUID-formatted IDs that can't be guessed, use the IDOR advanced techniques in `refs/idor-advanced.md`.
-
-Mark cells:
-```
-report(action="coverage", data={"type": "tested", "cell_id": "<cell_id>", "status": "vulnerable|tested_clean", "notes": "<what was tested>", "tested_by": "http_manual"})
-```
-
-#### 2b — BFLA: Cross-role function invocation
-
-For every admin/privileged endpoint discovered during authenticated re-spider:
-
-```
-# Identify admin-only endpoints from URL patterns: /admin/, /manage/, /internal/, /v1/admin/
-# Test with lower-privilege token directly
-http(action="request", method="GET", url="<target>/admin/users", headers={"Authorization": "Bearer USER_TOKEN"})
-http(action="request", method="DELETE", url="<target>/api/users/OTHER_ID", headers={"Authorization": "Bearer USER_TOKEN"})
-http(action="request", method="POST", url="<target>/api/admin/promote", headers={"Authorization": "Bearer USER_TOKEN"}, body={"user_id": "USER_ID", "role": "admin"})
-```
-
-Also test method switching on restricted endpoints:
-```
-# Endpoint allows GET for any role; test if POST (create/modify) is also accessible
-http(action="request", method="POST", url="<target>/api/reports", headers={"Authorization": "Bearer USER_TOKEN"}, body={"type": "all_users"})
-```
+**Finding criteria**:
+- Step N reachable without N-1 → **High** (workflow bypass)
+- One-time token reusable → **High** (token invalidation missing)
+- Concurrent step creates duplicate resource or confirmation → **High** (race condition)
 
 ---
 
-### Phase 3 — Workflow Integrity Testing
+### Phase 3 — State Machine Abuse
 
-**Root pattern:** Application enforces multi-step workflows (checkout → payment → fulfillment) using a client-visible or DB-visible state field. Skipping a required step is possible if the state machine is checked only at submission, not at each transition.
+For any resource with a lifecycle (order states, ticket states, account states, subscription states, content approval states):
 
-#### 3a — Identify the workflow's state representation
+**3a — Map the state machine**
+Identify all states (e.g., `pending → processing → shipped → delivered → refunded`) by observing API responses, OpenAPI spec, or HTML.
 
-Where is the current step tracked?
-- URL: `/checkout/step2` — skip to `/checkout/step3` directly
-- Session cookie: decode and inspect for `step`, `stage`, `status` fields
-- Hidden form field: `<input type="hidden" name="wizard_step" value="2">`
-- JWT claim: decode with `kali(command="echo JWT | cut -d. -f2 | base64 -d | python3 -m json.tool")`
-- Database: returned in API responses as `order.status`, `application.state`
+**3b — Attempt illegal transitions**
+Try every transition that should NOT be allowed:
+- `delivered → pending` (reverse a completed state)
+- `pending → refunded` (skip intermediate states)
+- `cancelled → active` (resurrect a cancelled resource)
+- `free_tier → enterprise` (direct tier upgrade without payment)
 
-#### 3b — Prerequisite skip attack
+**3c — Direct status field injection**
+For any PATCH or PUT endpoint, inject `"status": "approved"`, `"status": "completed"`, `"status": "verified"`, `"state": "active"` directly in the request body. Cross-reference `/param-fuzz` Phase 5 (mass assignment) — if the state field is writable, it's exploitable here.
 
-For each multi-step workflow (checkout, onboarding, approval, application):
+**3d — Privilege state transitions**
+Can a `pending_admin` account be forced to `admin` by submitting the right request before approval completes?
 
-```
-# Step 1: Start the workflow, note the terminal/completion URL or endpoint
-http(action="request", method="POST", url="<target>/checkout/start", headers={"Cookie": "session=TOKEN"}, body={"cart_id": "CART_ID"})
-# Returns: {"step": 1, "next": "/checkout/payment"}
-
-# Step 2: Skip directly to completion WITHOUT payment
-http(action="request", method="POST", url="<target>/checkout/complete", headers={"Cookie": "session=TOKEN"}, body={"cart_id": "CART_ID", "step": 3})
-# VULNERABLE if: order created, items shipped, subscription activated
-```
-
-Variations to try:
-```
-# Try replaying the final step from a different (completed) session
-# Try with step field set to final value in body/cookie
-# Try accessing the order confirmation page directly before payment
-# Try modifying the redirect URL on the payment page to skip callback
-http(action="request", method="GET", url="<target>/order/confirm?order_id=NEW_ORDER_ID&status=paid")
-```
-
-#### 3c — Status field manipulation
-
-When an object's status is returned in API responses, test direct mutation:
-
-```
-# If GET /api/orders/1042 returns {"status": "pending_payment", ...}
-# Try updating the status field directly
-http(action="request", method="PATCH", url="<target>/api/orders/1042", headers={"Authorization": "Bearer USER_TOKEN"}, body={"status": "paid"})
-http(action="request", method="PATCH", url="<target>/api/orders/1042", headers={"Authorization": "Bearer USER_TOKEN"}, body={"status": "shipped"})
-
-# Also test approval workflows
-http(action="request", method="PATCH", url="<target>/api/applications/5", headers={"Authorization": "Bearer USER_TOKEN"}, body={"status": "approved", "reviewer_id": "SELF_ID"})
-```
+**Finding criteria**:
+- Illegal state transition accepted → **High**
+- Status field injectable via mass assignment that changes access → **Critical**
+- Backward state transition possible → **Medium** (state integrity violation)
 
 ---
 
-### Phase 4 — Value Transfer & Financial Logic
+### Phase 4 — Trust Boundary: BOLA & BFLA
 
-**This phase applies to any application that moves money, credits, subscription tiers, discount codes, or any scarce resource.**
+**4a — BOLA (Broken Object Level Authorization) — horizontal**
+Register two accounts (User A and User B). For every resource endpoint, substitute User A's resource IDs with User B's while authenticated as User A:
+- `GET /api/orders/{B_order_id}` as User A
+- `GET /api/profile/{B_user_id}` as User A
+- `PUT /api/settings/{B_settings_id}` as User A
 
-#### 4a — Price parameter tampering
+Systematically cover: profiles, messages, orders, files, settings, history, notifications — anything with a user-owned ID.
 
-```
-# Baseline: observe the purchase flow and find where price appears in client-side requests
-# Check: POST body, hidden fields, query parameters, cookie values
+**4b — BOLA — vertical**
+As a regular user, try to access admin-level resources:
+- `GET /api/admin/users`
+- `GET /api/admin/logs`
+- `GET /api/internal/config`
+- `GET /api/users` (all users — should be admin-only)
 
-# Test 1: Direct price manipulation
-http(action="request", method="POST", url="<target>/api/checkout", headers={"Authorization": "Bearer TOKEN"}, body={"item_id": 5, "quantity": 1, "price": 0.01})
-http(action="request", method="POST", url="<target>/api/checkout", headers={"Authorization": "Bearer TOKEN"}, body={"item_id": 5, "quantity": 1, "price": -100})
+**4c — BFLA (Broken Function Level Authorization)**
+Call functions documented or discovered as admin-only while authenticated as a regular user:
+- `DELETE /api/users/{id}` (delete any user)
+- `POST /api/admin/create-admin`
+- `PATCH /api/users/{id}/role`
+- `GET /api/reports/all`
 
-# Test 2: Currency confusion (different currency unit)
-http(action="request", method="POST", url="<target>/api/checkout", headers={"Authorization": "Bearer TOKEN"}, body={"item_id": 5, "amount": 100, "currency": "JPY"})
-# If app converts: $100 base price → 100 JPY = ~$0.67 → pays $0.67 for $100 item
+For each: try with user token directly; try with a forged token that has `is_admin: true` or `role: admin` in the JWT payload (cross-reference `/credential-audit` JWT attacks).
 
-# Test 3: Decimal precision (floating point truncation)
-http(action="request", method="POST", url="<target>/api/checkout", headers={"Authorization": "Bearer TOKEN"}, body={"item_id": 5, "price": 0.000001})
-```
+**4d — Negative ownership attack**
+Can you specify another user as the *source* of an action rather than the target?
+- `{"from_user_id": victim_id}` — charge the victim
+- `{"sender_id": victim_id}` — send on behalf of victim
+- `{"created_by": admin_id}` — claim admin created this
 
-#### 4b — Discount and coupon abuse
-
-```
-# Test 1: Multiple discount stacking
-http(action="request", method="POST", url="<target>/api/cart/discount", body={"code": "SAVE10"})
-http(action="request", method="POST", url="<target>/api/cart/discount", body={"code": "SAVE20"})
-# Vulnerable if both applied cumulatively
-
-# Test 2: Coupon reuse after "consumed" state
-http(action="request", method="POST", url="<target>/api/redeem", headers={"Authorization": "Bearer TOKEN"}, body={"code": "GIFTCARD50"})
-# Then try again immediately:
-http(action="request", method="POST", url="<target>/api/redeem", headers={"Authorization": "Bearer TOKEN"}, body={"code": "GIFTCARD50"})
-
-# Test 3: Coupon from a different user's cart
-# Register as user_A, generate/obtain a coupon, use from user_B
-http(action="request", method="POST", url="<target>/api/redeem", headers={"Authorization": "Bearer TOKEN_B"}, body={"code": "USER_A_COUPON"})
-
-# Test 4: Negative quantity discount (coupon that adds money)
-http(action="request", method="POST", url="<target>/api/cart/discount", body={"code": "SAVE10", "quantity": -5})
-```
-
-#### 4b-ii — Transfer edge case matrix (MANDATORY — 5 variants)
-
-For any endpoint that transfers value (credits, funds, tokens, gift cards, licenses), test ALL five variants. Each is a separate finding if it succeeds:
-
-```
-# Variant 1: Negative amount (subtracts from recipient — attacker gains by sending -100)
-http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "victim_id", "amount": -100})
-
-# Variant 2: Zero amount (should be rejected as no-op, but often accepted and creates confusion)
-http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "victim_id", "amount": 0})
-
-# Variant 3: Non-existent recipient (orphaned value or error that reveals account enumeration)
-http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "user_does_not_exist_99999", "amount": 10})
-
-# Variant 4: Self-transfer (should be a no-op or error; some apps subtract from balance without adding back)
-http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "OWN_USER_ID", "amount": 100})
-
-# Variant 5: Over-balance transfer (should fail; if it succeeds, check for negative balance + unlimited spending)
-http(action="request", method="POST", url="<target>/api/transfer", headers={"Authorization": "Bearer TOKEN"}, body={"to_user": "victim_id", "amount": 999999999})
-```
-
-Log every variant as a separate `report(action="finding")` entry if it produces unexpected behaviour.
-
-#### 4c — Race condition on balance operations
-
-For any endpoint that checks a balance/quota then deducts it (see `refs/race-condition.md` for full technique):
-
-```
-# Identify endpoints: fund transfer, coupon redemption, credit spend, subscription activation
-# Send N simultaneous requests targeting the same single-use resource
-
-kali(command="seq 1 30 | xargs -P 30 -I {} curl -s -o /dev/null -w '%{http_code}\\n' -X POST '<target>/api/redeem' -H 'Authorization: Bearer TOKEN' -H 'Content-Type: application/json' -d '{\"code\":\"GIFT50\"}'")
-# Count 200 responses — if > 1, the race succeeded
-```
-
-For HTTP/2 targets (tighter timing window), use the single-packet attack from `refs/race-condition.md`.
-
-#### 4d — Refund and reversal abuse
-
-```
-# Test 1: Refund after consuming the benefit
-# Buy product → download it → request refund
-http(action="request", method="POST", url="<target>/api/orders/1042/refund")
-# Check: can you keep the download access after refund?
-
-# Test 2: Partial refund accumulation exceeding purchase price
-http(action="request", method="POST", url="<target>/api/orders/1042/refund", body={"amount": 80})
-http(action="request", method="POST", url="<target>/api/orders/1042/refund", body={"amount": 80})
-# Total refunded: $160 on a $100 order
-
-# Test 3: Refund after subscription cancellation
-# Cancel subscription → immediately request refund for full billing period
-```
-
-#### 4e — Cart price lock bypass
-
-```
-# Add expensive items to cart when sale price applies, lock the cart, wait out the sale
-# More directly: test whether price is re-validated at checkout or only at add-to-cart time
-
-# Step 1: Add item at current price
-http(action="request", method="POST", url="<target>/api/cart", body={"item_id": 5})
-# Returns: {"cart_id": "CART123", "total": 50.00}
-
-# Step 2: Use the cart token from step 1, but modify the price field
-http(action="request", method="POST", url="<target>/api/checkout", body={"cart_id": "CART123", "total": 1.00})
-```
+**Finding criteria**:
+- Any resource returned for another user's ID → **High** (BOLA)
+- Admin function callable with user token → **High** (BFLA)
+- Negative ownership accepted → **Critical**
 
 ---
 
-### Phase 5 — Trust Boundary Confusion
+### Phase 5 — Idempotency & Replay
 
-**Root pattern:** The application trusts parameters it should derive server-side. Common cases: user sends their own `role`, `tier`, `org_id`, `account_type`, `is_admin`, or `price` in the request body.
+For every state-changing operation (submit, confirm, pay, send, create, activate, redeem):
 
-#### 5a — Mass assignment / parameter pollution probe
-
+**5a — Rapid duplicate submission**
+Send the identical request twice within 100ms:
+```bash
+# Via kali — send the same state-changing request twice concurrently
+for i in 1 2; do
+  curl -s -X POST http://TARGET/api/ENDPOINT \
+    -H "Authorization: Bearer TOKEN" \
+    -H "Content-Type: application/json" \
+    -d 'PAYLOAD' &
+done
+wait
 ```
-# Try injecting privilege-escalation fields into registration and update endpoints
-http(action="request", method="POST", url="<target>/api/register", body={"username": "test", "password": "test", "role": "admin"})
-http(action="request", method="POST", url="<target>/api/register", body={"username": "test", "password": "test", "is_admin": true})
-http(action="request", method="POST", url="<target>/api/register", body={"username": "test", "password": "test", "subscription_tier": "enterprise"})
+Does the server process both? Is the resource created/consumed twice?
 
-# Try injecting on profile/account update
-http(action="request", method="PUT", url="<target>/api/profile", headers={"Authorization": "Bearer TOKEN"}, body={"display_name": "test", "role": "admin"})
-http(action="request", method="PATCH", url="<target>/api/account", headers={"Authorization": "Bearer TOKEN"}, body={"email": "new@test.com", "is_verified": true, "account_balance": 99999})
+**5b — Replay after delay**
+Send the identical request again 5 seconds after the first succeeded. Does the server detect it as a duplicate?
+
+**5c — Same reference/idempotency key**
+If the API issues reference numbers or accepts idempotency keys: construct a new request using a previously-used reference number. Does the server reject it?
+
+**5d — Mass parallel replay**
+Send 10 identical requests simultaneously:
+```bash
+for i in $(seq 1 10); do
+  curl -s -X POST http://TARGET/api/ENDPOINT \
+    -H "Authorization: Bearer TOKEN" \
+    -d 'PAYLOAD' &
+done
+wait
 ```
+How many succeed? Is there a winner-takes-all race, or do all 10 process?
 
-#### 5b — Hidden field discovery via ffuf
-
-```
-scan(tool="ffuf", target="<target>/api/register?FUZZ=1", options={"wordlist": "/usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt"})
-scan(tool="ffuf", target="<target>/api/profile?FUZZ=1", options={"wordlist": "/usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt"})
-```
-
-Interesting parameter names to look for: `role`, `admin`, `superuser`, `tier`, `plan`, `is_verified`, `credit`, `balance`, `discount`, `group`, `org_id`, `tenant_id`
-
-#### 5c — Account context switching
-
-```
-# Test whether the app enforces org/tenant context server-side or trusts a client-supplied field
-http(action="request", method="GET", url="<target>/api/dashboard", headers={"Authorization": "Bearer TOKEN", "X-Org-ID": "TARGET_ORG_ID"})
-http(action="request", method="GET", url="<target>/api/data", headers={"Authorization": "Bearer TOKEN"}, body={"org_id": "OTHER_ORG_ID"})
-
-# Attempt to switch to admin context:
-http(action="request", method="GET", url="<target>/api/dashboard", headers={"Authorization": "Bearer TOKEN", "X-User-Role": "admin"})
-```
+**Finding criteria**:
+- Duplicate request processed (resource created/consumed twice) → **High**
+- No idempotency protection on any state-changing operation → **Medium**
+- All 10 concurrent requests processed → **Critical** (double/multi-spend)
 
 ---
 
-### Phase 6 — Limit & Quota Bypass
+### Phase 6 — Quota & Rate Limit Bypass
 
-**Root pattern:** Application enforces usage limits (API calls/day, file upload size, message count, storage quota) with server-side checks that can be bypassed by changing the unit of measure, fragmenting the request, or exploiting stale quota checks.
+For any feature that has a stated cap (API calls per minute, storage quota, seats per org, free-tier resource limit, usage credits):
 
-#### 6a — Rate limit bypass
+**6a — Direct overage**
+Send `limit + 1` requests; send a resource that puts total storage above the cap; add `max_users + 1` to an org. Is the cap enforced server-side or only in the UI?
 
+**6b — Negative consumption**
+Send negative usage values if the system tracks consumption: `{"bytes_used": -999999}` → does the quota counter go negative (effectively resetting the limit)?
+
+**6c — Parallel provisioning race**
+If a quota is checked then consumed in two separate operations (check-then-act), send many concurrent requests that each read "quota available" before any of them deduct:
+```bash
+for i in $(seq 1 20); do
+  curl -s -X POST http://TARGET/api/resources/create ... &
+done
+wait
 ```
-# Test common bypass techniques on rate-limited endpoints
-# 1. Change the IP marker
-http(action="request", url="<target>/api/endpoint", headers={"X-Forwarded-For": "1.2.3.4"})
-http(action="request", url="<target>/api/endpoint", headers={"X-Real-IP": "1.2.3.5"})
+Does each concurrent request pass the quota check before any deduction is recorded?
 
-# 2. Case variation on username (for per-user rate limits)
-# login as "admin", "Admin", "ADMIN", "admin " (trailing space)
+**6d — Account switching / tenant context**
+Create multiple accounts or sub-tenants. Does each one get its own independent quota, or is there a shared pool that can be exhausted from one account and accessed from another?
 
-# 3. Null byte / encoding
-http(action="request", url="<target>/api/endpoint", body={"username": "admin\x00"})
-```
-
-#### 6b — Upload size / quota bypass
-
-```
-# Test 1: Chunk upload to exceed total quota in chunks under the per-request limit
-# Test 2: Content-Length mismatch (declare smaller than actual)
-# Test 3: Compression bomb — upload a small .zip that expands to exceed quota
-kali(command="python3 -c \"import zipfile,io; z=zipfile.ZipFile('/tmp/bomb.zip','w',zipfile.ZIP_DEFLATED); z.writestr('big.txt','A'*10_000_000); z.close()\"")
-http(action="request", method="POST", url="<target>/api/upload", headers={"Authorization": "Bearer TOKEN"}, body={"file": "@/tmp/bomb.zip"})
-
-# Test 4: Integer overflow on quantity field
-http(action="request", method="POST", url="<target>/api/purchase", body={"item_id": 5, "quantity": 2147483647})
-# Or wrap around: quantity=-1 may become MAX_INT after server-side unsigned cast
-```
-
-#### 6c — Subscription tier bypass
-
-```
-# If app gates features behind paid tier, test with free-tier token on paid endpoints
-http(action="request", method="GET", url="<target>/api/premium/export", headers={"Authorization": "Bearer FREE_TIER_TOKEN"})
-
-# Also test JWT claim tampering — if tier is in the JWT payload
-kali(command="python3 /opt/jwt_tool/jwt_tool.py FREE_JWT -I -pc tier -pv premium")
-http(action="request", method="GET", url="<target>/api/premium/export", headers={"Authorization": "Bearer TAMPERED_JWT"})
-```
+**Finding criteria**:
+- Hard limit not enforced server-side → **High**
+- Concurrent requests bypass quota check → **High** (TOCTOU race)
+- Negative consumption resets quota → **Critical**
 
 ---
 
-### Phase 7 — Time-Window & Expiry Logic
+### Phase 7 — Time & Date Manipulation
 
-**Root pattern:** Application uses time-based validity (trial periods, password reset links, OTP windows, coupon expiry, session idle timeout) but checks the time at a different point than the resource is consumed, or reuses a timestamp from the client.
+For any feature that depends on time: promotions, expiry windows, rate-limiting windows, cooldowns, scheduled operations, time-based access grants.
 
-#### 7a — Token/link replay after expiry
+**7a — Expired token / session reuse**
+After a time-limited token expires (password reset, email verification, promo code, discount), attempt to use it past the stated expiry. Is expiry enforced server-side?
 
-```
-# Test 1: Password reset link replay
-# Request password reset → note the token → wait for it to expire → try again
-http(action="request", method="POST", url="<target>/api/reset-password", body={"token": "EXPIRED_TOKEN", "new_password": "hacked123"})
+**7b — Future-date manipulation**
+For endpoints that accept date parameters: send future dates that move an operation into a more favorable window:
+- `{"valid_until": "2099-12-31"}` on a subscription or license
+- `{"start_date": "1970-01-01"}` to backdate a resource into an active state
 
-# Test 2: Email verification link replay
-# Verify email → use same link again → check if a second account can be verified with the same link
+**7c — Race the expiry**
+If a token or window expires at time T, send the request simultaneously across the boundary. Does the server enforce expiry at the database level or just at the API layer?
 
-# Test 3: OTP replay in the same window
-# Log in with OTP → copy the OTP → use it again within the validity window
-```
+**7d — Cooldown bypass**
+If an action has a cooldown (rate limit per account, one vote per day, one review per item), check if a different account, IP, or session bypasses the cooldown independently.
 
-#### 7b — Trial period bypass
-
-```
-# Test: Create new account → activate trial → cancel → create new account with same email +1 char trick
-# Register: user@test.com, then user+1@test.com, then user+2@test.com
-# Check if trials stack or if there's a per-card/per-IP check instead of per-email
-
-# Test: Manipulate trial_ends_at or subscription_start date via mass assignment
-http(action="request", method="PUT", url="<target>/api/account", headers={"Authorization": "Bearer TOKEN"}, body={"trial_ends_at": "2099-12-31T23:59:59Z"})
-```
-
-#### 7c — Session idle timeout bypass
-
-```
-# Background keep-alive to prevent session expiry during long-running attacks
-kali(command="while true; do curl -s -o /dev/null -H 'Cookie: session=TOKEN' '<target>/api/ping'; sleep 60; done &")
-```
+**Finding criteria**:
+- Expired token accepted → **High**
+- Date field injection extends resource validity → **High**
+- Cooldown enforced client-side only → **Medium**
 
 ---
 
-### Phase 8 — Multi-Tenant / SaaS Isolation
+### Phase 8 — Reference & Authorization Code Predictability
 
-**Root pattern (applies only to multi-tenant applications):** Each tenant's data should be completely invisible and inaccessible to other tenants. Isolation failures range from trivial ID-guessing (tenant_id in URL) to subtle context-injection (X-Org-ID header that the backend trusts without re-validating against the authenticated user's permitted orgs).
+For any value the application generates that is later used as a proof-of-access (order confirmation codes, payment references, invite tokens, voucher codes, authorization codes):
 
-#### 8a — Tenant context injection
+**8a — Sample collection**
+Collect 10 sequential samples by performing the action that generates the value 10 times in quick succession.
 
-```
-# Register two accounts in different organizations: org_A and org_B
-# Authenticate as org_B user, attempt to inject org_A context
-
-# Via header
-http(action="request", method="GET", url="<target>/api/dashboard", headers={"Authorization": "Bearer ORG_B_TOKEN", "X-Tenant-ID": "ORG_A_ID"})
-
-# Via query parameter
-http(action="request", method="GET", url="<target>/api/reports?org_id=ORG_A_ID", headers={"Authorization": "Bearer ORG_B_TOKEN"})
-
-# Via body field
-http(action="request", method="POST", url="<target>/api/search", headers={"Authorization": "Bearer ORG_B_TOKEN"}, body={"query": "confidential", "tenant_id": "ORG_A_ID"})
-```
-
-#### 8b — Cross-tenant object access via BOLA
-
-```
-# Every BOLA test in Phase 2 should also be run cross-tenant (not just cross-user)
-# Object IDs created by org_A should return 403/404 for org_B, not the object
-
-# Use org_A user to create objects, note their IDs
-# Authenticate as org_B user, attempt access on org_A object IDs
+**8b — Delta analysis**
+```python
+samples = ["VALUE1", "VALUE2", "VALUE3"]  # collected values
+# Try integer delta
+try:
+    deltas = [int(samples[i+1]) - int(samples[i]) for i in range(len(samples)-1)]
+    print(f"Integer deltas: {deltas}")
+    if len(set(deltas)) == 1:
+        print(f"SEQUENTIAL — consistent delta: {deltas[0]}")
+except ValueError:
+    pass
+# Try length + charset entropy
+import math
+charset = len(set("".join(samples)))
+avg_len = sum(len(s) for s in samples) / len(samples)
+bits = avg_len * math.log2(max(charset, 2))
+print(f"Entropy: {bits:.1f} bits (charset={charset}, avg_len={avg_len:.1f})")
 ```
 
-#### 8c — Shared resource disclosure
+**8c — Exploitation of predictability**
+If samples show a consistent delta or low entropy:
+- Can you reconstruct codes for transactions you didn't participate in?
+- Can you predict a future code and "pre-claim" a resource?
+- Can you enumerate all active orders/invites/tickets by iterating IDs?
 
-```
-# Test for global/shared resources leaking cross-tenant
-http(action="request", method="GET", url="<target>/api/templates", headers={"Authorization": "Bearer ORG_B_TOKEN"})
-# Should only return org_B templates — check for org_A templates in response
-
-http(action="request", method="GET", url="<target>/api/audit-log", headers={"Authorization": "Bearer ORG_B_TOKEN"})
-# Audit log should be scoped to org_B only
-```
+**Finding criteria**:
+- Consistent sequential delta → **High** (full enumeration of all resources)
+- Entropy < 40 bits on any access code → **High** (brute-forceable)
+- Successfully predicted a code before it was used → **Critical** (proof of exploitability)
 
 ---
 
-### Phase 9 — Coverage Matrix Completion Gate
+### Phase 9 — Multi-Tenant Isolation
 
-Before calling `session(action="complete")`:
+*Thorough depth only. Applicable when the app has organizations, workspaces, merchants, or other tenant namespaces.*
 
-1. All cells in `status: "pending"` or `status: "in_progress"` must be resolved
-2. For each cell marked `not_applicable`, you must have a concrete reason from your business model synthesis
-3. All `vulnerable` findings must have a PoC saved with `http(action="save_poc", ...)`
+**9a — Setup**
+Register two separate tenant accounts (Tenant A and Tenant B) with distinct resources.
 
-```
-session(action="status")
-```
+**9b — Cross-tenant resource access**
+As Tenant A, attempt to access Tenant B's resources using Tenant B's resource IDs:
+- Data records (orders, messages, files, reports)
+- Configuration (settings, API keys, webhooks)
+- Users belonging to Tenant B
 
-For any remaining pending cells, either test them or justify N/A with evidence:
-```
-report(action="coverage", data={
-  "type": "tested",
-  "cell_id": "<cell_id>",
-  "status": "not_applicable",
-  "notes": "Endpoint does not exist in this app's domain model",
-  "tested_by": "manual_review"
-})
-```
+**9c — Shared resource pool**
+Does an operation by Tenant A consume from a shared pool that affects Tenant B? (e.g., shared rate limit, shared storage bucket, shared ID namespace)
 
----
+**9d — Admin escalation across tenants**
+If Tenant A has an admin user, does that admin access extend to Tenant B's data or configuration?
 
-### Phase 10 — Complete & Chain
-
-```
-session(action="complete", options={"notes": "Business logic assessment complete. Key findings: <summary>"})
-```
-
-If the user asks to file findings as GitHub issues, invoke `/gh-export` at this point.
+**Finding criteria**:
+- Any Tenant B resource returned to Tenant A → **Critical** (tenant isolation broken)
+- Shared ID namespace allowing cross-tenant enumeration → **High**
+- Admin of one tenant accessing another tenant's data → **Critical**
 
 ---
 
-## Finding Templates
+### Chaining
 
-### BOLA finding template
-
-```
-report(action="finding", data={
-  "title": "BOLA: [User A] can access [User B]'s [resource] via /api/[endpoint]",
-  "severity": "high",
-  "target": "<full URL>",
-  "description": "User B's [resource type] is accessible by User A by substituting the [path/query] parameter. The server does not verify that the authenticated user owns the requested object. OWASP API Security Top 10 2023: API1:2023 Broken Object Level Authorization.",
-  "evidence": "Request: [request details]. Response: [response excerpt showing victim's data].",
-  "reproduction": "1. Authenticate as user_B\n2. Note resource ID [X]\n3. Authenticate as user_A\n4. Send GET /api/[endpoint]/[X] with user_A's token\n5. Observe: response contains user_B's data",
-  "tool_used": "http_manual"
-})
-```
-
-### BFLA finding template
-
-```
-report(action="finding", data={
-  "title": "BFLA: [Low-privilege role] can invoke [admin function] at /api/[endpoint]",
-  "severity": "high",
-  "target": "<full URL>",
-  "description": "A user with [role] can invoke [admin function] by sending a direct request to [endpoint]. The server performs no role check — only the UI hides the function. OWASP API Security Top 10 2023: API5:2023 Broken Function Level Authorization.",
-  "evidence": "Request with [role] token to [endpoint] returned [response showing elevated action succeeded].",
-  "reproduction": "1. Authenticate as [low-privilege role]\n2. Send [METHOD] /api/[admin-endpoint]\n3. Observe: action succeeds (HTTP 200, not 403)",
-  "tool_used": "http_manual"
-})
-```
-
-### Workflow bypass finding template
-
-```
-report(action="finding", data={
-  "title": "Workflow bypass: [step] in [workflow] can be skipped without [prerequisite]",
-  "severity": "high",
-  "target": "<full URL>",
-  "description": "The [workflow] enforces [step_A → step_B → step_C] but allows direct submission to [step_C] without completing [step_B]. The state transition is enforced only client-side.",
-  "evidence": "Direct POST to /[completion-endpoint] without prior payment step returned HTTP 200 with order confirmed.",
-  "reproduction": "1. Start checkout flow\n2. Skip payment step\n3. POST /checkout/complete directly\n4. Observe: order created and confirmed without payment",
-  "tool_used": "http_manual"
-})
-```
-
-### Financial logic finding template
-
-```
-report(action="finding", data={
-  "title": "Price manipulation: [item] can be purchased for [injected_value] via parameter tampering",
-  "severity": "critical",
-  "target": "<full URL>",
-  "description": "The checkout endpoint accepts a client-supplied [price/amount] parameter which overrides the server-stored price. An attacker can purchase any item for an arbitrary amount, including $0 or negative values.",
-  "evidence": "POST /api/checkout with body {price: 0.01} completed successfully — order confirmed at $0.01 (server price: $99.00).",
-  "reproduction": "1. Add item to cart\n2. Intercept checkout request\n3. Modify price parameter to 0.01\n4. Observe: order confirmed at modified price",
-  "tool_used": "http_manual"
-})
-```
+| Condition | Chain to |
+|-----------|---------|
+| Mass assignment or boundary injection suspected | `/param-fuzz` — systematic parameter-level testing |
+| Predictable IDs or low-entropy tokens confirmed | `/param-fuzz` Phase 6 (entropy analysis) for deeper measurement |
+| Auth bypass or JWT forgery needed for BFLA | `/credential-audit` — JWT attacks and token manipulation |
+| BOLA confirmed — want full injection testing on the exposed surface | `/web-exploit` — injection testing on now-accessible endpoints |
+| RCE or critical chain achieved | `/post-exploit` — privilege escalation and persistence |
