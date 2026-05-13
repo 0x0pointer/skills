@@ -1023,6 +1023,18 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 
 ---
 
+## Context Recovery After Compaction
+
+When your context is compacted mid-skill:
+
+1. **Call `session(action="recovery")`** before doing anything else — returns `tools_already_run`, `in_progress_cells`, `pending_escalations`, and `EXECUTE_NOW`
+2. **Resume `in_progress` cells first** — notes record which escape vectors, RBAC bindings, or pod configurations were partially tested
+3. **Follow `pending_escalations`** — e.g., "test service account token against K8s API for cluster-admin" leads flagged mid-scan
+4. **Skip completed phases in `tools_already_run`** — do not re-run trivy or kube-bench if already recorded
+5. **Never assert container escape from memory** — after compaction, re-run the confirming `amicontained` / `kubectl auth can-i` command before reporting
+
+---
+
 ## Rules
 
 - **`session(action="start", options={...})` is mandatory** — never run any other tool before it

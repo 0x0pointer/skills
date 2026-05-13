@@ -569,6 +569,18 @@ Credential Audit Summary:
 
 ---
 
+## Context Recovery After Compaction
+
+When your context is compacted mid-skill:
+
+1. **Call `session(action="recovery")`** before doing anything else — returns a compact brief with `tools_already_run`, `in_progress_cells`, `pending_escalations`, and `EXECUTE_NOW`
+2. **Resume `in_progress` cells first** — notes contain what payloads / credential sets were already tried
+3. **Follow `pending_escalations`** — confirmed credentials that haven't been tested on all services yet
+4. **Skip steps whose tools appear in `tools_already_run`** — do not re-run hydra/kerbrute on already-tested targets
+5. **Never fabricate confirmation** — after compaction, re-verify credentials with a live login attempt, not from memory
+
+---
+
 ## Rules
 
 - **`session(action="start", options={...})` is mandatory** — never run any other tool before it

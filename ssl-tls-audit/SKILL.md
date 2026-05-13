@@ -422,6 +422,18 @@ flowchart TD
 
 ---
 
+## Context Recovery After Compaction
+
+When your context is compacted mid-skill:
+
+1. **Call `session(action="recovery")`** before doing anything else — returns `tools_already_run`, `in_progress_cells`, and `EXECUTE_NOW`
+2. **Check `tools_already_run`** — skip ports and services whose testssl/sslyze output was already recorded
+3. **Resume incomplete port coverage** — TLS audits span many ports; the coverage matrix tracks which port/service cells are pending
+4. **Follow `pending_escalations`** — e.g., "confirm ROBOT exploit via Marvin attack PoC" leads from initial weak-cipher findings
+5. **Never fabricate compliance mappings from memory** — re-check tool output before asserting PCI/NIST pass/fail status
+
+---
+
 ## Rules
 
 - **`session(action="start", options={...})` is mandatory** — never run any other tool before it
