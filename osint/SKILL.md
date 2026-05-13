@@ -99,7 +99,7 @@ If the request does not specify depth, ask the user:
 > **Which OSINT depth?**
 > - `quick` — theHarvester + subdomains + WHOIS + crt.sh *($0.05 · 10 min)*
 > - `standard` — quick + amass + email verification + Wayback + metadata *($0.20 · 30 min)*
-> - `thorough` — standard + Shodan + cloud enum + social + takeover detection *($0.50 · 60 min)*
+> - `thorough` — standard + Shodan + cloud enum + social + takeover detection *(unlimited)*
 
 ---
 

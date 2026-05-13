@@ -60,7 +60,7 @@ This skill is domain-agnostic. It applies equally to banking apps, e-commerce, S
 |-------|-----------|----------------|
 | `quick` | Auth stripping + mass assignment on all mutating endpoints | $0.10 · 15 min · 10 calls |
 | `standard` | Quick + type confusion + boundary values + parameter pollution | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + entropy sampling (10 samples per generated value type) + ffuf param discovery + full error disclosure triage | $2.00 · 120 min · 60 calls |
+| `thorough` | Standard + entropy sampling (10 samples per generated value type) + ffuf param discovery + full error disclosure triage | unlimited · unlimited · unlimited |
 
 ---
 
@@ -74,7 +74,7 @@ If depth is not specified, ask:
 > **Which depth?**
 > - `quick` — auth stripping + mass assignment only *($0.10 · 15 min · 10 calls)*
 > - `standard` — + type confusion + boundary values + parameter pollution *($0.50 · 45 min · 25 calls)*
-> - `thorough` — + entropy analysis + param discovery + error triage *($2.00 · 120 min · 60 calls)*
+> - `thorough` — + entropy analysis + param discovery + error triage *(unlimited)*
 
 ---
 

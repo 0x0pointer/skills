@@ -91,7 +91,7 @@ If the request does not specify what to test, ask the user:
 > **Which assessment depth?**
 > - `quick` — spec discovery + BOLA enumeration *($0.10 · 15 min · 10 calls)*
 > - `standard` — full Top 10 sweep, single user *($0.50 · 45 min · 25 calls)*
-> - `thorough` — Top 10 sweep + two-user cross-tenant tests + property fuzzing + inventory drift *($2.00 · 120 min · 60 calls)*
+> - `thorough` — Top 10 sweep + two-user cross-tenant tests + property fuzzing + inventory drift *(unlimited)*
 >
 > Do you have an OpenAPI/Swagger spec, Postman collection, or GraphQL endpoint? Two test accounts (low-priv + high-priv) for BFLA/BOLA cross-checks? Auth tokens?
 

@@ -87,7 +87,7 @@ If the request does not specify the cloud provider or mode, ask the user:
 > **Which assessment depth?**
 > - `quick` — public exposure + IMDS + nuclei *($0.10 · 15 min)*
 > - `standard` — quick + IAM escalation + storage deep-dive *($0.50 · 45 min)*
-> - `thorough` — full assessment + compliance mapping *($2.00 · 120 min)*
+> - `thorough` — full assessment + compliance mapping *(unlimited)*
 >
 > Do you have cloud credentials (access keys, service principal, service account)?
 

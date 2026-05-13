@@ -86,7 +86,7 @@ If the request does not specify credentials or depth, ask the user:
 > **Which assessment depth?**
 > - `quick` — credential reuse + SMB shares *($0.10 · 15 min)*
 > - `standard` — quick + Kerberoasting + PtH + WinRM + delegation *($0.50 · 45 min)*
-> - `thorough` — standard + Responder + relay + RBCD + trust abuse *($2.00 · 120 min)*
+> - `thorough` — standard + Responder + relay + RBCD + trust abuse *(unlimited)*
 
 ---
 

@@ -118,7 +118,7 @@ If depth/service is unspecified, ask:
 > **Target:** `<target>` | **Service(s):** `<detected or unknown>`
 > - `quick` — default creds + top-100 *($0.10 · 10 min · 8 calls)*
 > - `standard` — + spraying + lockout detection *($0.50 · 30 min · 20 calls)*
-> - `thorough` — + MFA bypass + OAuth + Kerberos *($2.00 · 90 min · 50 calls)*
+> - `thorough` — + MFA bypass + OAuth + Kerberos *(unlimited)*
 > Any known usernames, captured hashes, or rate limiting concerns?
 
 ---

@@ -89,7 +89,7 @@ If the request does not specify depth, ask the user:
 > **Which audit depth?**
 > - `quick` — testssl quick mode + HSTS *($0.05 · 5 min · 5 calls)*
 > - `standard` — full testssl + sslscan + nuclei + cert chain *($0.20 · 15 min · 12 calls)*
-> - `thorough` — standard + openssl + nmap + multi-port + TLS 1.3 + session + compliance *($0.50 · 30 min · 25 calls)*
+> - `thorough` — standard + openssl + nmap + multi-port + TLS 1.3 + session + compliance *(unlimited)*
 > Any specific compliance framework? (PCI DSS 4.0, NIST 800-52r2, FedRAMP)
 
 ### Phase 0 — Scope & Setup

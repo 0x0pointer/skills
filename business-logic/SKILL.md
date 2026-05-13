@@ -66,7 +66,7 @@ This skill is domain-agnostic. The same patterns apply to an e-commerce checkout
 |-------|-----------|----------------|
 | `quick` | Value logic probes (negative/zero/overflow) + BOLA on primary resource endpoints | $0.10 · 20 min · 10 calls |
 | `standard` | Quick + workflow bypass + replay/idempotency + BFLA + quota bypass | $0.50 · 60 min · 25 calls |
-| `thorough` | Standard + full state machine mapping + multi-tenant isolation + time manipulation + predictability analysis | $2.00 · 120 min · 60 calls |
+| `thorough` | Standard + full state machine mapping + multi-tenant isolation + time manipulation + predictability analysis | unlimited · unlimited · unlimited |
 
 ---
 
