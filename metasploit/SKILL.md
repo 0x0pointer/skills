@@ -104,7 +104,7 @@ If the request does not specify a CVE or target service, ask the user:
 > **Which depth?**
 > - `quick` — auxiliary scanners only, no exploitation *($0.10 · 15 min)*
 > - `standard` — exploit with safe payloads *($0.50 · 45 min)*
-> - `thorough` — full exploitation + post-exploitation *($2.00 · 120 min)*
+> - `thorough` — full exploitation + post-exploitation *(unlimited)*
 
 ---
 

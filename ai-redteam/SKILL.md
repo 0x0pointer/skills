@@ -141,7 +141,7 @@ If the request does not explicitly specify depth, provider, or model, ask the us
 > **Which assessment depth?**
 > - `quick` — FuzzyAI jailbreak + system prompt leak only *($0.10 · 10 min · 5 calls)*
 > - `standard` — FuzzyAI + Garak + PyRIT *($0.50 · 30 min · 15 calls)*
-> - `thorough` — All tools + multi-turn + manual *($2.00 · 90 min · 40 calls)*
+> - `thorough` — All tools + multi-turn + manual *(unlimited)*
 >
 > Any custom limits? Any specific OWASP categories to focus on?
 

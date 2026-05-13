@@ -108,7 +108,7 @@ If the request does not specify depth or focus, ask the user:
 > **Which review depth?**
 > - `quick` — tech stack + automated scanning (semgrep + trufflehog) *($0.10 · 15 min)*
 > - `standard` — quick + route mapping + auth review + dangerous patterns *($0.50 · 45 min)*
-> - `thorough` — full ASVS-mapped review + IaC + crypto + data flow tracing *($2.00 · 120 min)*
+> - `thorough` — full ASVS-mapped review + IaC + crypto + data flow tracing *(unlimited)*
 >
 > **Focus area?** (default: all)
 > - `all` — full review

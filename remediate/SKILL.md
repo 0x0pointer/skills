@@ -78,7 +78,7 @@ http(action="request", url="http://localhost:5000/api/findings/FINDING_ID", meth
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
 | `quick` | Summary fix + effort level for each finding | $0.10 · 10 min · 10 calls |
-| `thorough` | Full diff + before/after code + references + verification for each finding | $0.50 · 30 min · 30 calls |
+| `thorough` | Full diff + before/after code + references + verification for each finding | unlimited · unlimited · unlimited |
 
 ---
 
