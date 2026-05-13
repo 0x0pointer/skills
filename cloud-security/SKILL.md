@@ -561,6 +561,18 @@ Cloud Security Assessment Summary:
 
 ---
 
+## Context Recovery After Compaction
+
+When your context is compacted mid-skill:
+
+1. **Call `session(action="recovery")`** before doing anything else — returns `tools_already_run`, `in_progress_cells`, `pending_escalations`, and `EXECUTE_NOW`
+2. **Resume `in_progress` cells first** — notes record which IAM paths / storage buckets / serverless functions were partially assessed
+3. **Follow `pending_escalations`** — e.g., "test iam:PassRole chain to Lambda for full admin escalation" leads flagged but not completed
+4. **Skip enumeration in `tools_already_run`** — do not re-run Prowler or ScoutSuite on services already logged
+5. **Never assert a resource as safe from memory** — re-check the tool output artifact before marking a cell clean
+
+---
+
 ## Rules
 
 - **`session(action="start", options={...})` is mandatory** — never run any other tool before it
