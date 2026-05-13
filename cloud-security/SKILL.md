@@ -18,6 +18,18 @@ You are an expert cloud security engineer performing a comprehensive assessment 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Cloud credentials → instance/compute access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| K8s workloads found | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` | `cat ~/.config/opencode/commands/container-k8s-security.md` |
+
+
 ## Tools Available
 
 | Tool | Use for |
@@ -33,6 +45,9 @@ You are an expert cloud security engineer performing a comprehensive assessment 
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (cloud architecture, attack paths) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -55,9 +70,9 @@ You are an expert cloud security engineer performing a comprehensive assessment 
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Public bucket/blob scan + IMDS probe + nuclei cloud templates | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + IAM privilege escalation + security groups + storage deep-dive | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + Prowler/ScoutSuite + serverless + databases + logging + container registry + attack paths + compliance | $2.00 · 120 min · 60 calls |
+| `quick` | Public bucket/blob scan + IMDS probe + nuclei cloud templates | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + IAM privilege escalation + security groups + storage deep-dive | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + Prowler/ScoutSuite + serverless + databases + logging + container registry + attack paths + compliance | unlimited | unlimited | unlimited |
 
 ---
 
@@ -506,8 +521,19 @@ Cloud Security Assessment Summary:
   Compliance gaps:       SOC 2: [count] | PCI: [count] | HIPAA: [count] | CIS: [count]
 ```
 
-3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
+3. **Depth gate (thorough ONLY) — before calling `session(action="complete")`, verify you have run all 5 mandatory phases:**
+
+   | Phase | Mandatory for thorough | Gate check |
+   |-------|----------------------|------------|
+   | Phase 2 (IAM Privilege Escalation) | ✅ | `report(action="note")` with privilege escalation paths found/not found |
+   | Phase 3 (Storage Bucket Deep-Dive) | ✅ | At least one bucket/blob enumeration ran |
+   | Phase 5 (Serverless Attack Surface) | ✅ | Lambda/Azure Function/Cloud Function enumerated |
+   | Phase 6 (Database Exposure Matrix) | ✅ | RDS/Azure SQL/Cloud SQL exposure checked |
+   | Phase 10 (Automated Scanning) | ✅ | Prowler or ScoutSuite ran (or documented reason why not) |
+
+   If any mandatory phase was skipped, run it now before completing. Log a `report(action="note")` confirming each phase ran.
+
+4. Call `session(action="complete", options={...})` with summary
 
 ---
 
@@ -519,8 +545,8 @@ Cloud Security Assessment Summary:
 | `/ai-redteam` | AI/LLM endpoints discovered (SageMaker, Bedrock, Azure OpenAI) |
 | `/container-k8s-security` | EKS/AKS/GKE clusters discovered |
 | `/analyze-cve` | CVE-affected cloud service version found |
-| `/threat-model` | After assessment — STRIDE analysis of cloud architecture |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/threat-modeling` | After assessment — STRIDE analysis of cloud architecture |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

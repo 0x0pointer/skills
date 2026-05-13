@@ -18,6 +18,18 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Container escape achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Default credentials found on services | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+
 ## Tools Available
 
 | Tool | Use for |
@@ -33,6 +45,9 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (K8s topology, attack paths) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -74,9 +89,9 @@ This skill covers all 22 Kubernetes Goat attack scenarios and the full OWASP Kub
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Phase 1-3: Discovery + API probing + anonymous auth | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + Phase 4-7: Pod security + RBAC + secrets + images | $0.50 · 45 min · 30 calls |
-| `thorough` | Standard + Phase 8-11: CIS benchmarks + network segmentation + escape exploitation + defensive gap analysis | $2.00 · 120 min · 60 calls |
+| `quick` | Phase 1-3: Discovery + API probing + anonymous auth | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + Phase 4-7: Pod security + RBAC + secrets + images | $0.50 | 45 min | 30 calls |
+| `thorough` | Standard + Phase 8-11: CIS benchmarks + network segmentation + escape exploitation + defensive gap analysis | unlimited | unlimited | unlimited |
 
 ---
 
@@ -976,7 +991,6 @@ Container/K8s Security Assessment Summary:
 ```
 
 3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -1018,8 +1032,8 @@ This table maps each Kubernetes Goat attack scenario to the phase in this skill 
 | `/credential-audit` | Default creds found on exposed services (Redis, dashboards) |
 | `/network-assess` | Internal network beyond K8s (VLAN, ARP, broadcast protocols) |
 | `/ssl-tls-audit` | TLS services on K8s ingress or NodePorts — deep TLS audit |
-| `/threat-model` | Produce PASTA threat model of the K8s architecture |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/threat-modeling` | Produce PASTA threat model of the K8s architecture |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

@@ -20,6 +20,26 @@ For AITG payload templates, MCP runtime attack payloads, and post-access checkli
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| RCE or shell on AI host achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+| Shadow MCP server discovered | `/network-assess` | OPTIONAL | `Skill(skill="network-assess")` | `cat ~/.config/opencode/commands/network-assess.md` |
+| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
+---
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
@@ -100,9 +120,9 @@ When the target exposes an MCP server or is an agent that invokes MCP tools, als
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | FuzzyAI (jailbreak + system-prompt-leak) only | $0.10 · 10 min · 5 calls |
-| `standard` | FuzzyAI (all attacks) + Garak (top probes) + PyRIT (prompt_injection) + MCP recon (if applicable) + model extraction probes (AITG-APP-09) | $0.50 · 30 min · 15 calls |
-| `thorough` | All 4 tools with full probe/plugin sets + multi-turn crescendo + MCP runtime attacks + content bias (APP-10) + evasion (MOD-01) + membership inference (MOD-04) + manual follow-up | $2.00 · 90 min · 40 calls |
+| `quick` | FuzzyAI (jailbreak + system-prompt-leak) only | $0.10 | 10 min | 5 calls |
+| `standard` | FuzzyAI (all attacks) + Garak (top probes) + PyRIT (prompt_injection) + MCP recon (if applicable) + model extraction probes (AITG-APP-09) | $0.50 | 30 min | 15 calls |
+| `thorough` | All 4 tools with full probe/plugin sets + multi-turn crescendo + MCP runtime attacks + content bias (APP-10) + evasion (MOD-01) + membership inference (MOD-04) + manual follow-up | unlimited | unlimited | unlimited |
 
 Post-access phase (3c) runs only when the skill is chained from `/post-exploit` with shell access on the AI host.
 
@@ -210,6 +230,14 @@ Skip this phase entirely if the target is a plain LLM chat endpoint with no tool
 ---
 
 ### Phase 2 — Automated Scanning (parallel where possible)
+
+**Dual auth-state requirement (MANDATORY):** For every automated scan and every manual test in Phases 2-3, run the attack in BOTH states:
+1. **Anonymous** — no auth headers or cookies
+2. **Authenticated** — with a valid session token or API key
+
+Many LLM security controls, guardrails, and system prompt injections are auth-state-dependent. A jailbreak blocked for anonymous users may succeed for authenticated users and vice versa. An attack that leaks nothing from the public endpoint may leak data when the model has user context loaded. Running only in one state misses half the attack surface. Log each state's result separately in `report(action="finding")`.
+
+If you only have one auth state available, log a note explaining which state was not tested.
 
 Run automated tools based on depth. **Batch independent tools in the same response.**
 
@@ -540,7 +568,6 @@ OWASP Coverage:
 
 3. Call `session(action="complete", options={...})` with a summary including: target, model, tools run, findings count by severity, OWASP categories covered
 
-4. **Export GitHub Issues** — invoke the `/gh-export` skill to format all confirmed findings as copy-pasteable GitHub issue blocks
 
 ---
 
@@ -549,11 +576,11 @@ OWASP Coverage:
 | Skill | When to invoke |
 |-------|----------------|
 | `/analyze-cve` | You discover a CVE-affected dependency in the AI application's stack (e.g., vulnerable LangChain version) |
-| `/threat-model` | After `session(action="complete", options={...})` if the user wants a full STRIDE analysis of the AI architecture |
+| `/threat-modeling` | After `session(action="complete", options={...})` if the user wants a full STRIDE analysis of the AI architecture |
 | `/post-exploit` | AI endpoint exploitation achieved server access — post-exploitation on the AI host. Also the entry point back INTO this skill's Phase 3c (post-access AI infrastructure tests: AITG-APP-04, MOD-02, INF-05/06, DAT-01/02) |
 | `/network-assess` | Shadow MCP server discovery (MCP09) — scan for undocumented MCP endpoints on the internal network |
 | `/container-k8s-security` | AI workload running in Kubernetes — check model storage volumes, GPU access, sidecar MCP servers, and service-account token scoping |
-| `/gh-export` | Always — after `session(action="complete", options={...})`. Formats findings as GitHub issue blocks |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

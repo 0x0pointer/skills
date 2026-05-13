@@ -16,6 +16,23 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| SMTP/STARTTLS weakness found | `/ssl-tls-audit` | OPTIONAL | `Skill(skill="ssl-tls-audit")` | `cat ~/.config/opencode/commands/ssl-tls-audit.md` |
+| Email credentials found | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
@@ -53,9 +70,9 @@ You are an expert email security auditor. Your goal: comprehensively assess the 
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | SPF + DKIM + DMARC + MX lookup | $0.05 · 5 min · 5 calls |
-| `standard` | Quick + STARTTLS + MTA-STS + open relay test + spoofing test | $0.15 · 15 min · 12 calls |
-| `thorough` | Standard + user enumeration + full SMTP audit + TLS cert analysis | $0.30 · 30 min · 20 calls |
+| `quick` | SPF + DKIM + DMARC + MX lookup | $0.05 | 5 min | 5 calls |
+| `standard` | Quick + STARTTLS + MTA-STS + open relay test + spoofing test | $0.15 | 15 min | 12 calls |
+| `thorough` | Standard + user enumeration + full SMTP audit + TLS cert analysis | unlimited | unlimited | unlimited |
 
 ---
 
@@ -214,7 +231,6 @@ Email Security Assessment Summary:
 ```
 
 3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -225,7 +241,7 @@ Email Security Assessment Summary:
 | `/osint` | Email addresses discovered — expand OSINT reconnaissance |
 | `/credential-audit` | SMTP credentials needed — test authentication |
 | `/ssl-tls-audit` | STARTTLS weaknesses found — deep TLS assessment |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

@@ -18,6 +18,18 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Injection points or deep vuln found | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+
+
 ## Tools Available
 
 | Tool | Use for |
@@ -34,6 +46,9 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (auth flow, exploit chain, data exfil path) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -58,9 +73,9 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Spec discovery + auto BOLA enumeration on numeric IDs + basic auth checks | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + systematic per-endpoint testing across all 10 categories + JWT analysis + GraphQL introspection | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + cross-tenant tests with two accounts + mass assignment fuzzing + business flow abuse + SSRF + schemathesis/restler-fuzzer property fuzzing + inventory drift comparison | $2.00 · 120 min · 60 calls |
+| `quick` | Spec discovery + auto BOLA enumeration on numeric IDs + basic auth checks | $0.10 | 5 min | 10 calls |
+| `standard` | Quick + systematic per-endpoint testing across all 10 categories + JWT analysis + GraphQL introspection | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + cross-tenant tests with two accounts + mass assignment fuzzing + business flow abuse + SSRF + schemathesis/restler-fuzzer property fuzzing + inventory drift comparison | unlimited | unlimited | unlimited |
 
 ---
 
@@ -155,8 +170,35 @@ http(action="request", url="https://TARGET/api/v0/users/1")
 http(action="request", url="https://TARGET/api/internal/users/1")
 ```
 
-**Step 1e — GraphQL introspection (if GraphQL endpoint found):**
+**Step 1e — GraphQL introspection (MANDATORY — always probe, even when not told):**
 
+**Always probe these paths unconditionally**, regardless of whether GraphQL was mentioned:
+```
+http(action="request", url="https://TARGET/graphql", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+http(action="request", url="https://TARGET/api/graphql", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+http(action="request", url="https://TARGET/v1/graphql", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+http(action="request", url="https://TARGET/query", method="POST", body='{"query":"{__schema{queryType{name}}}"}')
+```
+
+If ANY probe returns a valid GraphQL response (even if introspection is disabled — `{errors:[{message:"..."}]}` is still GraphQL), **IMMEDIATELY register the endpoint in the coverage matrix**:
+```
+report(action="coverage", data={
+  "type": "endpoint",
+  "path": "/graphql",
+  "method": "POST",
+  "params": [{"name": "query", "type": "body_json", "value_hint": ""}, {"name": "variables", "type": "body_json", "value_hint": ""}],
+  "discovered_by": "manual_probe",
+  "auth_context": "none"
+})
+```
+The coverage system automatically opens an `api-security` trigger gate when a GraphQL endpoint is registered. This gate blocks scan completion until this skill runs.
+
+If introspection is disabled, use clairvoyance for blind schema recovery:
+```
+kali(command="clairvoyance https://TARGET/graphql -o /tmp/schema.json")
+```
+
+**Full introspection query:**
 ```
 http(action="request", url="https://TARGET/graphql", method="POST",
      headers={"Content-Type": "application/json"},
@@ -639,7 +681,6 @@ flowchart TD
 5. **Chain to `/ai-redteam`** if an LLM/AI endpoint was discovered during exploitation (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers). API testing often touches these surfaces — when it does, hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing
 6. **Chain to `/credential-audit`** if credential material (hashes, tokens, user lists) was recovered
 7. **Chain to `/analyze-cve`** if a vulnerable framework / library version was disclosed
-8. **Export GitHub Issues** — only if the user explicitly requests it. Do NOT auto-invoke `/gh-export`
 
 ---
 
@@ -684,4 +725,4 @@ When your context is compacted mid-scan:
 | `/ai-redteam` | **LLM/AI endpoint discovered** — chat APIs, completion endpoints, RAG search, agentic tool-use endpoints, MCP servers. Hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing instead of stopping at the HTTP layer. Common signals: prompt-shaped POST bodies, `messages[]` arrays, `system`/`user`/`assistant` roles, streaming SSE responses, model name parameters, tool/function-calling schemas |
 | `/codebase` | Source code available — pivot to white-box review for API10 (unsafe consumption) and to find every router definition, decorator, and middleware that black-box discovery missed |
 | `/cloud-security` | SSRF reached cloud metadata service and credentials were extracted — assess full IAM blast radius |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|

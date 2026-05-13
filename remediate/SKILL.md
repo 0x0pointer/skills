@@ -18,6 +18,20 @@ You are an expert application security engineer generating specific, implementab
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After all findings remediated | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
@@ -209,7 +223,7 @@ Provide the exact update command and the safe version:
 
 | Skill | When to invoke |
 |-------|----------------|
-| `/gh-export` | Always after remediation — issues now include ## Remediation section |
+| `/gh-export` | When user asks to file GitHub issues — findings now include a ## Remediation section|
 | `/codebase` | If remediation needs source context but /codebase hasn't run yet |
 
 ---

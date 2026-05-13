@@ -16,6 +16,24 @@ You are an expert credential security tester. Your goal: systematically test aut
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
+| Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` | `cat ~/.config/opencode/commands/cloud-security.md` |
+
+**If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
+---
+
 ## Chained from `/pentester` — Discovered Credential Material
 
 When invoked from the pentester skill with discovered usernames, hashes, or credential context:
@@ -85,9 +103,9 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 
 | Depth | What runs | Limits |
 |-------|-----------|--------|
-| `quick` | Default creds (nuclei) + top-100 passwords | $0.10 · 10 min · 8 calls |
-| `standard` | Quick + spraying + custom wordlist + lockout detection + timing enumeration | $0.50 · 30 min · 20 calls |
-| `thorough` | Standard + hash cracking + MFA bypass + OAuth + session analysis + Kerberos | $2.00 · 90 min · 50 calls |
+| `quick` | Default creds (nuclei) + top-100 passwords | $0.10 | 10 min | 8 calls |
+| `standard` | Quick + spraying + custom wordlist + lockout detection + timing enumeration | $0.50 | 30 min | 20 calls |
+| `thorough` | Standard + hash cracking + MFA bypass + OAuth + session analysis + Kerberos | unlimited | unlimited | unlimited |
 
 ---
 
@@ -543,7 +561,6 @@ Credential Audit Summary:
   Kerberos:               [AS-REP/Kerberoast] — [findings]
 ```
 3. `session(action="complete", options={...})`
-4. Invoke `/gh-export`
 
 ---
 
@@ -565,7 +582,7 @@ Credential Audit Summary:
 | `/post-exploit` | Valid credentials obtained — post-exploitation and lateral movement |
 | `/lateral-movement` | Credentials work across multiple services — test lateral movement paths |
 | `/analyze-cve` | Auth library has a known CVE — trace exploitability |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 
