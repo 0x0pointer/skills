@@ -16,6 +16,19 @@ You are an expert Active Directory security assessor. Your goal: comprehensively
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Account compromise achieved / shell access | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Hashes / credentials harvested | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Lateral movement opportunities found | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` | `cat ~/.config/opencode/commands/lateral-movement.md` |
+| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+
+
 ## Tools Available
 
 | Tool | Use for |
@@ -31,15 +44,18 @@ You are an expert Active Directory security assessor. Your goal: comprehensively
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
 ---
 
 ## Depth Presets
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Domain enum + password policy + privileged groups + Kerberoasting + AS-REP | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + ADCS (ESC1-ESC8) + delegation + GPO + ACL + FGPP + LAPS + service accounts | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + BloodHound + forest trust analysis + attack path prioritization | $2.00 · 120 min · 60 calls |
+| `quick` | Domain enum + password policy + privileged groups + Kerberoasting + AS-REP | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + ADCS (ESC1-ESC8) + delegation + GPO + ACL + FGPP + LAPS + service accounts | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + BloodHound + forest trust analysis + attack path prioritization | unlimited | unlimited | unlimited |
 
 ---
 
@@ -468,7 +484,6 @@ report(action="note", data={"message": "Attack Path Priority Assessment:
 1. Call `report(action="diagram", data={...})` with attack path map showing how findings chain to DA
 2. Call `report(action="note", data={...})` with full assessment summary (domain, functional level, DCs, users, admins, Protected Users, service accounts, password policy, FGPP, LAPS, Kerberoasting, AS-REP, ADCS ESCs, delegation, ACLs, GPOs, trusts, shortest path to DA, priority assessment)
 3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -478,8 +493,8 @@ report(action="note", data={"message": "Attack Path Priority Assessment:
 |-------|----------------|
 | `/pentester` | DC or member server has web services |
 | `/analyze-cve` | CVE-affected component (Exchange, ADFS, print spooler) |
-| `/threat-model` | After assessment — STRIDE analysis of the AD architecture |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/threat-modeling` | After assessment — STRIDE analysis of the AD architecture |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

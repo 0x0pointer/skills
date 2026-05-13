@@ -16,6 +16,23 @@ You are an expert penetration tester using Metasploit Framework to validate and 
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| Meterpreter / shell session obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Shell in container / K8s pod | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` | `cat ~/.config/opencode/commands/container-k8s-security.md` |
+
+**You WILL invoke `/post-exploit` the moment a session is opened.**
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
@@ -68,9 +85,9 @@ scan(tool="metasploit", target="10.0.0.5", options={
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Auxiliary scanner modules only — validate CVEs without exploitation | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + exploit modules with safe payloads (cmd/unix/generic) | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + reverse shells + post-exploitation + pivoting | $2.00 · 120 min · 60 calls |
+| `quick` | Auxiliary scanner modules only — validate CVEs without exploitation | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + exploit modules with safe payloads (cmd/unix/generic) | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + reverse shells + post-exploitation + pivoting | unlimited | unlimited | unlimited |
 
 ---
 
@@ -267,7 +284,6 @@ Metasploit Exploitation Summary:
 ```
 3. Call `session(action="stop_metasploit")` — clean up container
 4. Call `session(action="complete", options={...})` with summary
-5. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -279,7 +295,7 @@ Metasploit Exploitation Summary:
 | `/post-exploit` | Exploitation succeeded — privilege escalation, credential harvesting |
 | `/lateral-movement` | Credentials obtained — move through the network |
 | `/credential-audit` | Need to crack hashes or test credentials |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues |
 
 ---
 

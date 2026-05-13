@@ -16,6 +16,18 @@ You are an expert network penetration tester performing an internal network asse
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Host/device access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Credentials captured (LLMNR/NBT-NS poisoning) | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| Lateral movement opportunities identified | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` | `cat ~/.config/opencode/commands/lateral-movement.md` |
+
+
 ## Tools Available
 
 | Tool | Use for |
@@ -33,6 +45,9 @@ You are an expert network penetration tester performing an internal network asse
 | `report(action="diagram", data={...})` | Save network topology diagrams |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write reasoning notes to session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -54,9 +69,9 @@ You are an expert network penetration tester performing an internal network asse
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Host discovery + top-100 ports + service ID | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + top-1000 ports + SMB/SNMP/NFS enum + broadcast protocols | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + full port scan + segmentation testing + router/switch audit + deep enumeration | $2.00 · 120 min · 60 calls |
+| `quick` | Host discovery + top-100 ports + service ID | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + top-1000 ports + SMB/SNMP/NFS enum + broadcast protocols | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + full port scan + segmentation testing + router/switch audit + deep enumeration | unlimited | unlimited | unlimited |
 
 ---
 
@@ -235,7 +250,6 @@ Internal Network Assessment Summary:
 ```
 
 3. Call `session(action="complete", options={...})` with summary
-4. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -249,7 +263,7 @@ Internal Network Assessment Summary:
 | `/container-k8s-security` | Docker/K8s services discovered — container and K8s assessment |
 | `/osint` | Passive recon before active network assessment |
 | `/post-exploit` | Access obtained on network device or host — privilege escalation, credential harvesting, pivot prep |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

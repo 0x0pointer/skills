@@ -8,7 +8,7 @@ description: |
 
   When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
 
-  Chains into /pentester, /threat-model, /web-exploit, /api-security, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
+  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
 argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]
 user-invocable: true
 ---
@@ -20,6 +20,28 @@ You are an expert application security engineer performing a white-box source co
 This review is structured around the **OWASP Application Security Verification Standard (ASVS) 5.0** — 427 verification requirements across 16 chapters. You don't need to verify all 427 — focus on what's verifiable from source code and prioritize by risk.
 
 **Request:** $ARGUMENTS
+
+---
+
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/threat-modeling` | **MANDATORY** | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| After `/threat-modeling` completes | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
+| LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` | `cat ~/.config/opencode/commands/ai-redteam.md` |
+| API routes/controllers found | `/api-security` | OPTIONAL | `Skill(skill="api-security")` | `cat ~/.config/opencode/commands/api-security.md` |
+| CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+
+**You WILL invoke `/threat-modeling` after `session(action="complete")`.**
+**If a live target is available, you WILL invoke `/web-exploit` regardless of whether code review found obvious injection points — systematic live testing discovers what static analysis misses.**
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -70,9 +92,9 @@ The review targets these ASVS chapters based on what's verifiable from source co
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Phase 1 (orientation) + Phase 4 (automated scanning) only | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + Phase 2 (attack surface) + Phase 3 (auth) + Phase 5 (dangerous patterns) | $0.50 · 45 min · 30 calls |
-| `thorough` | Standard + Phase 6 (IaC, crypto, config, logging) + full source-to-sink tracing + ASVS coverage summary | $2.00 · 120 min · 60 calls |
+| `quick` | Phase 1 (orientation) + Phase 4 (automated scanning) only | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + Phase 2 (attack surface) + Phase 3 (auth) + Phase 5 (dangerous patterns) | $0.50 | 45 min | 30 calls |
+| `thorough` | Standard + Phase 6 (IaC, crypto, config, logging) + full source-to-sink tracing + ASVS coverage summary | unlimited | unlimited | unlimited |
 
 ---
 
@@ -504,15 +526,13 @@ ASVS 5.0 Coverage:
 
 **Step 4:** Call `session(action="complete", options={...})` with summary.
 
-**Step 5:** Chain into downstream skills as appropriate:
-- **Always** → `/threat-model` (now has real architecture from code)
-- **If endpoints found** → `/pentester` (targeted scanning of discovered endpoints)
-- **If injection points found** → `/web-exploit` (source-to-sink context for deep exploitation)
-- **If API routes/controllers found** → `/api-security` (route inventory, auth middleware, ORM models, authorization decorators as white-box context for OWASP API Top 10)
+**Step 5:** Chain into downstream skills — see CHAIN COMMITMENTS section at the top for mandatory chains. Summary:
+- **MUST** → `/threat-modeling` (always — real architecture from code)
+- **MUST if live target available** → `/web-exploit` (do NOT skip because code review found no injection points — systematic live testing finds what static analysis misses)
+- **MUST if LLM/AI integration detected** → `/ai-redteam` (pass system prompts, tool definitions, guardrail config, RAG architecture as white-box context)
+- **If API routes/controllers found** → `/api-security` (OWASP API Top 10 with white-box context)
 - **If IaC found** → `/cloud-security` or `/container-k8s-security`
-- **If CVE-affected dependencies found** → `/analyze-cve` (already has code context)
-- **If LLM integration detected and live endpoint URL identifiable from source** → `/ai-redteam` (pass white-box context via `report(action="note", data={...})`: system prompts found in code, tool definitions, guardrail mechanisms, RAG architecture, known weaknesses from Phase 5b)
-- **Always** → `/gh-export`
+- **If CVE-affected dependencies found** → `/analyze-cve`
 
 ---
 
@@ -520,9 +540,9 @@ ASVS 5.0 Coverage:
 
 | Skill | When to invoke |
 |-------|----------------|
-| `/threat-model` | Always after review — feed real architecture into STRIDE analysis |
+| `/threat-modeling` | Always after review — feed real architecture into STRIDE analysis |
 | `/pentester` | Endpoints discovered — target scan with white-box knowledge |
-| `/web-exploit` | Injection points found in source — exploit with source-to-sink context |
+| `/web-exploit` | **MANDATORY if live target available** — do NOT wait for injection points to be found in source; systematic live testing finds what static analysis misses |
 | `/api-security` | API routes/controllers identified in source (REST/GraphQL/gRPC/SOAP/MCP) — pass route inventory, auth middleware, ORM models, and authorization decorators as white-box context for OWASP API Top 10 testing |
 | `/cloud-security` | IaC files found — verify cloud misconfigs match runtime state |
 | `/container-k8s-security` | K8s manifests or Dockerfiles found — verify container security |
@@ -530,7 +550,7 @@ ASVS 5.0 Coverage:
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
 | `/ai-redteam` | LLM integration detected — pass system prompts, tool definitions, guardrails, RAG architecture, and endpoint URLs as white-box context |
 | `/remediate` | Findings produced — generate specific code fixes with full source context |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 

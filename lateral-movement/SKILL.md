@@ -16,6 +16,18 @@ You are an expert Active Directory and network penetration tester. You have init
 
 ---
 
+## CHAIN COMMITMENTS — DECLARE BEFORE STARTING
+
+Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
+
+| Trigger | Chain | Mandatory? | Claude Code | opencode |
+|---------|-------|-----------|-------------|---------|
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| New host access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
+| Kerberos tickets / hashes to crack | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
+| AD domain discovered | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
+
+
 ## Tools Available
 
 | Tool | Use for |
@@ -30,6 +42,9 @@ You are an expert Active Directory and network penetration tester. You have init
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (attack path, network topology) to findings.json |
 | `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
+
+
+**Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
 ---
 
@@ -52,9 +67,9 @@ You are an expert Active Directory and network penetration tester. You have init
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Credential reuse + SMB shares + basic enumeration | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + Kerberoasting + PtH + WinRM + delegation enum | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + Responder + relay + BloodHound + RBCD + trust abuse + pivoting | $2.00 · 120 min · 60 calls |
+| `quick` | Credential reuse + SMB shares + basic enumeration | $0.10 | 15 min | 10 calls |
+| `standard` | Quick + Kerberoasting + PtH + WinRM + delegation enum | $0.50 | 45 min | 25 calls |
+| `thorough` | Standard + Responder + relay + BloodHound + RBCD + trust abuse + pivoting | unlimited | unlimited | unlimited |
 
 ---
 
@@ -487,7 +502,6 @@ Lateral Movement Summary:
 ```
 
 2. Call `session(action="complete", options={...})` with summary
-3. **Export GitHub Issues** — invoke the `/gh-export` skill
 
 ---
 
@@ -499,7 +513,7 @@ Lateral Movement Summary:
 | `/credential-audit` | Need to crack Kerberos tickets or test credentials |
 | `/post-exploit` | Gained access to new hosts — enumerate and escalate |
 | `/network-assess` | Internal network access from new position — segmentation testing, service enumeration |
-| `/gh-export` | Always — after `session(action="complete", options={...})` |
+| `/gh-export` | When user asks to file GitHub issues|
 
 ---
 
