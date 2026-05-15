@@ -1,6 +1,6 @@
 ---
 name: remediate
-description: |
+description: >-
   Generates specific, implementable fixes for every finding in `pentest/findings.json`. Produces code patches (unified diff), configuration changes, dependency updates, and IaC fixes — not generic advice but actual before/after code.
 
   Uses the reproduction command from each finding as the verification step: "run this after the fix — it should now fail." Refreshes the `findings.json` snapshot from `events.jsonl`, reads it, then appends one `finding`/`update` event per remediation back to `events.jsonl`. `/gh-export` runs `refresh.py` itself and then sees the remediation field in the regenerated snapshot.

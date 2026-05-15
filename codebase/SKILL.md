@@ -1,6 +1,6 @@
 ---
 name: codebase
-description: |
+description: >-
   White-box source code security review structured around OWASP ASVS 5.0 (427 verification requirements across 16 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
 
 

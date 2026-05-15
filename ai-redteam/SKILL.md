@@ -1,6 +1,6 @@
 ---
 name: ai-redteam
-description: |
+description: >-
   AI/LLM red-team assessment using the OWASP LLM Top 10 (2025) + OWASP AI Testing Guide (AITG v1, Nov 2025) frameworks, plus OWASP MCP Top 10 runtime testing for agentic/MCP targets. Tests prompt injection, jailbreaks, system prompt leakage, sensitive data extraction, excessive agency, improper output handling, model extraction, content bias, evasion, membership inference, MCP token exposure, MCP command injection, and more.
 
   Uses four tools in combination: FuzzyAI (single-turn jailbreak fuzzing), PyRIT (multi-turn orchestrated attacks), Garak (probe-based vulnerability scanning), and promptfoo (plugin-based red-team evaluation). Each tool covers different OWASP categories; running them together gives systematic coverage. Includes a conditional MCP reconnaissance phase and a post-access AI infrastructure phase (chained from /post-exploit).

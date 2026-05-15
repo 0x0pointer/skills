@@ -1,6 +1,6 @@
 ---
 name: network-assess
-description: |
+description: >-
   Internal network assessment. VLAN hopping, ARP spoofing detection, broadcast protocol abuse (LLMNR/NBT-NS/mDNS), network segmentation verification, SNMP enumeration, NFS exposure, router/switch audit, and internal service mapping.
 
   Assumes attacker has network access. Uses nmap, arp-scan, nbtscan, snmpwalk, onesixtyone, smbmap, nfs-common, masscan, hping3, and netexec.

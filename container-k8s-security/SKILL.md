@@ -1,6 +1,6 @@
 ---
 name: container-k8s-security
-description: |
+description: >-
   Container and Kubernetes security assessment. Tests container escape vectors, Docker/containerd socket exposure, K8s RBAC misconfigurations, pod security violations, exposed API servers, etcd access, service account token abuse, image layer secrets, private registry attacks, SSRF to metadata services, cross-namespace network bypass, CIS benchmarks, crypto miner detection, resource exhaustion, and admission controller gaps.
 
   Both external and internal (compromised pod) perspectives. Uses trivy, kube-bench, kubectl, nuclei, dive, amicontained, and docker-bench-security. Covers OWASP Kubernetes Top 10 and all 22 Kubernetes Goat attack scenarios.

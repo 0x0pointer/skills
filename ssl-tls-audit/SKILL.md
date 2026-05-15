@@ -1,6 +1,6 @@
 ---
 name: ssl-tls-audit
-description: |
+description: >-
   TLS/SSL configuration audit. Tests protocol versions (SSLv2/3, TLS 1.0/1.1/1.2/1.3), cipher strength and ordering, certificate chain validation (intermediates, CT logs, OCSP stapling, pinning), known vulnerabilities (POODLE, BEAST, CRIME, Heartbleed, ROBOT, DROWN, Ticketbleed, GOLDENDOODLE), session management (ticket reuse, resumption, fixation), renegotiation attacks, TLS 1.3-specific issues (0-RTT replay, PSK modes, downgrade), HSTS deep analysis (preload, subdomains, bypass), and certificate revocation (CRL, OCSP responder, stapled response freshness).
 
   Compliance-mapped to PCI DSS 4.0 (full Section 4), NIST SP 800-52r2, and FedRAMP. Uses testssl.sh, sslscan, sslyze, openssl, nmap NSE scripts, and nuclei SSL templates. Multi-port scanning across 20+ TLS-bearing services.

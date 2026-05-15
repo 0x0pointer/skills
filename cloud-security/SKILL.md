@@ -1,6 +1,6 @@
 ---
 name: cloud-security
-description: |
+description: >-
   Cloud security posture assessment for AWS, Azure, and GCP. Tests IAM privilege escalation paths, public storage exposure, serverless attack surface, database exposure, logging gaps, container registry security, and cloud-specific attacks.
 
   Both authenticated (with cloud credentials) and unauthenticated (external) modes. Uses nuclei cloud templates, Prowler, ScoutSuite, manual IMDS/metadata probing, and deep AWS/Azure/GCP CLI enumeration.

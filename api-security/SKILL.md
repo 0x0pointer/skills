@@ -1,6 +1,6 @@
 ---
 name: api-security
-description: |
+description: >-
   Deep API security assessment beyond surface scanning. Covers the full OWASP API Security Top 10 (2023): Broken Object Level Authorization (BOLA / IDOR), Broken Authentication, Broken Object Property Level Authorization (mass assignment + excessive data exposure), Unrestricted Resource Consumption, Broken Function Level Authorization (BFLA / vertical privilege escalation), Unrestricted Access to Sensitive Business Flows, Server-Side Request Forgery via API parameters, Security Misconfiguration, Improper Inventory Management (shadow/zombie/deprecated endpoints, v1/v2 drift), and Unsafe Consumption of third-party APIs. Works across REST, GraphQL, gRPC, SOAP, and MCP servers.
 
   Discovers APIs from OpenAPI/Swagger specs, GraphQL introspection, gRPC reflection, .well-known endpoints, JS bundles, and traffic capture. Uses kiterunner, ffuf, schemathesis, restler-fuzzer, openapi-fuzzer, graphql-cop, clairvoyance, batchql, inql, jwt_tool, postman, mitmproxy, and manual Bash("curl ...") payloads. Every technique includes actual payloads, commands, and verification logic. Chains from /pentester or /codebase when API endpoints are discovered, chains into /web-exploit when classic injection points are found in API parameters, chains into /post-exploit when RCE is achieved, and chains into /ai-redteam when an LLM/AI endpoint is discovered (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers).

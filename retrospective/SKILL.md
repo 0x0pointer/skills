@@ -1,6 +1,6 @@
 ---
 name: retrospective
-description: |
+description: >-
   End-of-engagement retrospective. Mines pentest/events.jsonl for time-wasters, fast wins, abandoned techniques, and dead-end skill chains; writes a per-engagement archive; merges cross-applicable heuristics into a global lessons store; appends topical lessons under specific/. Loaded automatically by /pentester after summary.md is written. Loaded by future engagements at startup so the agent gets better over time.
 argument-hint: <engagement_name> [pentest_dir=pentest]
 user-invocable: true
