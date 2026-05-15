@@ -122,7 +122,7 @@ If the request does not specify depth or focus, ask the user:
 0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with codebase path, depth, and limits
 1. Call `Write("pentest/codebase.json", {...})`
 2. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-3. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record codebase path, expected tech stack, review focus
+3. Call `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) — record codebase path, expected tech stack, review focus
 
 ---
 
@@ -143,8 +143,8 @@ If the request does not specify depth or focus, ask the user:
   - Python: `openai`, `anthropic`, `langchain`, `langchain-core`, `langchain-community`, `llama-index`, `haystack-ai`, `semantic-kernel`, `crewai`, `autogen-agentchat`, `mcp`, `pydantic-ai`
   - Node.js: `openai`, `@anthropic-ai/sdk`, `langchain`, `@langchain/core`, `@modelcontextprotocol/sdk`, `ai` (Vercel AI SDK)
   - Also grep source files for: API key patterns (`sk-`, `sk-ant-`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`), model name strings (`gpt-4`, `gpt-3.5`, `claude`, `o1-`, `o3-`), and LLM endpoint URLs (`api.openai.com`, `api.anthropic.com`)
-  - If any LLM framework is detected: `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")`
-- Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with: language, framework, major dependencies, framework version
+  - If any LLM framework is detected: `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1)
+- Call `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) with: language, framework, major dependencies, framework version
 
 **Step 2 — Map project structure:**
 - Use Glob to understand the directory layout (MVC? microservice? monolith?)
@@ -162,7 +162,7 @@ Look for security-relevant settings. What matters depends on the framework — a
 - Allowed hosts / origins
 - Email / SMTP configuration with credentials
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for any hardcoded secrets or dangerous configurations found.
+Call `Bash("jq -nc … type:\"finding\" action:\"add\" id:\"f-NNN\" title:\"<title>\" severity:\"<sev>\" escalation_leads:[…] … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 5) for any hardcoded secrets or dangerous configurations found.
 
 **Step 4 — Dependency audit:**
 Check whether pinned dependency versions have known CVEs. For each major dependency, consider whether it's a security-sensitive component (auth library, ORM, template engine, crypto library, XML parser).
@@ -202,7 +202,7 @@ For every endpoint, determine:
 - CLI commands that accept user input
 - Scheduled tasks that process external data
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
+Call `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) with the complete endpoint inventory table. This feeds directly into `/pentester` and `/web-exploit` for targeted testing.
 
 ---
 
@@ -244,7 +244,7 @@ If JWT or OAuth is used:
 - Scope validation on resource servers
 - PKCE enforcement for public clients
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every auth/authz weakness found. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with the authentication flow diagram.
+Call `Bash("jq -nc … type:\"finding\" action:\"add\" id:\"f-NNN\" title:\"<title>\" severity:\"<sev>\" escalation_leads:[…] … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 5) for every auth/authz weakness found. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with the authentication flow diagram.
 
 ---
 
@@ -264,7 +264,7 @@ This runs 58 semgrep rules covering: hardcoded API keys, missing max_tokens, pro
 
 After results come back:
 - Read each semgrep finding and verify it against the actual code — false positives are common
-- For each confirmed finding, call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` with the code context
+- For each confirmed finding, call `Bash("jq -nc … type:\"finding\" action:\"add\" id:\"f-NNN\" title:\"<title>\" severity:\"<sev>\" escalation_leads:[…] … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 5) with the code context
 - For trufflehog findings, verify whether secrets are real or test/example values
 
 ---
@@ -312,7 +312,7 @@ For each finding, trace whether user input actually reaches the function (source
 - Are there race conditions in critical operations (double-spend, TOCTOU)?
 - Can users skip steps or replay requests?
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
+Call `Bash("jq -nc … type:\"finding\" action:\"add\" id:\"f-NNN\" title:\"<title>\" severity:\"<sev>\" escalation_leads:[…] … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 5) for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
 
 ---
 
@@ -320,77 +320,17 @@ Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '
 
 **Trigger:** Runs when LLM frameworks were detected in Phase 1, OR when `focus=llm`. Skip entirely for non-LLM codebases.
 
-**Goal:** Find security weaknesses specific to LLM integrations. This phase covers patterns where the **LLM is the source, sink, or intermediary**. Generic injection/deserialization patterns are in Phase 5 — this phase focuses on the unique attack surface that LLM integrations introduce.
+**Goal:** Find security weaknesses where the LLM is the source, sink, or intermediary — patterns Phase 5's generic injection/deserialization analysis won't catch.
 
-**Maps to:** OWASP LLM Top 10 (2025), OWASP MCP Top 10.
+**Maps to:** OWASP LLM Top 10 (2025) + OWASP MCP Top 10.
 
-> **Reference:** Load `skills/codebase/refs/llm-integration.md` for framework-specific grep patterns, CVE table, secure agent patterns, and MCP Top 10 checks.
+**Procedure:** load [refs/llm-integration.md](refs/llm-integration.md) and walk its 8 categories in order — Prompt Construction (LLM01), Output Handling (LLM05), Tool/Function Definitions (LLM06), Secrets in Prompts (LLM02/07), RAG & Vector Store Security (LLM08), Supply Chain & Model Loading (LLM03), Resource Controls (LLM10), and MCP Server Patterns (MCP Top 10). The ref file holds framework-specific grep patterns, the CVE table for known-vulnerable LLM dependencies, secure-agent design patterns, and MCP-specific checks.
 
-**Category 1 — Prompt Construction (OWASP LLM01: Prompt Injection):**
-- Search for how prompts are built: string concatenation, f-strings, `.format()`, template literals with user input
-- Check whether user input is inserted into system prompts, few-shot examples, or tool descriptions
-- Look for RAG context injection: are retrieved documents inserted into prompts without sanitization?
-- Check for indirect injection surfaces: can attacker-controlled content (emails, web pages, documents) reach the prompt via RAG or tool outputs?
-- Verify whether any prompt input validation, escaping, or structural separation (e.g. XML tags, delimiters) is applied
-
-**Category 2 — Output Handling (OWASP LLM05: Insecure Output Handling):**
-- Search for LLM response text flowing into dangerous sinks:
-  - `eval()`, `exec()`, `subprocess`, `os.system()`, `child_process.exec()` — code execution
-  - Raw SQL queries, ORM raw methods — SQL injection from LLM output
-  - `innerHTML`, `dangerouslySetInnerHTML`, template `|safe` — XSS from LLM output
-  - Shell commands, file path construction — command injection, path traversal
-- Check for code execution tools: `PythonREPLTool`, `PALChain`, `LLMMathChain`, custom code interpreters
-- Verify whether LLM output is validated, sanitized, or sandboxed before use
-
-**Category 3 — Tool/Function Definitions (OWASP LLM06: Excessive Agency):**
-- Find all tool/function definitions passed to the LLM (OpenAI function calling, LangChain tools, MCP tools)
-- Check each tool for:
-  - **Over-permissioned operations**: can the tool delete data, modify configs, access other users' resources, execute arbitrary code?
-  - **Missing auth propagation**: does the tool handler enforce the calling user's permissions, or does it run with service-level privileges?
-  - **Missing input validation**: are tool arguments validated before use?
-  - **No approval gates**: are destructive or sensitive operations auto-executed, or is human-in-the-loop confirmation required?
-- Count total tools available to the agent — more tools = larger attack surface
-
-**Category 4 — Secrets in Prompts (OWASP LLM02/LLM07: Sensitive Information Disclosure):**
-- Search system prompts and prompt templates for hardcoded API keys, database credentials, internal URLs, or PII
-- Check whether confidential business logic or instructions are embedded in prompts (extractable via prompt leakage)
-- Look for logging of full prompts/completions that may contain user PII
-- Check whether conversation history is stored unencrypted or without access controls
-
-**Category 5 — RAG & Vector Store Security (OWASP LLM08: Vector and Embedding Weaknesses):**
-- Find vector store/retriever configuration (Chroma, Pinecone, Weaviate, pgvector, FAISS)
-- Check for **tenant isolation**: are per-user metadata filters applied to vector queries, or can any user retrieve any document?
-- Check document ingestion pipeline: is there validation of uploaded documents? Can users upload to shared collections?
-- Look for poisoning risk: can untrusted sources inject documents into the knowledge base?
-- Check similarity score thresholds — are results filtered by relevance, or does everything retrieved get injected into the prompt?
-
-**Category 6 — Supply Chain & Model Loading (OWASP LLM03: Supply Chain):**
-- Check for unpinned LLM framework versions (known CVEs exist — see ref file for CVE table)
-- Search for pickle-based model loading (`torch.load`, `pickle.load`, `joblib.load` on untrusted files)
-- Look for model downloads without integrity verification (no hash checks, no signed models)
-- Check for custom model loading from user-specified paths
-- Flag known-vulnerable dependency versions against the CVE table in the ref file
-
-**Category 7 — Resource Controls (OWASP LLM10: Unbounded Consumption):**
-- Check for missing `max_tokens` / `max_completion_tokens` on API calls
-- Look for missing timeouts on LLM API requests
-- Check for unbounded agent loops — is there a `max_iterations` or recursion limit?
-- Look for missing rate limiting on endpoints that trigger LLM calls
-- Check cost controls: is there per-request or per-user spend limiting?
-
-**Category 8 — MCP Server Patterns (OWASP MCP Top 10):**
-Only applies when the codebase implements or consumes MCP servers.
-- **Tool handler injection**: check whether MCP tool arguments are passed to shell commands, SQL, or file paths without sanitization
-- **Resource exposure**: are MCP resources exposing sensitive files or data without auth checks?
-- **Server authentication**: is the MCP server accessible without authentication?
-- **Rug-pull potential**: can MCP tool descriptions or behavior change between discovery and invocation?
-- **Upstream dependency trust**: does the MCP client validate responses from MCP servers, or trust them blindly?
-
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for each confirmed LLM-specific weakness. Use severity guidance:
-- **Critical**: LLM output reaches eval/exec/shell without sandboxing; tool handler has command injection; prompt injection enables data exfiltration
-- **High**: No tenant isolation in RAG; over-permissioned tools without approval gates; secrets in system prompts; pickle model loading
-- **Medium**: Missing max_tokens; no agent iteration limits; unpinned LLM framework versions; weak prompt/response validation
-- **Low**: Logging full prompts without PII redaction; no similarity threshold on RAG retrieval; missing rate limits on LLM endpoints
+For each confirmed LLM-specific weakness, append a `finding`/`add` event ([pentester/EVENTS.md](../pentester/EVENTS.md) form 5) using this severity guide:
+- **Critical** — LLM output reaches eval/exec/shell without sandboxing; tool handler has command injection; prompt injection enables data exfiltration
+- **High** — No tenant isolation in RAG; over-permissioned tools without approval gates; secrets in system prompts; pickle model loading
+- **Medium** — Missing max_tokens; no agent iteration limits; unpinned LLM framework versions; weak prompt/response validation
+- **Low** — Logging full prompts without PII redaction; no similarity threshold on RAG retrieval; missing rate limits on LLM endpoints
 
 ---
 
@@ -436,7 +376,7 @@ If IaC files are present (Terraform, CloudFormation, K8s manifests, Dockerfiles,
 - Hardcoded secrets in manifests
 - Unpinned base images
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for each confirmed weakness.
+Call `Bash("jq -nc … type:\"finding\" action:\"add\" id:\"f-NNN\" title:\"<title>\" severity:\"<sev>\" escalation_leads:[…] … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 5) for each confirmed weakness.
 
 ---
 
@@ -451,7 +391,7 @@ Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with a comprehensive M
 - Identified vulnerabilities annotated on the diagram
 
 **Step 2 — Codebase security profile:**
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with a structured summary that downstream skills can consume:
+Call `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) with a structured summary that downstream skills can consume:
 
 ```
 Codebase Security Profile:
@@ -498,7 +438,7 @@ Codebase Security Profile:
 ```
 
 **Step 3 — ASVS coverage summary (thorough only):**
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with which ASVS chapters were reviewed and what was found:
+Call `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) with which ASVS chapters were reviewed and what was found:
 
 ```
 ASVS 5.0 Coverage:
@@ -568,10 +508,10 @@ ASVS 5.0 Coverage:
 - **Read before you judge** — don't report a finding just because a function name appears. Verify that user input actually reaches it
 - **Source-to-sink tracing is essential** — a dangerous function with hardcoded arguments is not a vulnerability. Trace the data flow
 - **Adapt to the framework** — every framework has different patterns. Don't grep for Django patterns in a Flask app
-- **Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
+- **Call `Bash("jq -nc … type:\"finding\" action:\"add\" id:\"f-NNN\" title:\"<title>\" severity:\"<sev>\" escalation_leads:[…] … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 5) for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
 - **Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
-- **The security profile feeds downstream skills** — write it clearly in `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` so other skills can parse and act on it
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — document your understanding of each component before analyzing it
+- **The security profile feeds downstream skills** — write it clearly in `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) so other skills can parse and act on it
+- **Use `Bash("jq -nc … type:\"note\" … >> pentest/events.jsonl")` (canonical one-liner: [pentester/EVENTS.md](../pentester/EVENTS.md) form 1) liberally** — document your understanding of each component before analyzing it
 - **Never fabricate findings** — only report what the code actually shows
 - **ASVS is a guide, not a checklist** — focus on high-risk areas first, not sequential chapter review
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels with spaces/special chars, no em-dashes, short alphanumeric node IDs
