@@ -4,6 +4,8 @@ description: >-
   Email infrastructure security audit. Tests SPF, DKIM, DMARC configuration, open relay, email spoofing resilience, S/MIME, MTA-STS, TLS-RPT, and SMTP security.
 
   Uses swaks, dnsrecon, nmap SMTP scripts, smtp-user-enum, and dig. Pure skill markdown — no new infrastructure needed.
+
+  Use when the user asks for an email security audit, SPF/DKIM/DMARC check, email spoofing test, open-relay scan, MTA-STS or TLS-RPT review, S/MIME audit, or to assess SMTP security on a domain.
 argument-hint: <domain> [depth=quick|standard|thorough]
 user-invocable: true
 ---

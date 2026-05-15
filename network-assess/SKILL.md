@@ -4,6 +4,8 @@ description: >-
   Internal network assessment. VLAN hopping, ARP spoofing detection, broadcast protocol abuse (LLMNR/NBT-NS/mDNS), network segmentation verification, SNMP enumeration, NFS exposure, router/switch audit, and internal service mapping.
 
   Assumes attacker has network access. Uses nmap, arp-scan, nbtscan, snmpwalk, onesixtyone, smbmap, nfs-common, masscan, hping3, and netexec.
+
+  Use when the user asks for an internal network assessment, VLAN hopping test, LLMNR/NBT-NS/mDNS poisoning check, ARP spoofing audit, SNMP enumeration, NFS exposure scan, broadcast-protocol abuse review, or segmentation verification of an internal subnet.
 argument-hint: <network-cidr> [depth=quick|standard|thorough] [gateway=IP] [vlan=ID]
 user-invocable: true
 ---
