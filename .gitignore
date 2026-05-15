@@ -16,6 +16,7 @@ Thumbs.db
 *~
 .vscode/
 .idea/
+.obsidian/
 *.sublime-project
 *.sublime-workspace
 
@@ -62,3 +63,4 @@ coverage/
 PERSONAL-NOTES.md
 TODO.md
 SCRATCH.md
+tessl__*
