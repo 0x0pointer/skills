@@ -1,14 +1,13 @@
 ---
 name: codebase
 description: >-
-  White-box source code security review structured around OWASP ASVS 5.0 (427 verification requirements across 16 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
+  White-box source code security review structured around OWASP ASVS 5.0 (427 verification requirements across 16 chapters). Reads application source code to build a security-aware knowledge base that enriches all downstream skills.
 
+  Covers tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, ASVS compliance mapping, and LLM integration security. When LLM/AI framework usage is detected, reviews OWASP LLM Top 10 patterns from source and chains into /ai-redteam with white-box context.
 
-  Covers: tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, ASVS compliance mapping, and LLM integration security (prompt injection, tool abuse, output handling, RAG poisoning, MCP server patterns).
+  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, and /credential-audit — turning black-box testing into targeted assessment.
 
-  When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
-
-  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
+  Use when the user asks for a source code security review, code audit, ASVS assessment, white-box review, SAST-style analysis, or wants to analyze application source for vulnerabilities before running a pentest.
 argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]
 user-invocable: true
 ---
