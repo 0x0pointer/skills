@@ -5,7 +5,7 @@ description: >-
 
   Discovers APIs from OpenAPI/Swagger specs, GraphQL introspection, gRPC reflection, .well-known endpoints, JS bundles, and traffic capture. Drives kiterunner, ffuf, schemathesis, graphql-cop, batchql, inql, jwt_tool, mitmproxy, and Bash("curl ...") payloads. Chains from /pentester or /codebase when endpoints appear, into /web-exploit for injection, /post-exploit on RCE, /ai-redteam on LLM endpoints.
 
-  Use when the user asks to test a REST/GraphQL/gRPC/SOAP/MCP API, find IDOR/BOLA, bypass auth, exploit mass assignment, audit a Swagger/OpenAPI spec, or assess an MCP server.
+  Use to test a REST/GraphQL/gRPC/SOAP/MCP API, find IDOR/BOLA, bypass auth, exploit mass assignment, audit a Swagger/OpenAPI spec, or assess an MCP server.
 argument-hint: <target-url> [api-type=rest|graphql|grpc|soap|mcp] [vuln-class=bola|auth|bopla|consumption|bfla|business-flow|ssrf|misconfig|inventory|consumption-unsafe] [depth=quick|standard|thorough]
 user-invocable: true
 ---

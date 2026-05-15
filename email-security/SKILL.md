@@ -5,7 +5,7 @@ description: >-
 
   Uses swaks, dnsrecon, nmap SMTP scripts, smtp-user-enum, and dig. Pure skill markdown — no new infrastructure needed.
 
-  Use when the user asks for an email security audit, SPF/DKIM/DMARC check, email spoofing test, open-relay scan, MTA-STS or TLS-RPT review, S/MIME audit, or to assess SMTP security on a domain.
+  Use for an email security audit, SPF/DKIM/DMARC check, email spoofing test, open-relay scan, MTA-STS or TLS-RPT review, S/MIME audit, or to assess SMTP security on a domain.
 argument-hint: <domain> [depth=quick|standard|thorough]
 user-invocable: true
 ---

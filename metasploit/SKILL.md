@@ -5,7 +5,7 @@ description: >-
 
   Uses msfconsole, msfvenom, and the Metasploit module database. Chains from /pentester, /analyze-cve, or /post-exploit when exploitable CVEs are confirmed.
 
-  Use when the user asks to validate or exploit a CVE with Metasploit, run an exploit module against a target, generate an msfvenom payload, set up a multi/handler listener, or escalate to Meterpreter for post-exploitation.
+  Use to validate or exploit a CVE with Metasploit, run an exploit module against a target, generate an msfvenom payload, set up a multi/handler listener, or escalate to Meterpreter for post-exploitation.
 argument-hint: <target> [cve=CVE-YYYY-NNNNN] [service=http|smb|ssh|...] [depth=quick|standard|thorough]
 user-invocable: true
 ---

@@ -5,7 +5,7 @@ description: >-
 
   Drives FuzzyAI (single-turn jailbreak fuzzing), PyRIT (multi-turn orchestrated attacks), Garak (probe-based vulnerability scanning), and promptfoo (plugin-based red-team evaluation) together for systematic coverage. Includes conditional MCP reconnaissance and a post-access AI infrastructure phase chained from /post-exploit. Produces a coverage matrix, per-category findings, architecture diagram, and PoCs; chains into /gh-export.
 
-  Use when the user asks to red-team an LLM, jailbreak a chatbot, test prompt injection, audit an MCP server, evaluate AI safety, or run OWASP LLM Top 10 against a chat/RAG/agent endpoint.
+  Use to red-team an LLM, jailbreak a chatbot, test prompt injection, audit an MCP server, evaluate AI safety, or run OWASP LLM Top 10 against a chat/RAG/agent endpoint.
 argument-hint: <target-url> [provider=openai|anthropic|azure|rest] [model=gpt-4o] [depth=quick|standard|thorough]
 user-invocable: true
 ---

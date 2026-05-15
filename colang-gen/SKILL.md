@@ -1,6 +1,6 @@
 ---
 name: colang-gen
-description: Generates NeMo Guardrails Colang (.co) files and YAML config blocks from a plain-language description of a chatbot's purpose, allowed behaviors, and constraints. Use this skill whenever a user wants to build guardrails for a chatbot, define allowed intents for an LLM, create an AI firewall with NeMo Guardrails, generate Colang flow definitions, or configure a semantic allow-list for a bot. Trigger this skill even when the user just describes what their bot should and shouldn't do — generating the Colang and YAML is almost always what they need next.
+description: Generates NeMo Guardrails Colang (.co) files and YAML config blocks from a plain-language description of a chatbot's purpose, allowed behaviors, and constraints. Use to build guardrails for a chatbot, define allowed intents for an LLM, create an AI firewall with NeMo Guardrails, generate Colang flow definitions, or configure a semantic allow-list for a bot. Trigger this skill even when the user just describes what their bot should and shouldn't do — generating the Colang and YAML is almost always what they need next.
 argument-hint: <bot-description> [threshold=0.80|0.85|0.90]
 user-invocable: true
 ---

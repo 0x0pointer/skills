@@ -5,7 +5,7 @@ description: >-
 
   Supports one-liner generation, encoded payloads for WAF/filter bypass, listener setup with session capture, and shell stabilization. Chains from /pentester, /metasploit, or /post-exploit when command execution is confirmed.
 
-  Use when the user asks for a reverse shell, bind shell, payload generation, msfvenom output, listener (nc/socat/multi-handler) setup, a one-liner to call back to attacker IP, encoded payload for WAF bypass, or shell upgrade/stabilization (PTY) after RCE is confirmed.
+  Use for a reverse shell, bind shell, payload generation, msfvenom output, listener (nc/socat/multi-handler) setup, a one-liner to call back to attacker IP, encoded payload for WAF bypass, or shell upgrade/stabilization (PTY) after RCE is confirmed.
 argument-hint: <target-ip> <target-port> [lhost=ATTACKER_IP] [lport=4444] [type=bash|python|php|powershell|nc|msfvenom] [encode=base64|url]
 user-invocable: true
 ---

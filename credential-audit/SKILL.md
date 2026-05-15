@@ -5,7 +5,7 @@ description: >-
 
   Uses hydra, john, ncrack, medusa, cewl, crunch, netexec, impacket, kerbrute, and nuclei default-login templates. Covers OWASP A07:2021 Identification and Authentication Failures.
 
-  Use when the user asks to brute-force or spray credentials, test default logins, run hydra / medusa / ncrack / netexec, attempt password reuse, audit MFA/OAuth/OIDC, generate a custom wordlist with cewl, kerberoast, or assess the auth surface of any service.
+  Use to brute-force or spray credentials, test default logins, run hydra / medusa / ncrack / netexec, attempt password reuse, audit MFA/OAuth/OIDC, generate a custom wordlist with cewl, kerberoast, or assess the auth surface of any service.
 argument-hint: <target> [service=ssh|ftp|http|smb|rdp|mysql|...] [depth=quick|standard|thorough] [userlist=path] [passlist=path]
 user-invocable: true
 ---

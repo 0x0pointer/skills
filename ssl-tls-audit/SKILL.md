@@ -5,7 +5,7 @@ description: >-
 
   Compliance-mapped to PCI DSS 4.0 (full Section 4), NIST SP 800-52r2, and FedRAMP. Uses testssl.sh, sslscan, sslyze, openssl, nmap NSE scripts, and nuclei SSL templates. Multi-port scanning across 20+ TLS-bearing services.
 
-  Use when the user asks for a TLS/SSL audit, cipher suite check, certificate validation, SSL Labs-style scan, PCI DSS Section 4 compliance review, or test for POODLE/BEAST/Heartbleed/ROBOT/DROWN on an HTTPS endpoint.
+  Use for a TLS/SSL audit, cipher suite check, certificate validation, SSL Labs-style scan, PCI DSS Section 4 compliance review, or test for POODLE/BEAST/Heartbleed/ROBOT/DROWN on an HTTPS endpoint.
 argument-hint: <host:port> [depth=quick|standard|thorough]
 user-invocable: true
 ---

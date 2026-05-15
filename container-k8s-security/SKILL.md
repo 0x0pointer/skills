@@ -5,7 +5,7 @@ description: >-
 
   Both external and internal (compromised pod) perspectives. Uses trivy, kube-bench, kubectl, nuclei, dive, amicontained, and docker-bench-security. Covers OWASP Kubernetes Top 10 and all 22 Kubernetes Goat attack scenarios.
 
-  Use when the user asks for a Kubernetes audit, K8s pentest, container security review, Docker hardening check, pod escape test, RBAC misconfiguration scan, runC/containerd assessment, or wants to run kube-bench, trivy, or amicontained against a cluster or container.
+  Use for a Kubernetes audit, K8s pentest, container security review, Docker hardening check, pod escape test, RBAC misconfiguration scan, runC/containerd assessment, or to run kube-bench, trivy, or amicontained against a cluster or container.
 argument-hint: <target> [type=docker|kubernetes|both] [perspective=external|internal|both] [depth=quick|standard|thorough]
 user-invocable: true
 ---

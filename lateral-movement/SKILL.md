@@ -5,7 +5,7 @@ description: >-
 
   Uses impacket, netexec, enum4linux-ng, smbmap, smbclient, bloodhound-python, Responder, ntlmrelayx, mitm6, and ldap-utils. Chains from /post-exploit or /credential-audit.
 
-  Use when the user asks to lateral-move across an internal network, perform pass-the-hash, Kerberoasting, AS-REP roasting, NTLM/SMB relay, abuse delegation (constrained/unconstrained/RBCD), exploit a cross-domain trust, or pivot through Active Directory after credentials are obtained.
+  Use to lateral-move across an internal network, perform pass-the-hash, Kerberoasting, AS-REP roasting, NTLM/SMB relay, abuse delegation (constrained/unconstrained/RBCD), exploit a cross-domain trust, or pivot through Active Directory after credentials are obtained.
 argument-hint: <target-network> [domain=DOMAIN] [user=USER] [pass-or-hash=CRED] [depth=quick|standard|thorough]
 user-invocable: true
 ---

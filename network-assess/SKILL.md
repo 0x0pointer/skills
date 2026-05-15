@@ -5,7 +5,7 @@ description: >-
 
   Assumes attacker has network access. Uses nmap, arp-scan, nbtscan, snmpwalk, onesixtyone, smbmap, nfs-common, masscan, hping3, and netexec.
 
-  Use when the user asks for an internal network assessment, VLAN hopping test, LLMNR/NBT-NS/mDNS poisoning check, ARP spoofing audit, SNMP enumeration, NFS exposure scan, broadcast-protocol abuse review, or segmentation verification of an internal subnet.
+  Use for an internal network assessment, VLAN hopping test, LLMNR/NBT-NS/mDNS poisoning check, ARP spoofing audit, SNMP enumeration, NFS exposure scan, broadcast-protocol abuse review, or segmentation verification of an internal subnet.
 argument-hint: <network-cidr> [depth=quick|standard|thorough] [gateway=IP] [vlan=ID]
 user-invocable: true
 ---

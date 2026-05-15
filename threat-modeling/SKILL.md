@@ -1,7 +1,7 @@
 ---
 name: threat-modeling
 description: >-
-  Structured threat modeling skill using the PASTA framework (Process for Attack Simulation and Threat Analysis) combined with Adam Shostack's 4-question framework. Use this skill whenever the user asks to do threat modeling, security analysis, map the attack surface, identify threats, or review an application for security risks — even if they don't mention PASTA or a specific framework by name.
+  Structured threat modeling skill using the PASTA framework (Process for Attack Simulation and Threat Analysis) combined with Adam Shostack's 4-question framework. Use to do threat modeling, security analysis, map the attack surface, identify threats, or review an application for security risks — even if they don't mention PASTA or a specific framework by name.
 
   Core activities: Component Mapping (architecture + data flows), Critical Assessment (business impact prioritization), and Logic Flaw Identification (attacker mindset on business logic).
 

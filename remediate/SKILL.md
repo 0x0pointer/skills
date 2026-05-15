@@ -7,7 +7,7 @@ description: >-
 
   Chains from /pentester, /codebase, or any scan skill after findings are produced. Chains into /gh-export for export with remediation included.
 
-  Use when the user asks to fix vulnerabilities, remediate a pentest finding, patch security issues, generate security fixes, resolve scan results, write a unified-diff patch for a CVE, or hand off pentest output to a remediation workflow.
+  Use to fix vulnerabilities, remediate a pentest finding, patch security issues, generate security fixes, resolve scan results, write a unified-diff patch for a CVE, or hand off pentest output to a remediation workflow.
 argument-hint: "[finding-id] [depth=quick|thorough]"
 user-invocable: true
 ---

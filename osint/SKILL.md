@@ -7,7 +7,7 @@ description: >-
 
   Produces confidence-scored findings, infrastructure diagram, employee roster, email pattern, and subdomain takeover candidates. Chains into /pentester for active testing.
 
-  Use when the user asks for OSINT, passive reconnaissance, subdomain enumeration, email harvesting, Shodan/Censys lookup, Wayback Machine analysis, employee profiling, or footprinting a domain before active scanning.
+  Use for OSINT, passive reconnaissance, subdomain enumeration, email harvesting, Shodan/Censys lookup, Wayback Machine analysis, employee profiling, or footprinting a domain before active scanning.
 argument-hint: <domain-or-org> [depth=quick|standard|thorough] [focus=email|infra|social|all]
 user-invocable: true
 ---

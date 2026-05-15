@@ -7,7 +7,7 @@ description: >-
 
   Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, and /credential-audit — turning black-box testing into targeted assessment.
 
-  Use when the user asks for a source code security review, code audit, ASVS assessment, white-box review, SAST-style analysis, or wants to analyze application source for vulnerabilities before running a pentest.
+  Use for a source code security review, code audit, ASVS assessment, white-box review, SAST-style analysis, or to analyze application source for vulnerabilities before running a pentest.
 argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]
 user-invocable: true
 ---

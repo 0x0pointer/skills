@@ -5,7 +5,7 @@ description: >-
 
   Uses enum4linux-ng, netexec, impacket, ldapsearch, certipy-ad, bloodhound-python, and rpcclient. Produces attack path diagrams, prioritized risk register, and PoCs. Chains into /gh-export for issue filing.
 
-  Use when the user asks for an Active Directory audit, AD pentest, BloodHound analysis, ADCS attack path scan (ESC1-ESC8), Kerberos misconfiguration check, GPO or ACL review, trust mapping, LAPS/service-account audit, or domain controller enumeration.
+  Use for an Active Directory audit, AD pentest, BloodHound analysis, ADCS attack path scan (ESC1-ESC8), Kerberos misconfiguration check, GPO or ACL review, trust mapping, LAPS/service-account audit, or domain controller enumeration.
 argument-hint: <dc-ip-or-domain> [domain=DOMAIN] [user=USER] [pass=PASS] [depth=quick|standard|thorough]
 user-invocable: true
 ---
