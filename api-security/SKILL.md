@@ -1,9 +1,11 @@
 ---
 name: api-security
 description: >-
-  Deep API security assessment beyond surface scanning. Covers the full OWASP API Security Top 10 (2023): Broken Object Level Authorization (BOLA / IDOR), Broken Authentication, Broken Object Property Level Authorization (mass assignment + excessive data exposure), Unrestricted Resource Consumption, Broken Function Level Authorization (BFLA / vertical privilege escalation), Unrestricted Access to Sensitive Business Flows, Server-Side Request Forgery via API parameters, Security Misconfiguration, Improper Inventory Management (shadow/zombie/deprecated endpoints, v1/v2 drift), and Unsafe Consumption of third-party APIs. Works across REST, GraphQL, gRPC, SOAP, and MCP servers.
+  Deep API security assessment beyond surface scanning. Covers the full OWASP API Top 10 (2023): BOLA/IDOR, Broken Authentication, BOPLA, Unrestricted Resource Consumption, BFLA, Sensitive Business Flow abuse, SSRF via API parameters, Security Misconfiguration, Improper Inventory Management, and Unsafe Third-Party Consumption. Works across REST, GraphQL, gRPC, SOAP, and MCP servers.
 
-  Discovers APIs from OpenAPI/Swagger specs, GraphQL introspection, gRPC reflection, .well-known endpoints, JS bundles, and traffic capture. Uses kiterunner, ffuf, schemathesis, restler-fuzzer, openapi-fuzzer, graphql-cop, clairvoyance, batchql, inql, jwt_tool, postman, mitmproxy, and manual Bash("curl ...") payloads. Every technique includes actual payloads, commands, and verification logic. Chains from /pentester or /codebase when API endpoints are discovered, chains into /web-exploit when classic injection points are found in API parameters, chains into /post-exploit when RCE is achieved, and chains into /ai-redteam when an LLM/AI endpoint is discovered (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers).
+  Discovers APIs from OpenAPI/Swagger specs, GraphQL introspection, gRPC reflection, .well-known endpoints, JS bundles, and traffic capture. Drives kiterunner, ffuf, schemathesis, graphql-cop, batchql, inql, jwt_tool, mitmproxy, and Bash("curl ...") payloads. Chains from /pentester or /codebase when endpoints appear, into /web-exploit for injection, /post-exploit on RCE, /ai-redteam on LLM endpoints.
+
+  Use when the user asks to test a REST/GraphQL/gRPC/SOAP/MCP API, find IDOR/BOLA, bypass auth, exploit mass assignment, audit a Swagger/OpenAPI spec, or assess an MCP server.
 argument-hint: <target-url> [api-type=rest|graphql|grpc|soap|mcp] [vuln-class=bola|auth|bopla|consumption|bfla|business-flow|ssrf|misconfig|inventory|consumption-unsafe] [depth=quick|standard|thorough]
 user-invocable: true
 ---

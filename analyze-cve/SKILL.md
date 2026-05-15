@@ -1,7 +1,7 @@
 ---
 name: analyze-cve
 description: Analyzes CVE vulnerabilities in project dependencies with code path tracing and PoC generation for Burp Suite. Traces vulnerable code from user input to sink, assesses exploitability, and generates HTTP requests for testing.
-argument-hint: [dependency] [version] [cve-link]
+argument-hint: "[dependency] [version] [cve-link]"
 user-invocable: true
 ---
 
