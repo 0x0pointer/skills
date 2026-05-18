@@ -32,6 +32,9 @@ Thumbs.db
 # **/CVE-*.md
 # !**/examples/CVE-*.md
 
+# Generated Codex tree (rebuild with `uv run python migrate_codex.py`)
+codex-build/
+
 # Local Configuration
 .env
 .env.local
