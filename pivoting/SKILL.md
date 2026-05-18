@@ -26,11 +26,11 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | Tunnel established + AD reachable through tunnel | `/lateral-movement` | **MANDATORY** | `Skill(skill="lateral-movement")` |
 | Tunnel established + admin shell on pivot | `/post-exploit` | OPTIONAL | `Skill(skill="post-exploit")` |
 | Meterpreter session present on pivot | `/metasploit` | OPTIONAL | `Skill(skill="metasploit")` |
-| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 
 **You WILL invoke `/network-assess` (or `/lateral-movement` if the tunnel reaches an AD-joined segment) immediately after a tunnel is verified. Do not start exploiting through the tunnel from this skill — hand off.**
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -40,9 +40,9 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |------|---------|
 | `Bash("<cmd>")` | Any Kali tool — chisel, ligolo-proxy, ligolo-ng agent, ssh, sshuttle, socat, proxychains4, msfvenom, msfconsole, nmap, nxc, curl, ip, ss, tmux, scp, … (everything is on PATH on Kali). Also `curl --socks5` for raw probes through a SOCKS proxy. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
-| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram — pivot topology lives here. |
-| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Write("diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram — pivot topology lives here. |
+| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive long-lived listeners and interactive consoles — chisel server, ligolo-proxy, msfconsole, ssh `-N` connections that need supervision. |
 
 ---
@@ -91,8 +91,8 @@ If the request does not specify a pivot host, target network, or tool preference
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with pivot host, target network, attacker LHOST, depth, and limits
-1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record pivot host, type of access, target networks the pivot can reach, attacker LHOST, and the chained-from skill (if any)
+0. Call `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with pivot host, target network, attacker LHOST, depth, and limits
+1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record pivot host, type of access, target networks the pivot can reach, attacker LHOST, and the chained-from skill (if any)
 
 ---
 
@@ -451,7 +451,7 @@ Append a `note` event for each cleanup step with the result. **Do not skip clean
 
 ### Phase 14 — Pivot Topology Diagram
 
-Call `Write("pentest/diagrams/pivot-topology.mmd", "<mermaid>")` with the full pivot chain. Update progressively as new hops are added.
+Call `Write("diagrams/pivot-topology.mmd", "<mermaid>")` with the full pivot chain. Update progressively as new hops are added.
 
 ```mermaid
 flowchart LR
@@ -481,7 +481,7 @@ Pivoting Summary:
   Detected by defender?    [unknown | suspected | confirmed]
 ```
 
-2. Call `Write("pentest/summary.md", "<summary>")` with the pivoting section
+2. Call `Write("summary.md", "<summary>")` with the pivoting section
 3. **Export GitHub Issues** — invoke the `/gh-export` skill (mandatory chain)
 
 ---
@@ -495,13 +495,13 @@ Pivoting Summary:
 | `/post-exploit` | Need to escalate / harvest credentials on the pivot itself before tunneling further |
 | `/metasploit` | Meterpreter session present and you want to use MSF's `route`/`socks_proxy` instead of dropping a new agent |
 | `/reverse-shell` | New foothold reachable through the tunnel — generate the next callback |
-| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
+| `/gh-export` | Always — after `Write("summary.md", "<summary>")` |
 
 ---
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` is mandatory** — never run any other tool before it
 - **Always start the listener in a tmux session** — chisel server, ligolo-proxy, the attacker's HTTP server, and any `ssh -N` background tunnel must persist across `Bash` calls; without tmux they die when the call returns
 - **Never drop an agent binary without a cleanup plan** — append a `note` event recording the dropped path *before* the transfer, so Phase 13 can find it
 - **Test the tunnel before chaining** — the Phase 9 probe gates every downstream skill; if it fails, debug here, do not pass a broken tunnel to `/network-assess`
@@ -509,6 +509,6 @@ Pivoting Summary:
 - **Match agent architecture to pivot** — run `uname -m` (or check `wmic os get osarchitecture` on Windows) on the pivot first; chisel and ligolo-ng publish multi-arch releases and the wrong binary will not run
 - **Document every hop** — each new pivot gets its own `note` event and a row in `pivot-topology.mmd`; recovery after compaction depends on this
 - **Respect scope** — only tunnel into in-scope networks; if you discover the pivot can reach an out-of-scope segment, that itself is a `finding` (segmentation failure) but you do not pivot there
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — egress probe results, tool selection rationale, listener addresses, verification probes, cleanup steps
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` liberally** — egress probe results, tool selection rationale, listener addresses, verification probes, cleanup steps
 - **Never claim a tunnel works without verification** — only the Phase 9 probe authorizes that claim
 - **Mermaid syntax rules**: `flowchart LR`, quote labels, no em-dashes, short alphanumeric node IDs

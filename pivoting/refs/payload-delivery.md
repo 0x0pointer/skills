@@ -141,7 +141,7 @@ chisel_linux_amd64  chisel_linux_arm64  chisel_linux_armv7  chisel_windows_amd64
 
 Every drop creates an artifact; record each in a `note` event so Phase 13 cleanup can find them:
 ```
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg 'Dropped /tmp/chisel on PIVOT_IP via wget cradle' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg 'Dropped /tmp/chisel on PIVOT_IP via wget cradle' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")
 ```
 
 At cleanup time:

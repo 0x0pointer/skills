@@ -4,7 +4,7 @@
 # dependencies = []
 # ///
 """
-Mine pentest/events.jsonl for retrospective signals.
+Mine events.jsonl for retrospective signals.
 
 Emits a single JSON object on stdout with:
 - target / depth / engagement_name (from scope.json)
@@ -23,9 +23,9 @@ Emits a single JSON object on stdout with:
 No new event-schema fields needed; durations are derived from existing `ts`.
 
 Usage:
-    uv run mine.py [pentest/events.jsonl] [pentest/scope.json]
+    uv run mine.py [events.jsonl] [scope.json]
 
-Defaults: pentest/events.jsonl and pentest/scope.json relative to cwd.
+Defaults: events.jsonl and scope.json relative to cwd.
 """
 
 import json
@@ -184,8 +184,8 @@ def mine(events: list[dict], scope: dict) -> dict:
 
 
 def main() -> int:
-    events_path = sys.argv[1] if len(sys.argv) > 1 else "pentest/events.jsonl"
-    scope_path = sys.argv[2] if len(sys.argv) > 2 else "pentest/scope.json"
+    events_path = sys.argv[1] if len(sys.argv) > 1 else "events.jsonl"
+    scope_path = sys.argv[2] if len(sys.argv) > 2 else "scope.json"
     events = load_events(events_path)
     scope = load_scope(scope_path)
     result = mine(events, scope)

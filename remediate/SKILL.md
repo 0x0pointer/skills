@@ -1,7 +1,7 @@
 ---
 name: remediate
 description: >-
-  Generates specific, implementable fixes for every finding in `pentest/findings.json`. Produces code patches (unified diff), configuration changes, dependency updates, and IaC fixes — not generic advice but actual before/after code.
+  Generates specific, implementable fixes for every finding in `findings.json`. Produces code patches (unified diff), configuration changes, dependency updates, and IaC fixes — not generic advice but actual before/after code.
 
   Uses the reproduction command from each finding as the verification step: "run this after the fix — it should now fail." Refreshes the `findings.json` snapshot from `events.jsonl`, reads it, then appends one `finding`/`update` event per remediation back to `events.jsonl`. `/gh-export` runs `refresh.py` itself and then sees the remediation field in the regenerated snapshot.
 
@@ -31,7 +31,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 **You WILL invoke `/gh-export` after completing remediation — this exports findings with the fix patches included in each GitHub issue.**
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -39,11 +39,11 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Tool | Use for |
 |------|---------|
-| `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` | Define scope and limits — **always call this first** |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` | Refresh the snapshot from `events.jsonl`, then load all findings produced by prior skills |
-| `Bash("jq -nc ... '{type:\"finding\",action:\"update\",id:..., field:\"remediation\", value:{...}}' >> pentest/events.jsonl")` | Append one `finding`/`update` event per finding with the remediation payload |
-| `Write("pentest/summary.md", "<summary>")` | Mark done and write final notes |
-| `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` | Write reasoning notes to session log |
+| `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` | Define scope and limits — **always call this first** |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` | Refresh the snapshot from `events.jsonl`, then load all findings produced by prior skills |
+| `Bash("jq -nc ... '{type:\"finding\",action:\"update\",id:..., field:\"remediation\", value:{...}}' >> events.jsonl")` | Append one `finding`/`update` event per finding with the remediation payload |
+| `Write("summary.md", "<summary>")` | Mark done and write final notes |
+| `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` | Write reasoning notes to session log |
 
 ### Reading findings
 
@@ -51,7 +51,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ```
 Bash("uv run python ~/.claude/skills/pentester/refresh.py")
-Read("pentest/findings.json")
+Read("findings.json")
 ```
 
 The file is a JSON array of finding objects. Parse it, then iterate.
@@ -77,7 +77,7 @@ remediation = {
 }
 
 # Append the update event (use --argjson for the typed remediation object)
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg field 'remediation' --argjson value '<remediation JSON>' '{ts:$ts,type:\"finding\",action:\"update\",id:$id,field:$field,value:$value}' >> pentest/events.jsonl")
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg field 'remediation' --argjson value '<remediation JSON>' '{ts:$ts,type:\"finding\",action:\"update\",id:$id,field:$field,value:$value}' >> events.jsonl")
 ```
 
 After all `finding`/`update` events are appended, run `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` once. The snapshot now contains every remediation; `/gh-export` reads the snapshot fresh on its own refresh and includes the remediation in each issue.
@@ -97,15 +97,15 @@ After all `finding`/`update` events are appended, run `Bash("uv run python ~/.cl
 
 ### Phase 0 — Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with depth and limits
-1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record whether `/codebase` ran (source code context available?)
+0. Call `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with depth and limits
+1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record whether `/codebase` ran (source code context available?)
 
 ### Phase 1 — Read Findings
 
 Refresh the snapshot from `events.jsonl`, then load the findings file:
 ```
 Bash("uv run python ~/.claude/skills/pentester/refresh.py")
-Read("pentest/findings.json")
+Read("findings.json")
 ```
 
 Parse the JSON array. For each finding, note:
@@ -160,7 +160,7 @@ Append a `finding`/`update` event to `events.jsonl` with `field: "remediation"` 
 
 ### Phase 3 — Remediation Summary
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with:
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with:
 ```
 Remediation Summary:
   Total findings:    [count]
@@ -174,7 +174,7 @@ Remediation Summary:
   ...
 ```
 
-Call `Write("pentest/summary.md", "<summary>")` with summary.
+Call `Write("summary.md", "<summary>")` with summary.
 
 ---
 

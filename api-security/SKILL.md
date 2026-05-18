@@ -26,12 +26,12 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 | Trigger | Chain | Mandatory? | Claude Code |
 |------|------|------|------|
-| After `Write("pentest/summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
+| After `Write("summary.md", "<summary>")` | `/gh-export` | **MANDATORY** | `Skill(skill="gh-export")` |
 | Injection points or deep vuln found | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` |
 | Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` |
 | CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` |
 
-**You WILL invoke `/gh-export` after `Write("pentest/summary.md", "<summary>")`. This is not optional.**
+**You WILL invoke `/gh-export` after `Write("summary.md", "<summary>")`. This is not optional.**
 
 ## Tools Available
 
@@ -39,13 +39,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |------|---------|
 | `Bash("<cmd>")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |
 | `Write("pocs/<name>.http", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |
-| `Write("pentest/diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
-| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
-| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
+| `Write("diagrams/<name>.mmd", ...)` | Save a Mermaid architecture/network diagram. |
+| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |
+| `Bash("uv run python ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |
 | `Bash("tmux new-session ...")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |
 
 
-**Logging:** Before invoking any skill above, append a `skill_chain` event to `pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
+**Logging:** Before invoking any skill above, append a `skill_chain` event to `events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).
 
 ---
 
@@ -96,9 +96,9 @@ If the request does not specify what to test, ask the user:
 
 ### Phase 0 — Scope & Setup
 
-0. Call `Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` with target URL, depth, and limits
-1. Call `# (no dashboard — see pentest/findings.json directly)` — live findings tracker
-2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` — record target, API type, known endpoints, auth state, available test accounts
+0. Call `Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` with target URL, depth, and limits
+1. Call `# (no dashboard — see findings.json directly)` — live findings tracker
+2. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` — record target, API type, known endpoints, auth state, available test accounts
 
 ---
 
@@ -224,13 +224,13 @@ If reflection is disabled, look for `.proto` files in JS bundles or GitHub repos
 **Step 1g — Register everything in the coverage matrix:**
 
 ```
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg cid '<cell_id>' --arg st 'in_progress' --arg tech '<technique>' --arg by '<tool>' --arg notes '<notes>' '{ts:$ts,type:\"cell_status\",cell_id:$cid,status:$st,technique:$tech,tested_by:$by,notes:$notes}' >> pentest/events.jsonl")
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg cid '<cell_id>' --arg st 'in_progress' --arg tech '<technique>' --arg by '<tool>' --arg notes '<notes>' '{ts:$ts,type:\"cell_status\",cell_id:$cid,status:$st,technique:$tech,tested_by:$by,notes:$notes}' >> events.jsonl")
 ```
 
 Param type values: `path`, `query`, `body_form`, `body_json`, `header`, `cookie`
 Each registration auto-generates BOLA, BFLA, BOPLA, SSRF, injection, and consumption test cells.
 
-Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with total endpoints and cells registered. Always include the **source** of discovery (spec / JS / kiterunner / version drift) so you can prove inventory completeness in the report.
+Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with total endpoints and cells registered. Always include the **source** of discovery (spec / JS / kiterunner / version drift) so you can prove inventory completeness in the report.
 
 ---
 
@@ -314,7 +314,7 @@ For each endpoint with an object ID parameter:
 
 **For every confirmed BOLA:**
 ```
-Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl") can fetch Account B (id=1002) full profile including email, phone, and PII via GET /api/v2/users/1002 with Account A's bearer token. The endpoint validates the token but does not check whether the requesting user owns the requested object.",
+Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl") can fetch Account B (id=1002) full profile including email, phone, and PII via GET /api/v2/users/1002 with Account A's bearer token. The endpoint validates the token but does not check whether the requesting user owns the requested object.",
   "evidence": "<raw request and response>",
   "tool_used": "Bash("curl ...")"
 })
@@ -593,9 +593,9 @@ For every crash / 500 / schema mismatch, save the request and verify manually. M
 
 Review the coverage matrix for any remaining pending or skipped cells:
 
-1. Call `# Read pentest/scope.json + tail pentest/events.jsonl` — check coverage stats
+1. Call `# Read scope.json + tail events.jsonl` — check coverage stats
 2. For any pending cells: either test them now or mark as `skipped` with a documented reason
-3. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` with a coverage summary: `"Coverage: X/Y tested, Z vulnerable, W N/A, V skipped"`
+3. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` with a coverage summary: `"Coverage: X/Y tested, Z vulnerable, W N/A, V skipped"`
 4. The session completion gate requires ≥80% of cells addressed (tested + N/A + skipped)
 
 ---
@@ -604,11 +604,11 @@ Review the coverage matrix for any remaining pending or skipped cells:
 
 For every confirmed finding:
 
-1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` explaining what you're verifying
+1. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` explaining what you're verifying
 2. Reproduce with `Bash("curl ...")` — craft the minimal working payload (no extra headers, no auth if anonymous, no fluff)
 3. Call `Bash("curl ...")` to route through Burp Suite
 4. Call `Write("pocs/<title>.http", ...)` with descriptive title (e.g., `bola-orders-cross-tenant`, `bfla-admin-users-via-verb-tampering`, `mass-assignment-isadmin`)
-5. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")` with:
+5. Call `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")` with:
    - `severity`: critical (PII exfil at scale, cross-tenant write, RCE), high (cross-tenant read, BFLA, JWT bypass), medium (mass assignment of low-impact fields, info disclosure), low (verbose errors, missing headers)
    - `description`: **always cite the OWASP API Top 10 ID** (`API1:2023`, `API5:2023`, etc.)
    - `evidence`: Raw request/response — both the failed-as-expected request AND the successful-bypass request, side by side
@@ -617,7 +617,7 @@ For every confirmed finding:
 
 ### Phase 14 — Report & Wrap-Up
 
-1. Call `Write("pentest/diagrams/<title>.mmd", "<mermaid>")` with an attack flow showing the most impactful chain:
+1. Call `Write("diagrams/<title>.mmd", "<mermaid>")` with an attack flow showing the most impactful chain:
 
 ```mermaid
 flowchart TD
@@ -630,13 +630,13 @@ flowchart TD
     SSRF --> AWS["AWS credentials extracted"]
 ```
 
-2. Call `Write("pentest/summary.md", "<summary>")` with summary of all confirmed findings (organized by API Top 10 category)
+2. Call `Write("summary.md", "<summary>")` with summary of all confirmed findings (organized by API Top 10 category)
 3. **Chain to `/web-exploit`** if classic injection points (SQLi, XSS in error responses, SSTI in template engines) were found in API parameters
 4. **Chain to `/post-exploit`** if RCE was achieved (e.g., via Jolokia, deserialization, SSRF→IMDS→IAM)
 5. **Chain to `/ai-redteam`** if an LLM/AI endpoint was discovered during exploitation (chat APIs, completion endpoints, RAG search, agentic tool-use, MCP servers). API testing often touches these surfaces — when it does, hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing
 6. **Chain to `/credential-audit`** if credential material (hashes, tokens, user lists) was recovered
 7. **Chain to `/analyze-cve`** if a vulnerable framework / library version was disclosed
-8. **Export GitHub Issues** — invoke `/gh-export` after `Write("pentest/summary.md", ...)` to format all confirmed findings as GitHub issue blocks
+8. **Export GitHub Issues** — invoke `/gh-export` after `Write("summary.md", ...)` to format all confirmed findings as GitHub issue blocks
 
 ---
 
@@ -645,7 +645,7 @@ flowchart TD
 When your context is compacted mid-scan:
 
 1. **Re-invoke `/api-security`** — use the Skill tool to reload this full workflow
-2. **Call `# Read pentest/scope.json + tail pentest/events.jsonl`** — coverage stats in the response tell you exactly where you are
+2. **Call `# Read scope.json + tail events.jsonl`** — coverage stats in the response tell you exactly where you are
 3. **Pending cells tell you where to resume** — the matrix persists in `coverage_matrix.json`
 4. **Do NOT re-discover endpoints** — they persist across context compactions
 5. **Resume Phase 3** (BOLA loop) from pending cells — that is the most productive place to restart
@@ -654,17 +654,17 @@ When your context is compacted mid-scan:
 
 ## Rules
 
-- **`Bash("mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl") + Write("pentest/scope.json", {...})` is mandatory** — never run any other tool before it
+- **`Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl") + Write("scope.json", {...})` is mandatory** — never run any other tool before it
 - **Discovery before testing** — run Phase 1 in full before testing any endpoint. The biggest API findings are on endpoints you didn't know existed.
 - **Two accounts are required for thorough depth** — without them you cannot detect cross-tenant BOLA, which is the most common API1 finding. If the user did not provide two accounts, ask for them or downgrade to standard depth.
 - **Always cite the OWASP API Top 10 ID** in finding descriptions (`API1:2023`, `API5:2023`, etc.) — this is non-negotiable for API findings
 - **Batch independent tools in the same response** — they execute in parallel
-- When any tool returns a LIMIT message, stop immediately and call `Write("pentest/summary.md", "<summary>")`
+- When any tool returns a LIMIT message, stop immediately and call `Write("summary.md", "<summary>")`
 - **`Bash("curl ...")` with `poc=True`** — only set this flag when the request is a confirmed, report-worthy exploit. Routes through Burp Suite for HTTP History capture. Do NOT use for recon probes.
 - **`Write("pocs/<title>.http", ...)`** — call alongside every `Bash("curl ...")`. Write a descriptive `title` that names the vulnerability class and endpoint
 - **Never fabricate findings** — only report what you actually verified end-to-end with a request/response pair
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels, no em-dashes, short alphanumeric node IDs
-- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")` liberally** — call it before every tool to explain *why* you are running it and after every significant result to record what you concluded. This is the audit trail.
+- **Use `Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")` liberally** — call it before every tool to explain *why* you are running it and after every significant result to record what you concluded. This is the audit trail.
 - **Investigate every clue to exhaustion** — a BOLA on `/users/{id}` should always be followed by mass-assignment tests on `/users/me`, BFLA tests on `/admin/users`, and inventory drift tests on `/api/v1/users/{id}` vs `/api/v2/users/{id}`. The chain matters more than the individual finding.
 - Call `# (no-op — tools native on Kali)` at the end if `Bash(...)` was used
 
@@ -681,4 +681,4 @@ When your context is compacted mid-scan:
 | `/ai-redteam` | **LLM/AI endpoint discovered** — chat APIs, completion endpoints, RAG search, agentic tool-use endpoints, MCP servers. Hand off for OWASP LLM Top 10, AITG, and MCP Top 10 testing instead of stopping at the HTTP layer. Common signals: prompt-shaped POST bodies, `messages[]` arrays, `system`/`user`/`assistant` roles, streaming SSE responses, model name parameters, tool/function-calling schemas |
 | `/codebase` | Source code available — pivot to white-box review for API10 (unsafe consumption) and to find every router definition, decorator, and middleware that black-box discovery missed |
 | `/cloud-security` | SSRF reached cloud metadata service and credentials were extracted — assess full IAM blast radius |
-| `/gh-export` | Always — after `Write("pentest/summary.md", "<summary>")` |
+| `/gh-export` | Always — after `Write("summary.md", "<summary>")` |

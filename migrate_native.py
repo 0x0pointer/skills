@@ -141,10 +141,10 @@ def replace_http(text: str) -> str:
 # ── report(action="X", data={...}) ────────────────────────────────────────────
 
 REPORT_REPLACEMENTS = {
-    "finding": '# Append finding to pentest/findings.json (Read → mutate JSON array → Write)',
-    "note": 'Bash("echo \'<message>\' >> pentest/notes.log")',
-    "diagram": 'Write("pentest/diagrams/<title>.mmd", "<mermaid>")',
-    "coverage": '# Upsert into pentest/coverage.json (Read → update entry by cell_id/path+method → Write)',
+    "finding": '# Append finding to findings.json (Read → mutate JSON array → Write)',
+    "note": 'Bash("echo \'<message>\' >> notes.log")',
+    "diagram": 'Write("diagrams/<title>.mmd", "<mermaid>")',
+    "coverage": '# Upsert into coverage.json (Read → update entry by cell_id/path+method → Write)',
 }
 
 
@@ -152,12 +152,12 @@ def replace_report(text: str) -> str:
     # Strip dashboard entirely — paragraph-level cleanup happens later
     text = re.sub(
         r'`report\(action="dashboard"[^`]*\)`',
-        '`# (no dashboard — see pentest/findings.json directly)`',
+        '`# (no dashboard — see findings.json directly)`',
         text,
     )
     text = re.sub(
         r'\breport\(action="dashboard"[^)]*\)',
-        '# (no dashboard — see pentest/findings.json directly)',
+        '# (no dashboard — see findings.json directly)',
         text,
     )
 
@@ -177,12 +177,12 @@ def replace_report(text: str) -> str:
         )
 
     # Old prose names that may survive from the 8-tool API
-    text = re.sub(r'`report_finding`', '`# Append finding to pentest/findings.json`', text)
-    text = re.sub(r'\breport_finding\b', '# Append finding to pentest/findings.json', text)
-    text = re.sub(r'`report_diagram`', '`Write("pentest/diagrams/<title>.mmd", ...)`', text)
-    text = re.sub(r'\breport_diagram\b', 'Write("pentest/diagrams/<title>.mmd", ...)', text)
-    text = re.sub(r'`log_note`', '`Bash("echo ... >> pentest/notes.log")`', text)
-    text = re.sub(r'\blog_note\b', 'Bash("echo ... >> pentest/notes.log")', text)
+    text = re.sub(r'`report_finding`', '`# Append finding to findings.json`', text)
+    text = re.sub(r'\breport_finding\b', '# Append finding to findings.json', text)
+    text = re.sub(r'`report_diagram`', '`Write("diagrams/<title>.mmd", ...)`', text)
+    text = re.sub(r'\breport_diagram\b', 'Write("diagrams/<title>.mmd", ...)', text)
+    text = re.sub(r'`log_note`', '`Bash("echo ... >> notes.log")`', text)
+    text = re.sub(r'\blog_note\b', 'Bash("echo ... >> notes.log")', text)
     text = re.sub(r'`start_dashboard`', '`# (no dashboard)`', text)
     text = re.sub(r'\bstart_dashboard\b', '# (no dashboard)', text)
     return text
@@ -191,12 +191,12 @@ def replace_report(text: str) -> str:
 # ── session(action="X", ...) ──────────────────────────────────────────────────
 
 SESSION_REPLACEMENTS = {
-    "start": 'Bash("mkdir -p pentest/{pocs,diagrams}") + Write("pentest/scope.json", {...})',
-    "complete": 'Write("pentest/summary.md", "<summary>")',
-    "recovery": '# Recover state: Read("pentest/coverage.json"), Read("pentest/findings.json"), Bash("tail -200 pentest/notes.log")',
-    "set_skill": 'Bash("echo \'SKILL_CHAIN <skill> <reason> chained_from=<this>\' >> pentest/skill_chain.log")',
-    "set_codebase": 'Write("pentest/codebase.json", {...})',
-    "status": '# Read pentest/scope.json + tail pentest/events.jsonl',
+    "start": 'Bash("mkdir -p pocs diagrams scans loot creds payloads logs wordlists") + Write("scope.json", {...})',
+    "complete": 'Write("summary.md", "<summary>")',
+    "recovery": '# Recover state: Read("coverage.json"), Read("findings.json"), Bash("tail -200 notes.log")',
+    "set_skill": 'Bash("echo \'SKILL_CHAIN <skill> <reason> chained_from=<this>\' >> skill_chain.log")',
+    "set_codebase": 'Write("codebase.json", {...})',
+    "status": '# Read scope.json + tail events.jsonl',
 }
 
 # These three are no-ops in native mode (no Docker)
@@ -231,10 +231,10 @@ def replace_session(text: str) -> str:
         )
 
     # Old prose names (8-tool API leftovers)
-    text = re.sub(r'`start_scan`', '`# Init pentest/ + Write pentest/scope.json`', text)
-    text = re.sub(r'\bstart_scan\b', '# Init pentest/ + Write pentest/scope.json', text)
-    text = re.sub(r'`complete_scan`', '`Write("pentest/summary.md", ...)`', text)
-    text = re.sub(r'\bcomplete_scan\b', 'Write("pentest/summary.md", ...)', text)
+    text = re.sub(r'`start_scan`', '`# Init engagement dir + Write scope.json`', text)
+    text = re.sub(r'\bstart_scan\b', '# Init engagement dir + Write scope.json', text)
+    text = re.sub(r'`complete_scan`', '`Write("summary.md", ...)`', text)
+    text = re.sub(r'\bcomplete_scan\b', 'Write("summary.md", ...)', text)
     text = re.sub(r'`start_kali`', '`# (no-op — tools native on Kali)`', text)
     text = re.sub(r'(?<!action=")\bstart_kali\b', '# (no-op — tools native on Kali)', text)
     text = re.sub(r'`stop_kali`', '`# (no-op — tools native on Kali)`', text)
@@ -257,10 +257,10 @@ NEW_TABLE = (
     "|------|---------|\n"
     "| `Bash(\"<cmd>\")` | Any Kali tool — nmap, naabu, httpx, nuclei, ffuf, katana, subfinder, semgrep, trufflehog, sqlmap, nikto, hydra, gobuster, testssl, enum4linux-ng, theHarvester, dnsrecon, certipy, nxc, impacket, searchsploit, … (everything is on PATH on Kali). Also `curl` for raw HTTP probes. |\n"
     "| `Write(\"pocs/<name>.http\", ...)` | Save a confirmed exploit as a raw `.http` file under `pocs/` (paste-ready for Burp Repeater). |\n"
-    "| `Write(\"pentest/diagrams/<name>.mmd\", ...)` | Save a Mermaid architecture/network diagram. |\n"
-    "| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |\n"
-    "| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |\n"
-    "| `Bash(\"echo ... >> pentest/notes.log\")` | Append a reasoning note or decision to the running session log. |\n"
+    "| `Write(\"diagrams/<name>.mmd\", ...)` | Save a Mermaid architecture/network diagram. |\n"
+    "| `Read` + `Write` `findings.json` | Append a confirmed vulnerability (with evidence) to `findings.json` — read, mutate the JSON array, write back. |\n"
+    "| `Read` + `Write` `coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |\n"
+    "| `Bash(\"echo ... >> notes.log\")` | Append a reasoning note or decision to the running session log. |\n"
     "| `Bash(\"tmux new-session ...\")` + `tmux send-keys` / `tmux capture-pane` | Drive interactive tools that need a live PTY — msfconsole, evil-winrm, responder, listeners. |\n"
 )
 
@@ -279,7 +279,7 @@ def replace_tools_table(text: str) -> str:
     ]
     post_rewrite_markers = [
         '`# (no-op — tools native on Kali)`',
-        '`# (no dashboard — see pentest/findings.json directly)`',
+        '`# (no dashboard — see findings.json directly)`',
     ]
     match = OLD_TABLE_PATTERN.search(text)
     if not match:
@@ -460,10 +460,10 @@ def replace_misc(text: str) -> str:
     # Drop dashboard URL references
     text = re.sub(
         r'\bgives you a live URL to watch findings roll in\b',
-        'creates the pentest/ artifact directory',
+        'writes artifacts directly into the engagement directory',
         text,
     )
-    text = re.sub(r'localhost:5000', 'pentest/findings.json', text)
+    text = re.sub(r'localhost:5000', 'findings.json', text)
     return text
 
 
@@ -512,7 +512,7 @@ def replace_syntax_line(text: str) -> str:
 #
 # Tier 2 logging redesign: collapse notes.log + skill_chain.log + findings.json
 # read-mutate-write + coverage.json read-mutate-write into a single append-only
-# pentest/events.jsonl. Skills append events; refresh.py regenerates the
+# events.jsonl. Skills append events; refresh.py regenerates the
 # findings.json + coverage.json snapshots. See pentester/EVENTS.md.
 #
 # Each replacement targets a literal placeholder string the migration produced
@@ -520,29 +520,29 @@ def replace_syntax_line(text: str) -> str:
 # by construction — the new value never contains the old substring, except
 # for the bootstrap mkdir which uses a negative-lookahead regex.
 
-_NOTE_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> pentest/events.jsonl")'''
+_NOTE_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg msg '<message>' '{ts:$ts,type:\"note\",msg:$msg}' >> events.jsonl")'''
 
-_SKILL_CHAIN_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg skill '<name>' --arg reason '<1-2 sentences>' --arg parent '<parent or empty>' '{ts:$ts,type:\"skill_chain\",skill:$skill,reason:$reason,chained_from:$parent}' >> pentest/events.jsonl")'''
+_SKILL_CHAIN_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg skill '<name>' --arg reason '<1-2 sentences>' --arg parent '<parent or empty>' '{ts:$ts,type:\"skill_chain\",skill:$skill,reason:$reason,chained_from:$parent}' >> events.jsonl")'''
 
-_FINDING_ADD_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> pentest/events.jsonl")'''
+_FINDING_ADD_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg id 'f-001' --arg title '<title>' --arg sev 'high' --argjson leads '[{\"lead\":\"<x>\",\"status\":\"pending\"}]' '{ts:$ts,type:\"finding\",action:\"add\",id:$id,title:$title,severity:$sev,escalation_leads:$leads}' >> events.jsonl")'''
 
-_CELL_STATUS_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg cid '<cell_id>' --arg st 'in_progress' --arg tech '<technique>' --arg by '<tool>' --arg notes '<notes>' '{ts:$ts,type:\"cell_status\",cell_id:$cid,status:$st,technique:$tech,tested_by:$by,notes:$notes}' >> pentest/events.jsonl")'''
+_CELL_STATUS_ONELINER = r'''Bash("jq -nc --arg ts \"$(date -Iseconds)\" --arg cid '<cell_id>' --arg st 'in_progress' --arg tech '<technique>' --arg by '<tool>' --arg notes '<notes>' '{ts:$ts,type:\"cell_status\",cell_id:$cid,status:$st,technique:$tech,tested_by:$by,notes:$notes}' >> events.jsonl")'''
 
 _RECOVERY_BLOCK = (
     'Bash("python3 ~/.claude/skills/pentester/refresh.py") + '
-    'Read("pentest/findings.json") + '
-    'Read("pentest/coverage.json") + '
-    'Bash("tail -500 pentest/events.jsonl")'
+    'Read("findings.json") + '
+    'Read("coverage.json") + '
+    'Bash("tail -500 events.jsonl")'
 )
 
 _LOGGING_BOILERPLATE_OLD = (
     '**Logging:** Before invoking any skill above, call '
     '`Bash("echo \'SKILL_CHAIN <skill> <reason> chained_from=<this>\' '
-    '>> pentest/skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.'
+    '>> skill_chain.log")` — this writes the SKILL_CHAIN entry to pentest.log.'
 )
 _LOGGING_BOILERPLATE_NEW = (
     '**Logging:** Before invoking any skill above, append a `skill_chain` event to '
-    '`pentest/events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).'
+    '`events.jsonl` (see CLAUDE.md "Skill logging" for the exact one-liner).'
 )
 
 
@@ -551,8 +551,8 @@ def replace_events_artifacts(text: str) -> str:
 
     # 1. Bootstrap mkdir: add events.jsonl touch (only if not already present).
     text = re.sub(
-        r'mkdir -p pentest/\{pocs,diagrams\}(?! && touch pentest/events\.jsonl)',
-        'mkdir -p pentest/{pocs,diagrams} && touch pentest/events.jsonl',
+        r'mkdir -p pentest/\{pocs,diagrams\}(?! && touch events\.jsonl)',
+        'mkdir -p pocs diagrams scans loot creds payloads logs wordlists && touch events.jsonl',
         text,
     )
 
@@ -562,69 +562,69 @@ def replace_events_artifacts(text: str) -> str:
 
     # 3. Other isolated skill_chain.log echoes → skill_chain jq one-liner.
     text = text.replace(
-        '''Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> pentest/skill_chain.log")''',
+        '''Bash("echo 'SKILL_CHAIN <skill> <reason> chained_from=<this>' >> skill_chain.log")''',
         _SKILL_CHAIN_ONELINER,
     )
     text = text.replace(
-        '''Bash("echo 'SKILL_CHAIN ...' >> pentest/skill_chain.log")''',
+        '''Bash("echo 'SKILL_CHAIN ...' >> skill_chain.log")''',
         _SKILL_CHAIN_ONELINER,
     )
 
     # 4. notes.log echoes → note jq one-liner. Single literal call form covers
     #    every instance the audit found.
     text = text.replace(
-        '''Bash("echo '<message>' >> pentest/notes.log")''',
+        '''Bash("echo '<message>' >> notes.log")''',
         _NOTE_ONELINER,
     )
 
     # 5. Finding-append placeholder → finding/add jq one-liner.
     text = text.replace(
-        '# Append finding to pentest/findings.json (Read → mutate JSON array → Write)',
+        '# Append finding to findings.json (Read → mutate JSON array → Write)',
         _FINDING_ADD_ONELINER,
     )
 
     # 6. Coverage-upsert placeholder → cell_status jq one-liner.
     text = text.replace(
-        '# Upsert into pentest/coverage.json (Read → update entry by cell_id/path+method → Write)',
+        '# Upsert into coverage.json (Read → update entry by cell_id/path+method → Write)',
         _CELL_STATUS_ONELINER,
     )
 
     # 7. Recovery compound → four-step block (refresh + 2 reads + tail).
     text = text.replace(
-        '# Recover state: Read("pentest/coverage.json"), Read("pentest/findings.json"), Bash("tail -200 pentest/notes.log")',
+        '# Recover state: Read("coverage.json"), Read("findings.json"), Bash("tail -200 notes.log")',
         _RECOVERY_BLOCK,
     )
 
     # 8. Live-watch references.
     text = text.replace(
-        'tail -f pentest/findings.json',
-        "tail -f pentest/events.jsonl | jq -c '.'",
+        'tail -f findings.json',
+        "tail -f events.jsonl | jq -c '.'",
     )
 
     # 9. Stale narrative `pentest.log` references (the upstream MCP-era
     #    single-log file no longer exists). Runs after step 2 so it only
     #    catches mid-paragraph mentions, not the boilerplate sentence ending.
-    text = text.replace('`pentest.log`', '`pentest/events.jsonl`')
+    text = text.replace('`pentest.log`', '`events.jsonl`')
 
     # 10. The Tools-available table rows that survived earlier migration
     #     (they used `...` placeholders, not literal `<message>`, so step 4
     #     didn't catch them). Three identical rows across 19 skills get
     #     collapsed to two rows: one for the append, one for the refresh+read.
     old_three_rows = (
-        '| `Read` + `Write` `pentest/findings.json` | Append a confirmed vulnerability (with evidence) to `pentest/findings.json` — read, mutate the JSON array, write back. |\n'
-        '| `Read` + `Write` `pentest/coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |\n'
-        '| `Bash("echo ... >> pentest/notes.log")` | Append a reasoning note or decision to the running session log. |'
+        '| `Read` + `Write` `findings.json` | Append a confirmed vulnerability (with evidence) to `findings.json` — read, mutate the JSON array, write back. |\n'
+        '| `Read` + `Write` `coverage.json` | Upsert an endpoint/test cell in the coverage matrix. |\n'
+        '| `Bash("echo ... >> notes.log")` | Append a reasoning note or decision to the running session log. |'
     )
     new_two_rows = (
-        '| `Bash("jq -nc ... >> pentest/events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |\n'
-        '| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("pentest/findings.json")` / `Read("pentest/coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |'
+        '| `Bash("jq -nc ... >> events.jsonl")` | Append events: notes, skill chains, cell updates, findings. Schema and canonical one-liners in [pentester/EVENTS.md](pentester/EVENTS.md). All state changes go through `events.jsonl`. |\n'
+        '| `Bash("python3 ~/.claude/skills/pentester/refresh.py")` + `Read("findings.json")` / `Read("coverage.json")` | Refresh the derived snapshots, then read them. Used by recovery and by the `/gh-export` and `/remediate` chains. |'
     )
     text = text.replace(old_three_rows, new_two_rows)
 
     # 11. The `session(action="status")` placeholder still references notes.log.
     text = text.replace(
-        '# Read pentest/scope.json + tail pentest/notes.log',
-        '# Read pentest/scope.json + tail pentest/events.jsonl',
+        '# Read scope.json + tail notes.log',
+        '# Read scope.json + tail events.jsonl',
     )
 
     return text
