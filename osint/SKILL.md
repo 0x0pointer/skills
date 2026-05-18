@@ -1,11 +1,13 @@
 ---
 name: osint
-description: |
+description: >-
   Deep OSINT reconnaissance using the MITRE ATT&CK Reconnaissance framework. Email harvesting with SMTP verification, subdomain takeover detection, certificate transparency mining, Shodan/Censys intelligence, Wayback Machine historical analysis, social media profiling, cloud storage enumeration, document metadata extraction, DNS history, credential leak checks, and passive infrastructure mapping.
 
   Uses theHarvester, amass, dnsrecon, fierce, dnstwist, dmitry, whatweb, wafw00f, exiftool, metagoofil, smtp-user-enum, swaks, waybackurls, subfinder, and crt.sh. Pure reconnaissance — no active exploitation.
 
-  Produces: confidence-scored findings, infrastructure diagram, employee roster, email pattern confirmation, subdomain takeover candidates. Chains into /pentester for active testing.
+  Produces confidence-scored findings, infrastructure diagram, employee roster, email pattern, and subdomain takeover candidates. Chains into /pentester for active testing.
+
+  Use for OSINT, passive reconnaissance, subdomain enumeration, email harvesting, Shodan/Censys lookup, Wayback Machine analysis, employee profiling, or footprinting a domain before active scanning.
 argument-hint: <domain-or-org> [depth=quick|standard|thorough] [focus=email|infra|social|all]
 user-invocable: true
 ---

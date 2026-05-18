@@ -1,9 +1,11 @@
 ---
 name: container-k8s-security
-description: |
+description: >-
   Container and Kubernetes security assessment. Tests container escape vectors, Docker/containerd socket exposure, K8s RBAC misconfigurations, pod security violations, exposed API servers, etcd access, service account token abuse, image layer secrets, private registry attacks, SSRF to metadata services, cross-namespace network bypass, CIS benchmarks, crypto miner detection, resource exhaustion, and admission controller gaps.
 
   Both external and internal (compromised pod) perspectives. Uses trivy, kube-bench, kubectl, nuclei, dive, amicontained, and docker-bench-security. Covers OWASP Kubernetes Top 10 and all 22 Kubernetes Goat attack scenarios.
+
+  Use for a Kubernetes audit, K8s pentest, container security review, Docker hardening check, pod escape test, RBAC misconfiguration scan, runC/containerd assessment, or to run kube-bench, trivy, or amicontained against a cluster or container.
 argument-hint: <target> [type=docker|kubernetes|both] [perspective=external|internal|both] [depth=quick|standard|thorough]
 user-invocable: true
 ---
@@ -47,37 +49,13 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ---
 
-## ATT&CK Coverage
+## Coverage Matrices
 
-| Technique | ID | What we test |
-|-----------|----|-------------|
-| Exploit Public-Facing App | T1190 | Exposed K8s API server, Docker daemon, etcd, kubelet, registries, NodePort services |
-| Deploy Container | T1610 | Unauthorized container/pod creation, hacker container deployment |
-| Container Admin Command | T1609 | Exec into containers, kubectl abuse, kubelet /run endpoint RCE |
-| Escape to Host | T1611 | Container breakout via privileged mode, hostPath, chroot, Docker/containerd socket, capabilities |
-| Container Image Discovery | T1613 | Image enumeration, private registry /v2/_catalog, image layer inspection |
-| Unsecured Credentials in Files | T1552.007 | Service account tokens, secrets in env vars, secrets in image layers, .git exposure |
-| Network Service Discovery | T1046 | Cross-namespace scanning, internal service discovery via K8s DNS |
-| Cloud Instance Metadata | T1552.005 | SSRF to 169.254.169.254, cloud credential theft |
-| Resource Hijacking | T1496 | Crypto miner detection in containers and image layers |
-| Account Discovery | T1087 | RBAC enumeration, ClusterRoleBinding audit, SA permission escalation |
+When mapping a finding to a framework category or proving coverage of a specific scenario, read the appropriate ref file rather than rederiving:
 
----
-
-## OWASP Kubernetes Top 10 Coverage Matrix
-
-| # | Category | Phase | Tests |
-|---|----------|-------|-------|
-| K01 | Insecure Workload Configuration | 4, 5 | Privileged pods, host namespaces (PID/IPC/Net), hostPath mounts, root containers, missing readOnlyRootFilesystem, dangerous capabilities (SYS_ADMIN, SYS_PTRACE, NET_RAW, AUDIT_CONTROL), missing seccomp/AppArmor profiles |
-| K02 | Supply Chain Vulnerabilities | 7, 8 | Image scanning (Trivy), unsigned images, untrusted registries, image layer secret extraction (docker history, docker save, dive), crypto miner payloads in images, .git exposure in container images |
-| K03 | Overly Permissive RBAC | 6 | ClusterRoleBindings to cluster-admin, wildcard permissions, service account abuse, SA token API probing, missing resourceNames restrictions, pod creation RBAC |
-| K04 | Lack of Centralized Policy Enforcement | 11 | Missing admission controllers (OPA/Gatekeeper, Kyverno, PodSecurity), missing PodSecurityStandards enforcement, ability to deploy arbitrary images |
-| K05 | Inadequate Logging and Monitoring | 11 | Missing audit logging (--audit-log-path), missing runtime security (Falco, Tetragon), no anomaly detection |
-| K06 | Broken Authentication Mechanisms | 3, 5 | API server anonymous auth, kubelet anonymous auth + /run RCE, default service account auto-mount, bootstrap tokens, etcd unauthenticated access |
-| K07 | Missing Network Segmentation | 9 | Missing NetworkPolicies, cross-namespace pod connectivity, flat network exploitation, NodePort exposure |
-| K08 | Secrets Management Failures | 7 | Secrets as env vars (not volume mounts), unencrypted etcd, secrets in git/codebases, secrets in image layers, plaintext secrets in manifests, missing external secrets operator |
-| K09 | Misconfigured Cluster Components | 3, 10 | API server flags (--anonymous-auth, --allow-privileged, --authorization-mode), kubelet config, etcd encryption, kube-bench CIS audit, docker-bench-security audit |
-| K10 | Outdated and Vulnerable K8s Components | 3, 8 | K8s version CVEs, addon versions, container image CVEs (Trivy), EOL base images |
+- **MITRE ATT&CK technique IDs** for every test in this skill — [refs/attack-matrix.md](refs/attack-matrix.md)
+- **OWASP Kubernetes Top 10** category-to-phase map (K01–K10) — [refs/owasp-k8s-top10.md](refs/owasp-k8s-top10.md)
+- **Kubernetes Goat scenario coverage** (all 22 scenarios mapped to phases) — [refs/goat-scenarios.md](refs/goat-scenarios.md)
 
 ---
 
@@ -991,33 +969,9 @@ Container/K8s Security Assessment Summary:
 
 ---
 
-## Kubernetes Goat Scenario Coverage Map
+## Coverage references
 
-This table maps each Kubernetes Goat attack scenario to the phase in this skill that detects it.
-
-| # | Scenario | Phase | How We Detect It |
-|---|----------|-------|-----------------|
-| 1 | Sensitive keys in codebases | 7d | .git exposure scan in running containers |
-| 2 | DIND/containerd exploitation | 5a | Container runtime socket discovery + exploit |
-| 3 | SSRF in K8s pod | 9d, 9e | Cloud metadata SSRF + K8s DNS service discovery |
-| 4 | Container escape to host | 5b, 5c | Privileged escape via chroot + hostPath abuse |
-| 5 | Docker CIS benchmarks | 10b | docker-bench-security audit |
-| 6 | K8s CIS benchmarks | 10a | kube-bench CIS audit |
-| 7 | Private registry attack | 8f | Registry /v2/_catalog + manifest env var extraction |
-| 8 | NodePort exposed services | 2 | NodePort service enumeration + probing |
-| 10 | Crypto miner in container | 8c, 8e | Image layer inspection + process monitoring |
-| 11 | Namespace bypass | 9b, 9c | Cross-namespace connectivity test |
-| 12 | Environment info gathering | 7c | Env var + mount + proc enumeration from inside pod |
-| 13 | DoS via resources | 11e, 4 | LimitRange/ResourceQuota/resource limits audit |
-| 14 | Hacker container | 6b, 11a | Pod creation RBAC + admission controller check |
-| 15 | Hidden in layers | 8c, 8d | docker history + docker save layer extraction + dive |
-| 16 | RBAC misconfiguration | 6a-6d | Full RBAC audit + SA token API testing |
-| 17 | KubeAudit defense | 11a | Check for audit tools presence |
-| 18 | Falco runtime detection | 11c | Check for Falco DaemonSet |
-| 19 | Popeye sanitizer | 11a | Check for cluster sanitizer tools |
-| 20 | NetworkPolicy defense | 9a | Check for NetworkPolicy presence |
-| 21 | Tetragon/eBPF | 11c | Check for Tetragon/Cilium DaemonSet |
-| 22 | Kyverno policy engine | 11a | Check for Kyverno admission webhooks |
+For framework mapping (MITRE ATT&CK, OWASP K8s Top 10) and Kubernetes Goat scenario coverage, see the [Coverage Matrices section](#coverage-matrices) above — the three ref files in `refs/` are the canonical maps.
 
 ---
 

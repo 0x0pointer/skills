@@ -1,6 +1,6 @@
 ---
 name: pivoting
-description: |
+description: >-
   Network pivoting and tunneling for restricted environments. Sets up SOCKS proxies, Layer-3 tunnels, port forwarding, and multi-hop pivots when the attacker host can't directly reach internal targets. Covers chisel (HTTP-tunneled SOCKS5), ligolo-ng (TUN-based L3 tunnel — no proxychains required), SSH local/remote/dynamic forwarding, sshuttle, socat relays, Metasploit autoroute/portfwd, and proxychains4 configuration.
 
   Uses chisel, ligolo-ng (proxy + agent), msfvenom (agent dropper payloads), proxychains4, ssh, sshuttle, socat, and tmux for long-lived listeners. Chains from /post-exploit, /reverse-shell, or /lateral-movement when a foothold has been established but internal targets are not directly reachable from the attacker host.

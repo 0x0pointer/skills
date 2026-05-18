@@ -1,11 +1,13 @@
 ---
 name: cloud-security
-description: |
+description: >-
   Cloud security posture assessment for AWS, Azure, and GCP. Tests IAM privilege escalation paths, public storage exposure, serverless attack surface, database exposure, logging gaps, container registry security, and cloud-specific attacks.
 
   Both authenticated (with cloud credentials) and unauthenticated (external) modes. Uses nuclei cloud templates, Prowler, ScoutSuite, manual IMDS/metadata probing, and deep AWS/Azure/GCP CLI enumeration.
 
   Produces: cloud architecture diagram, attack path map, findings per category, compliance mapping (SOC 2, PCI DSS 4.0, HIPAA, CIS), PoCs for confirmed exploits. Chains into /gh-export for issue filing.
+
+  Use for a cloud security audit, AWS/Azure/GCP pentest, IAM privesc check, S3/blob/GCS exposure scan, IMDS/metadata exploitation, serverless attack-surface review, or compliance audit (SOC 2, PCI DSS, HIPAA, CIS) of a cloud account.
 argument-hint: <cloud-target> [provider=aws|azure|gcp] [mode=authenticated|external] [depth=quick|standard|thorough]
 user-invocable: true
 ---

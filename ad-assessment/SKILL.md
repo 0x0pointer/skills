@@ -1,9 +1,11 @@
 ---
 name: ad-assessment
-description: |
+description: >-
   Active Directory security audit using the MITRE ATT&CK framework. Full domain enumeration, trust mapping, GPO analysis, ACL abuse paths, ADCS attacks (ESC1-ESC8), delegation abuse (constrained/unconstrained/RBCD), fine-grained password policies, LAPS deployment, service account security, and Kerberos configuration.
 
   Uses enum4linux-ng, netexec, impacket, ldapsearch, certipy-ad, bloodhound-python, and rpcclient. Produces attack path diagrams, prioritized risk register, and PoCs. Chains into /gh-export for issue filing.
+
+  Use for an Active Directory audit, AD pentest, BloodHound analysis, ADCS attack path scan (ESC1-ESC8), Kerberos misconfiguration check, GPO or ACL review, trust mapping, LAPS/service-account audit, or domain controller enumeration.
 argument-hint: <dc-ip-or-domain> [domain=DOMAIN] [user=USER] [pass=PASS] [depth=quick|standard|thorough]
 user-invocable: true
 ---

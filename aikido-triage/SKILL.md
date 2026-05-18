@@ -1,7 +1,7 @@
 ---
 name: aikido-triage
 description: Triages an Aikido security findings CSV against a local codebase. For each finding, reads the flagged file, traces the code path, and verdicts it as KEEP OPEN or CLOSE with a specific reason. Outputs a reviewed CSV and a self-contained HTML evidence report. Run this at the end of a pentest when an Aikido CSV is available.
-argument-hint: [path/to/findings.csv] [path/to/codebase]
+argument-hint: "[path/to/findings.csv] [path/to/codebase]"
 user-invocable: true
 ---
 
