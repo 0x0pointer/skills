@@ -1,22 +1,20 @@
 ---
 name: param-fuzz
 description: |
-  Systematic parameter-level fuzzing and input validation testing for any web application.
-  Covers: auth/token stripping (endpoints that respond without valid credentials), type confusion
-  (sending wrong types to every parameter), boundary value analysis (zero/negative/overflow on
-  any numeric or quantity field), HTTP parameter pollution (duplicate keys, array vs scalar
-  confusion), mass assignment discovery (injecting undocumented fields on mutating endpoints to
-  find hidden privilege, status, or value fields that get persisted), and entropy/predictability
-  analysis of any generated value (tokens, codes, IDs, reference numbers, card numbers). Works
-  on any domain — not finance-specific. Chains from /web-exploit or /pentester; chains into
-  /business-logic when boundary violations, predictable IDs, or mass assignment are confirmed.
+  Systematic fuzzing across two dimensions: (1) content discovery — hidden directories, files,
+  backup/source leaks, HTTP verb enumeration, 401/403 bypass via path manipulation;
+  (2) input validation — auth/token stripping, type confusion, boundary value analysis,
+  HTTP parameter pollution, header fuzzing, cookie fuzzing, mass assignment discovery, and
+  entropy/predictability analysis of any generated value. Works on any domain. Chains from
+  /web-exploit or /pentester; chains into /business-logic when boundary violations, predictable
+  IDs, or mass assignment are confirmed.
 argument-hint: <target-url> [endpoints=<comma-list>] [depth=quick|standard|thorough]
 user-invocable: true
 ---
 
 # Parameter Fuzzing & Input Validation
 
-You are an expert in input validation security testing. Your goal: systematically probe every parameter on every endpoint for missing or bypassable validation. Produce a confirmed finding for every misbehavior — wrong-type acceptance, boundary violations, hidden injectable fields, weak randomness, information leakage via error responses.
+You are an expert in web fuzzing and input validation security testing. Your goal covers two dimensions: **content discovery** (finding attack surface that isn't visible) and **input validation** (probing every parameter for missing or bypassable guards). Produce a confirmed finding for every misbehavior — hidden files, wrong-type acceptance, boundary violations, hidden injectable fields, weak randomness, information leakage.
 
 This skill is domain-agnostic. It applies equally to banking apps, e-commerce, SaaS, APIs, CMS, gaming, social platforms, or anything else.
 
@@ -44,6 +42,14 @@ This skill is domain-agnostic. It applies equally to banking apps, e-commerce, S
 
 | Category | OWASP | What it finds |
 |----------|-------|---------------|
+| **Wildcard Calibration** | — | False-positive baseline before any fuzzing; detect wildcard 200s |
+| **Directory Discovery** | A05 | Hidden paths, admin panels, forgotten endpoints |
+| **File Extension Fuzzing** | A05 | Source backups, config leaks, temp files (`.bak`, `.old`, `.swp`) |
+| **Backup File Discovery** | A05 | Predictable backup names for known files (index.php.bak, web.config~) |
+| **HTTP Verb Fuzzing** | API5, A01 | Methods accepted that shouldn't be (PUT, DELETE, TRACE, CONNECT) |
+| **Header Fuzzing** | A01, A05 | X-Forwarded-For bypass, custom-header-gated features, User-Agent gates |
+| **Cookie Fuzzing** | A01, A05 | Hidden feature flags, trust switches, session privilege escalation |
+| **401/403 Path Bypass** | A01 | Case, encoding, double-slash, null-byte, path traversal to bypass ACL |
 | **Auth Stripping** | API2, A01 | Endpoints that respond without valid credentials |
 | **Type Confusion** | A03, API6 | Crashes, info leaks, silent wrong-type acceptance |
 | **Boundary Values** | A04 | Missing min/max/zero/overflow validation on any numeric field |
@@ -58,9 +64,9 @@ This skill is domain-agnostic. It applies equally to banking apps, e-commerce, S
 
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
-| `quick` | Auth stripping + mass assignment on all mutating endpoints | $0.10 · 15 min · 10 calls |
-| `standard` | Quick + type confusion + boundary values + parameter pollution | $0.50 · 45 min · 25 calls |
-| `thorough` | Standard + entropy sampling (10 samples per generated value type) + ffuf param discovery + full error disclosure triage | unlimited · unlimited · unlimited |
+| `quick` | Wildcard calibration + directory discovery (common.txt) + auth stripping + mass assignment | $0.10 · 15 min · 10 calls |
+| `standard` | Quick + extension fuzzing + backup files + verb fuzzing + header/cookie fuzzing + type confusion + boundary values + parameter pollution | $0.50 · 45 min · 25 calls |
+| `thorough` | Standard + recursive directory scan + 401/403 bypass + entropy analysis + ffuf param discovery + full error triage | unlimited · unlimited · unlimited |
 
 ---
 
@@ -87,7 +93,264 @@ If depth is not specified, ask:
 
 ---
 
-### Phase 1 — Auth & Token Stripping
+### Phase 1 — Wildcard Calibration (ALWAYS FIRST)
+
+Before running any wordlist scan, determine whether the server returns a meaningful response for nonexistent paths. A server that returns **200** for everything makes all fuzzing results noise.
+
+**Test:**
+```
+kali(command="curl -s -o /dev/null -w '%{http_code} %{size_download}' https://TARGET/$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c 16)")
+kali(command="curl -s -o /dev/null -w '%{http_code} %{size_download}' https://TARGET/api/$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c 16)")
+```
+
+| Response | What to do |
+|----------|------------|
+| 404 | Safe to fuzz — filter out 404s with `-fc 404` |
+| 200 with constant body size | Wildcard 200 — calibrate with `-fs <size>` or `-ac` |
+| 200 with variable body size | Must use `-fw` (word count filter) or `-fl` (line count filter) or `-fr` (regex) |
+| 302 to login | Filter the redirect: `-fc 302` or `-mc 200,403,500` |
+
+**Always pass `-ac` (auto-calibrate) to ffuf unless you have a specific reason not to.** It performs multiple probe requests internally and sets size/word/line filters automatically.
+
+---
+
+### Phase 2 — Content Discovery: Directories & Files
+
+**Step 2a — Directory enumeration:**
+
+```
+kali(command="ffuf -ac -u https://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -mc 200,201,204,301,302,307,401,403,405 -t 40 -o /tmp/dirs.json -of json")
+```
+
+After finding directories, recurse into them (thorough depth):
+```
+kali(command="ffuf -ac -u https://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -recursion -recursion-depth 2 -mc 200,201,204,301,302,307,401,403,405 -t 20 -o /tmp/dirs-recursive.json -of json")
+```
+
+**Step 2b — File discovery (with common extensions):**
+```
+kali(command="ffuf -ac -u https://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -mc 200,201,204,301,302,307,401,403,405 -t 40")
+```
+
+**Step 2c — Extension fuzzing on known paths:**
+
+For every discovered file path (e.g., `/index`), brute-force extensions:
+```
+kali(command="ffuf -ac -u https://TARGET/indexFUZZ -w /usr/share/seclists/Discovery/Web-Content/web-extensions.txt -mc 200,201,204,301,302,307,401,403 -t 20")
+```
+
+Extension wordlist to cover: `.php`, `.php3`, `.php5`, `.phtml`, `.asp`, `.aspx`, `.jsp`, `.jspx`, `.do`, `.action`, `.html`, `.htm`, `.xml`, `.json`, `.yaml`, `.yml`, `.txt`, `.cfg`, `.conf`, `.config`, `.ini`, `.env`, `.log`, `.sql`, `.db`, `.sqlite`, `.bak`, `.backup`, `.old`, `.orig`, `.copy`, `.swp`, `.~`, `.zip`, `.tar.gz`, `.gz`, `.7z`.
+
+**Step 2d — Backup file discovery:**
+
+For every known file (`index.php`, `config.php`, `app.py`, `web.config`, `settings.py`, etc.), probe predictable backup names:
+```
+kali(command="for f in index.php config.php app.py settings.py web.config application.properties; do
+  for ext in .bak .backup .old .orig .copy .swp ~ .zip .tar.gz .1 .0; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' https://TARGET/${f}${ext})
+    [ \"$code\" != \"404\" ] && echo \"HIT: ${f}${ext} -> $code\"
+  done
+done")
+```
+
+Also check editor swap files for any discovered `.php` or `.py` files:
+```
+kali(command="ffuf -ac -u https://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/Common-DB-Backups.txt -mc 200,206 -t 20")
+```
+
+**Step 2e — Sensitive file hunting:**
+```
+kali(command="ffuf -ac -u https://TARGET/FUZZ -w /usr/share/seclists/Discovery/Web-Content/CommonBackdoors-PHP.fuzz.txt -mc 200 -t 20")
+```
+
+Always probe these regardless:
+```
+http(action="request", url="https://TARGET/.git/HEAD")
+http(action="request", url="https://TARGET/.git/config")
+http(action="request", url="https://TARGET/.env")
+http(action="request", url="https://TARGET/.DS_Store")
+http(action="request", url="https://TARGET/wp-config.php.bak")
+http(action="request", url="https://TARGET/config.php.bak")
+http(action="request", url="https://TARGET/database.yml")
+http(action="request", url="https://TARGET/secrets.yml")
+http(action="request", url="https://TARGET/phpinfo.php")
+http(action="request", url="https://TARGET/server-status")
+http(action="request", url="https://TARGET/server-info")
+http(action="request", url="https://TARGET/crossdomain.xml")
+http(action="request", url="https://TARGET/clientaccesspolicy.xml")
+```
+
+**Finding criteria:**
+- `.git/HEAD` returns `ref: refs/heads/` → **Critical** — dump the whole repo with `kali(command="git-dumper https://TARGET/.git /tmp/repo")`
+- `.env` or `config.php.bak` with credentials → **Critical**
+- `phpinfo.php` accessible → **Medium**
+- Any `.bak`/`.old` file with source code → **High**
+- `.DS_Store` present → **Low** (lists directory contents)
+
+---
+
+### Phase 3 — HTTP Verb Fuzzing
+
+For every endpoint in the coverage matrix, test every HTTP method. Many apps only implement GET/POST but don't explicitly reject PUT/DELETE/TRACE, leading to logic bypasses or unintended state changes.
+
+```
+kali(command="wfuzz -c -z list,GET-POST-PUT-DELETE-PATCH-HEAD-OPTIONS-TRACE-CONNECT-PROPFIND-PROPPATCH-MKCOL-COPY-MOVE-LOCK-UNLOCK -X FUZZ https://TARGET/api/user/1 2>/dev/null | grep -v '404'")
+```
+
+Or with ffuf:
+```
+kali(command="ffuf -u https://TARGET/api/user/1 -X FUZZ -w /usr/share/seclists/Fuzzing/http-request-methods.txt -mc 200,201,204,302,400,405,500 -t 10")
+```
+
+**What to look for per method:**
+
+| Method | Finding if accepted |
+|--------|-------------------|
+| `PUT` on a resource URL | May allow arbitrary file write or resource replacement |
+| `DELETE` on a resource | May allow unauthorized deletion |
+| `TRACE` | Reflects request headers → Cross-Site Tracing (XST), useful for bypassing HttpOnly |
+| `OPTIONS` | Check `Allow:` header — lists every method the server supports, including undocumented ones |
+| `CONNECT` | Proxy abuse if accepted |
+| `HEAD` | If different response than GET (different auth behavior, different headers) |
+| Any method returning `405` on path A but `200` on path A/ (trailing slash) | WAF/router inconsistency |
+
+Also test **method override headers** on POST endpoints:
+```
+http(action="request", url="https://TARGET/api/user/1", method="POST",
+  headers={"X-HTTP-Method-Override": "DELETE", "X-Method-Override": "DELETE", "_method": "DELETE"})
+```
+
+---
+
+### Phase 4 — Header Fuzzing
+
+HTTP headers are frequently gated by trust assumptions. Applications often expose different functionality or bypass access controls based on header values.
+
+**Step 4a — IP source spoofing / internal bypass:**
+```
+# Try to bypass IP-based access controls:
+http(action="request", url="https://TARGET/admin",
+  headers={
+    "X-Forwarded-For": "127.0.0.1",
+    "X-Real-IP": "127.0.0.1",
+    "X-Originating-IP": "127.0.0.1",
+    "X-Remote-IP": "127.0.0.1",
+    "X-Client-IP": "127.0.0.1",
+    "True-Client-IP": "127.0.0.1",
+    "CF-Connecting-IP": "127.0.0.1"
+  }
+)
+```
+Send each header individually — some apps only trust one specific header.
+
+**Step 4b — Custom header discovery:**
+```
+kali(command="ffuf -u https://TARGET/ -H 'FUZZ: test' -w /usr/share/seclists/Discovery/Web-Content/x-custom-headers.txt -mc 200,302,403,500 -fw <baseline_word_count> -t 20")
+```
+
+Common high-value headers to probe manually:
+```
+X-Internal: true
+X-Admin: true
+X-Debug: 1
+X-Original-URL: /admin
+X-Rewrite-URL: /admin
+X-Override-URL: /admin
+X-Forwarded-Host: internal.target.com
+X-Forwarded-Proto: https
+X-Api-Version: 2
+X-Feature-Flag: admin
+X-Tenant-ID: 1
+X-User-ID: 1
+X-Role: admin
+X-Auth-Override: admin
+```
+
+**Step 4c — User-Agent gating:**
+```
+kali(command="ffuf -u https://TARGET/ -H 'User-Agent: FUZZ' -w /usr/share/seclists/Fuzzing/User-Agents/user-agents.txt -mc 200,302,403 -fw <baseline> -t 10")
+```
+Some admin panels or mobile-only features only render for specific User-Agent strings.
+
+**Step 4d — Host header injection (for password reset / OAuth):**
+```
+http(action="request", url="https://TARGET/password-reset", method="POST",
+  headers={"Host": "ATTACKER.com"},
+  body="email=victim@example.com"
+)
+```
+If the password reset email contains `ATTACKER.com` in the link → Host header injection confirmed.
+
+---
+
+### Phase 5 — Cookie Fuzzing
+
+**Step 5a — Discover hidden cookie names:**
+```
+kali(command="ffuf -u https://TARGET/ -H 'Cookie: FUZZ=1' -w /usr/share/seclists/Discovery/Web-Content/burp-parameter-names.txt -mc 200,302,403,500 -fw <baseline> -t 20")
+```
+
+**Step 5b — Boolean feature flag cookies:**
+For every cookie the app sets, try toggling boolean-looking values:
+```
+# If app sets: Cookie: beta=false
+http(action="request", url="https://TARGET/", headers={"Cookie": "beta=true"})
+http(action="request", url="https://TARGET/", headers={"Cookie": "beta=1"})
+http(action="request", url="https://TARGET/", headers={"Cookie": "debug=1"})
+http(action="request", url="https://TARGET/", headers={"Cookie": "admin=1"})
+http(action="request", url="https://TARGET/", headers={"Cookie": "role=admin"})
+http(action="request", url="https://TARGET/", headers={"Cookie": "internal=true"})
+```
+
+**Step 5c — Cookie value injection:**
+For every session/auth cookie, try:
+- Modifying the `role`, `is_admin`, `tier`, `user_id` sub-fields if the cookie is a JSON blob or base64-encoded JWT
+- Setting cookie to `null`, `""`, `undefined`, `0`, `-1` to test null-bypass
+- Appending `;Path=/admin` or `;Domain=target.com` to test cookie scoping
+
+---
+
+### Phase 6 — 401/403 Bypass via Path Manipulation
+
+When a path returns 401 or 403, try these bypass variants before accepting the access control:
+
+```
+# Baseline: GET /admin → 403
+# Try all variants:
+/ADMIN
+/Admin
+/admin/
+//admin
+/./admin
+/admin/.
+/%2fadmin
+/admin%20
+/admin%09
+/admin%00
+/admin;/
+/admin..;/
+/%61dmin         (URL-encoded 'a')
+/%2561dmin       (double-encoded)
+/admin#
+/admin?
+/admin/..%2f
+/admin/../admin
+```
+
+Automate with ffuf's `-w` on a bypass wordlist:
+```
+kali(command="ffuf -u https://TARGET/FUZZ -w /usr/share/seclists/Fuzzing/403-ignore/path-bypass.txt -mc 200,301,302 -t 20")
+```
+
+Also test HTTP method override and adding `..;/` before the protected segment:
+```
+http(action="request", url="https://TARGET/public/..;/admin", method="GET")
+http(action="request", url="https://TARGET/api/v1/..;/admin/users", method="GET")
+```
+
+---
+
+### Phase 7 — Auth & Token Stripping
 
 For every endpoint that normally requires authentication:
 
@@ -111,7 +374,7 @@ For each non-auth required parameter, send the request with that param removed, 
 
 ---
 
-### Phase 2 — Type Confusion
+### Phase 8 — Type Confusion
 
 For every parameter, send the mismatched-type probe set below. Send each as a separate request — watch for status code changes, response body changes, and error messages.
 
@@ -137,7 +400,7 @@ Batch same-endpoint probes into a loop via `kali(command="for val in ...")` for 
 
 ---
 
-### Phase 3 — Boundary Value Analysis
+### Phase 9 — Boundary Value Analysis
 
 Target: every numeric, quantity, size, count, rating, score, or date parameter.
 
@@ -186,7 +449,7 @@ Infinity
 
 ---
 
-### Phase 4 — HTTP Parameter Pollution & Format Confusion
+### Phase 10 — HTTP Parameter Pollution & Format Confusion
 
 **4a — Duplicate parameter keys**
 Send the same parameter twice in the same request with different values. Different frameworks resolve this differently (last wins, first wins, array, error):
@@ -232,7 +495,7 @@ Watch for: params parsed differently, validation bypassed, different code path t
 
 ---
 
-### Phase 5 — Mass Assignment Discovery
+### Phase 11 — Mass Assignment Discovery
 
 For every POST / PUT / PATCH endpoint, inject additional fields alongside the normal valid body. Three passes:
 
@@ -305,7 +568,7 @@ Then inject the discovered parameter names as additional fields in Pass 1-3.
 
 ---
 
-### Phase 6 — Entropy & Predictability Analysis
+### Phase 12 — Entropy & Predictability Analysis
 
 *Standard and thorough depth.*
 
@@ -351,7 +614,7 @@ if deltas:
 
 ---
 
-### Phase 7 — Error Disclosure Triage
+### Phase 13 — Error Disclosure Triage
 
 Review every 4xx/5xx response collected across all phases. Flag:
 
