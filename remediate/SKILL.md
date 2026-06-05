@@ -6,7 +6,7 @@ description: |
   Uses the reproduction command from each finding as the verification step: "run this after the fix — it should now fail." Stores remediation data in findings.json so the dashboard shows a Fix button and /gh-export includes the remediation in GitHub issues.
 
   Chains from /pentester, /codebase, or any scan skill after findings are produced. Chains into /gh-export for export with remediation included.
-argument-hint: [finding-id] [depth=quick|thorough]
+argument-hint: <finding-id> [depth=quick|thorough]
 user-invocable: true
 ---
 
