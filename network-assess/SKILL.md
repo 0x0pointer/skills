@@ -43,7 +43,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `http(action="save_poc", ...)` | Save confirmed exploits |
 | `report(action="finding", data={...})` | Log confirmed vulnerabilities to findings.json |
 | `report(action="diagram", data={...})` | Save network topology diagrams |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write reasoning notes to session log |
 
 
@@ -80,7 +80,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 ### Phase 0 — Scope & Setup
 
 0. Call `session(action="start", options={...})` with target CIDR, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+1. Call `report(action="dashboard", data={"port": 7777})` — live findings tracker
 2. Call `report(action="note", data={...})` — record network range, gateway, VLAN, assessment objectives
 
 ---

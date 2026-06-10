@@ -621,7 +621,7 @@ Fill in all `[CONTENT]`, `[MERMAID]`, table rows, and risk cards with actual ana
 
 If pentest-agent MCP tools are available (e.g. when chained from `/pentester`), push data to the live dashboard:
 
-- Call `report(action="diagram", data={...})` for the **Component Map** (Stage 3a) and the **Data Flow Diagram** (Stage 3b) — this makes them visible in the live dashboard at localhost:5000
+- Call `report(action="diagram", data={...})` for the **Component Map** (Stage 3a) and the **Data Flow Diagram** (Stage 3b) — this makes them visible in the live dashboard at localhost:7777
 - Call `report(action="diagram", data={...})` for each **Attack Tree** (Stage 6)
 - Optionally call `report(action="finding", data={...})` for any High/Critical threats that are concrete enough to be actionable findings (e.g. a specific missing security control on a specific component)
 - Save the full threat model as `threat-model/threat-model-<app-name>.md` — the dashboard **Threat Model** tab automatically picks up any `.md` file in that folder and lets the user select it from a dropdown.

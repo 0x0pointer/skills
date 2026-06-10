@@ -38,7 +38,7 @@ This skill is domain-agnostic. The same patterns apply to an e-commerce checkout
 | `scan(tool="spider", ...)` | Crawl the app to discover all endpoints and flows |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
 | `report(action="diagram", data={...})` | Save a Mermaid diagram of workflows and trust boundaries |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---

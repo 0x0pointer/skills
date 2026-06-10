@@ -33,7 +33,7 @@ This skill is domain-agnostic. It applies equally to banking apps, e-commerce, S
 | `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
 | `scan(tool="ffuf", ...)` | Automated parameter name discovery and wordlist-based fuzzing |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
@@ -87,7 +87,7 @@ If depth is not specified, ask:
 ### Phase 0 — Scope & Setup
 
 0. `session(action="start", options={...})` with target URL, depth, and limits
-1. `report(action="dashboard", data={"port": 5000})`
+1. `report(action="dashboard", data={"port": 7777})`
 2. Load endpoint inventory from coverage matrix (`session(action="status")`), or spider if none exists
 3. `report(action="note", ...)` with: total endpoints, which require auth, which params are numeric/boolean/array, which endpoints mutate state (POST/PUT/PATCH/DELETE)
 

@@ -47,7 +47,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `scan(tool="ffuf", ...)` | Enumerate OAuth endpoints, scope values, client_id fuzzing |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (attack flow, token exfil chain) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 **Logging:** Before invoking any skill, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"oauth-security"})`.
@@ -118,7 +118,7 @@ session(action="start", options={
   "skill": "oauth-security",
   "depth": "standard"
 })
-report(action="dashboard", data={"port": 5000})
+report(action="dashboard", data={"port": 7777})
 report(action="note", data={"message": "Recording target, known endpoints, auth state, test accounts"})
 ```
 
