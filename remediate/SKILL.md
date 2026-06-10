@@ -38,20 +38,20 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 |------|---------|
 | `session(action="start", options={...})` | Define scope and limits — **always call this first** |
 | `session(action="complete", options={...})` | Mark done and write final notes |
-| `http(action="request", ...)` | Read findings — `http(action="request", url="http://localhost:5000/api/findings")` |
+| `http(action="request", ...)` | Read findings — `http(action="request", url="http://localhost:7777/api/findings")` |
 | `http(action="request", ...)` | Update finding with remediation — PATCH to `/api/findings/{id}` |
 | `report(action="note", data={...})` | Write reasoning notes to session log |
 
 ### Reading findings
 
 ```
-http(action="request", url="http://localhost:5000/api/findings", method="GET")
+http(action="request", url="http://localhost:7777/api/findings", method="GET")
 ```
 
 ### Updating a finding with remediation
 
 ```
-http(action="request", url="http://localhost:5000/api/findings/FINDING_ID", method="PATCH",
+http(action="request", url="http://localhost:7777/api/findings/FINDING_ID", method="PATCH",
   headers={"Content-Type": "application/json"},
   body={
     "remediation": {
@@ -93,7 +93,7 @@ http(action="request", url="http://localhost:5000/api/findings/FINDING_ID", meth
 
 Fetch all findings from the dashboard API:
 ```
-http(action="request", url="http://localhost:5000/api/findings", method="GET")
+http(action="request", url="http://localhost:7777/api/findings", method="GET")
 ```
 
 Parse the response. For each finding, note:
