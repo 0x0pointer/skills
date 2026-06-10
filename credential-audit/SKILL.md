@@ -76,7 +76,7 @@ When invoked from the pentester skill with discovered usernames, hashes, or cred
 | `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
 | `report(action="diagram", data={...})` | Save a Mermaid diagram to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 ---
@@ -126,7 +126,7 @@ If depth/service is unspecified, ask:
 ### Phase 0 — Scope & Setup
 
 0. `session(action="start", options={...})` with target, depth, limits
-1. `report(action="dashboard", data={"port": 5000})`
+1. `report(action="dashboard", data={"port": 7777})`
 2. `report(action="note", data={...})` — record target services, known usernames, auth mechanisms
 
 ---

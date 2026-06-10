@@ -44,7 +44,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `scan(tool="spider", ...)` | Crawl HTML pages and JS bundles for embedded API endpoints |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (auth flow, exploit chain, data exfil path) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 
@@ -100,7 +100,7 @@ If the request does not specify what to test, ask the user:
 ### Phase 0 — Scope & Setup
 
 0. Call `session(action="start", options={...})` with target URL, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+1. Call `report(action="dashboard", data={"port": 7777})` — live findings tracker
 2. Call `report(action="note", data={...})` — record target, API type, known endpoints, auth state, available test accounts
 
 ---

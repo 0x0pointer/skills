@@ -56,7 +56,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `scan(tool="trufflehog", ...)` | Secret scanning — `scan(tool="trufflehog", target="/target")` |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (architecture, data flow, attack surface) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 **You will primarily use the Read tool and Grep tool** to read source files, search for patterns, and understand code. The Glob tool helps find files by pattern. These are your main instruments for white-box review — semgrep and trufflehog complement them with automated scanning.
@@ -125,7 +125,7 @@ If the request does not specify depth or focus, ask the user:
 
 0. Call `session(action="start", options={...})` with codebase path, depth, and limits
 1. Call `session(action="set_codebase", options={"path": "/absolute/path"})`
-2. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+2. Call `report(action="dashboard", data={"port": 7777})` — live findings tracker
 3. Call `report(action="note", data={...})` — record codebase path, expected tech stack, review focus
 
 ---

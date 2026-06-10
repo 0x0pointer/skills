@@ -42,7 +42,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `http(action="request", ...)` | HTTP requests — check public resources, APIs, web archives, crt.sh, Shodan, Censys |
 | `report(action="finding", data={...})` | Log a significant OSINT discovery to findings.json — include confidence level |
 | `report(action="diagram", data={...})` | Save a Mermaid diagram (org chart, infra map) to findings.json |
-| `report(action="dashboard", data={"port": 5000})` | Serve dashboard.html at localhost:5000 |
+| `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
 
@@ -106,7 +106,7 @@ If the request does not specify depth, ask the user:
 ### Phase 0 — Scope & Setup
 
 0. Call `session(action="start", options={...})` with target domain, depth, and limits
-1. Call `report(action="dashboard", data={"port": 5000})` — live findings tracker
+1. Call `report(action="dashboard", data={"port": 7777})` — live findings tracker
 2. Call `report(action="note", data={...})` — record target domain, organization name, known info
 
 ---

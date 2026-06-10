@@ -267,7 +267,7 @@ These skills are slash commands — they need an MCP server providing the `scan`
 - Lightweight scanner Docker images (nmap, naabu, httpx, nuclei, ffuf, semgrep, trufflehog)
 - The custom Kali container (`pentest-agent/kali-mcp`) with 100+ pre-installed tools
 - The Metasploit container (`pentest-agent/metasploit`)
-- The live findings dashboard at `localhost:5000`
+- The live findings dashboard at `localhost:7777`
 - Installers for Claude Code and OpenCode
 
 ```bash
