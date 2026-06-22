@@ -1,10 +1,10 @@
 ---
 name: oauth-security
 description: |
-  Deep OAuth 2.0 / OpenID Connect security assessment. Covers the full attack surface: redirect_uri validation bypass (path traversal, open redirect chains, subdomain confusion, URL parsing tricks, parameter pollution, response mode switching), missing/broken state parameter CSRF, PKCE downgrade and absent-challenge attacks, implicit grant token leakage (Referer, browser history, XSS fragment theft), authorization code injection, scope escalation, client confusion attacks, mutable-claims account takeover (iss+sub confusion, email-keyed identity merging), pre-account takeover via unverified registration, OpenID Connect dynamic client registration SSRF (logo_uri, jwks_uri, sector_identifier_uri, request_uri), nonce replay, ID token validation failures, Device Code phishing flow, mobile custom URI scheme hijacking, refresh token persistence, token introspection enumeration, consent screen clickjacking, host header injection, and cross-IdP mix-up attacks.
+  Deep OAuth 2.0 / OpenID Connect security assessment covering the full attack surface: redirect_uri validation bypass (path traversal, open redirect chains, subdomain confusion, parameter pollution, response mode switching), missing/broken state CSRF, PKCE downgrade and absent-challenge attacks, implicit grant token leakage, authorization code injection, scope escalation, client confusion, mutable-claims account takeover (iss+sub confusion, email-keyed identity merging), pre-account takeover, OIDC dynamic client registration SSRF (logo_uri, jwks_uri, request_uri), nonce replay, ID token validation failures, Device Code phishing, mobile custom URI scheme hijacking, refresh token persistence, consent screen clickjacking, host header injection, and cross-IdP mix-up attacks.
 
-  Uses KOAuth, jwt_tool, nuclei oauth templates, and manual http(action="request", ...) payloads. Every technique includes actual request payloads and verification logic. Chains from /pentester or /api-security when OAuth endpoints are discovered. Chains into /web-exploit for open redirect, XSS, and SSRF chaining. Chains into /post-exploit when full account takeover is achieved. Chains into /credential-audit when access tokens or refresh tokens are recovered.
-argument-hint: <target-url> [flow=auth-code|implicit|device-code|pkce|oidc|mobile] [depth=quick|standard|thorough]
+  Uses KOAuth, jwt_tool, nuclei oauth templates, and manual http payloads with verification logic. Chains from /pentester or /api-security; into /web-exploit, /post-exploit on account takeover, and /credential-audit when tokens are recovered.
+argument-hint: "<target-url> [flow=auth-code|implicit|device-code|pkce|oidc|mobile] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

@@ -4,7 +4,7 @@ description: |
   Authentication and credential security assessment. Tests password brute-force, credential stuffing, password spraying, default credential testing, credential harvesting, lockout analysis, MFA bypass, OAuth/OIDC abuse, session token entropy, Kerberos attacks, and intelligent wordlist generation.
 
   Uses hydra, john, ncrack, medusa, cewl, crunch, netexec, impacket, kerbrute, and nuclei default-login templates. Covers OWASP A07:2021 Identification and Authentication Failures.
-argument-hint: <target> [service=ssh|ftp|http|smb|rdp|mysql|...] [depth=quick|standard|thorough] [userlist=path] [passlist=path]
+argument-hint: "<target> [service=ssh|ftp|http|smb|rdp|mysql|...] [depth=quick|standard|thorough] [userlist=path] [passlist=path]"
 user-invocable: true
 ---
 

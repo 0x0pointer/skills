@@ -6,7 +6,7 @@ description: |
   Both authenticated (with cloud credentials) and unauthenticated (external) modes. Uses nuclei cloud templates, Prowler, ScoutSuite, manual IMDS/metadata probing, and deep AWS/Azure/GCP CLI enumeration.
 
   Produces: cloud architecture diagram, attack path map, findings per category, compliance mapping (SOC 2, PCI DSS 4.0, HIPAA, CIS), PoCs for confirmed exploits. Chains into /gh-export for issue filing.
-argument-hint: <cloud-target> [provider=aws|azure|gcp] [mode=authenticated|external] [depth=quick|standard|thorough]
+argument-hint: "<cloud-target> [provider=aws|azure|gcp] [mode=authenticated|external] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

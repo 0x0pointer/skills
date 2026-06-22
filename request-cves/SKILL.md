@@ -4,7 +4,7 @@ description: |
   Generates CVE request packages from pentest findings. Reads cve-candidates.json (auto-generated at pentest completion) or findings.json directly, then produces for each qualifying vulnerability: MITRE CVE form data, GitHub Security Advisory draft, full disclosure report, and vendor notification email.
 
   Invoke manually after a pentest engagement when you have true-positive findings that warrant CVE IDs.
-argument-hint: <email> [pgp-key-id] [path-to-cve-candidates.json]
+argument-hint: "<email> [pgp-key-id] [path-to-cve-candidates.json]"
 user-invocable: true
 ---
 
