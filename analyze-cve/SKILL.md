@@ -148,7 +148,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ### Phase 4b: Execution Confirmation (optional, white-box — when MCP tools are available)
 
-A CVE analysis usually has **no live endpoint** to attack, so the strongest evidence is to actually trigger the vulnerable code path. When the codebase is local and the build is tractable, confirm in the **isolated sandbox** (network-disabled, capabilities dropped, staged copy — original source untouched):
+A CVE analysis usually has **no live endpoint** to attack, so the strongest evidence is to actually trigger the vulnerable code path. When the codebase is local and the build is tractable, confirm in the **hardened sandbox** (capabilities dropped, pid/mem/cpu-capped, staged copy — original source untouched; network ON by default so `pip install`/`npm ci` work — pass `allow_network: false` to isolate untrusted code):
 
 ```
 scan(tool="exec_sandbox", target="<codebase path>", options={

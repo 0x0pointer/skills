@@ -414,7 +414,7 @@ Call `report(action="finding", data={...})` for each confirmed LLM-specific weak
 
 **Goal:** turn a static claim into a real, artifact-backed crash/exec — the same falsifiable standard the rest of the engagement enforces.
 
-Build and run the relevant code in the **isolated sandbox** (network-disabled, capabilities dropped, over a staged copy — the original source is never mutated):
+Build and run the relevant code in the **hardened sandbox** (capabilities dropped, pid/mem/cpu-capped, over a staged copy — the original source is never mutated; network is ON by default so dependency installs work — pass `allow_network: false` for strict isolation of untrusted code):
 
 ```
 scan(tool="exec_sandbox", target="<codebase path>", options={
