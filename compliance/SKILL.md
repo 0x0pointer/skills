@@ -6,7 +6,7 @@ description: |
   and produces a complete matrix marked COMPLIANT / NON_COMPLIANT / NOT_RELEVANT — with
   per-control reasoning and evidence (code snippets, file:line references, diagram observations).
   Outputs a reviewed CSV matrix and a self-contained HTML evidence report.
-argument-hint: <codebase-path> [diagrams=path1,path2,...] [depth=quick|standard|thorough]
+argument-hint: "<codebase-path> [diagrams=path1,path2,...] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

@@ -9,7 +9,7 @@ description: |
   When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
 
   Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
-argument-hint: <codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]
+argument-hint: "<codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]"
 user-invocable: true
 ---
 

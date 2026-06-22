@@ -1,12 +1,10 @@
 ---
 name: ai-redteam
 description: |
-  AI/LLM red-team assessment using the OWASP LLM Top 10 (2025) + OWASP AI Testing Guide (AITG v1, Nov 2025) frameworks, plus OWASP MCP Top 10 runtime testing for agentic/MCP targets. Tests prompt injection, jailbreaks, system prompt leakage, sensitive data extraction, excessive agency, improper output handling, model extraction, content bias, evasion, membership inference, MCP token exposure, MCP command injection, and more.
+  AI/LLM red-team assessment using OWASP LLM Top 10 (2025), the OWASP AI Testing Guide (AITG v1, Nov 2025), and OWASP MCP Top 10 runtime testing for agentic/MCP targets. Tests prompt injection, jailbreaks, system prompt leakage, sensitive data extraction, excessive agency, improper output handling, model extraction, content bias, evasion, membership inference, MCP token exposure, and MCP command injection.
 
-  Uses four tools in combination: FuzzyAI (single-turn jailbreak fuzzing), PyRIT (multi-turn orchestrated attacks), Garak (probe-based vulnerability scanning), and promptfoo (plugin-based red-team evaluation). Each tool covers different OWASP categories; running them together gives systematic coverage. Includes a conditional MCP reconnaissance phase and a post-access AI infrastructure phase (chained from /post-exploit).
-
-  Produces: OWASP LLM Top 10 + AITG + MCP coverage matrix, findings per category, architecture diagram of the AI system, PoCs for confirmed exploits. Chains into /gh-export for issue filing.
-argument-hint: <target-url> [provider=openai|anthropic|azure|rest] [model=gpt-4o] [depth=quick|standard|thorough]
+  Combines four tools: FuzzyAI (single-turn jailbreak fuzzing), PyRIT (multi-turn orchestrated attacks), Garak (probe-based scanning), and promptfoo (plugin-based red-team eval) - each covering different OWASP categories. Includes a conditional MCP recon phase and a post-access AI infrastructure phase (chained from /post-exploit). Produces an OWASP LLM Top 10 + AITG + MCP coverage matrix, findings per category, an architecture diagram, and PoCs. Chains into /gh-export.
+argument-hint: "<target-url> [provider=openai|anthropic|azure|rest] [model=gpt-4o] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

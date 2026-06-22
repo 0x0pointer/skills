@@ -8,7 +8,7 @@ description: |
   entropy/predictability analysis of any generated value. Works on any domain. Chains from
   /web-exploit or /pentester; chains into /business-logic when boundary violations, predictable
   IDs, or mass assignment are confirmed.
-argument-hint: <target-url> [endpoints=<comma-list>] [depth=quick|standard|thorough]
+argument-hint: "<target-url> [endpoints=<comma-list>] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

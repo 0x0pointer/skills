@@ -6,7 +6,7 @@ description: |
   Uses theHarvester, amass, dnsrecon, fierce, dnstwist, dmitry, whatweb, wafw00f, exiftool, metagoofil, smtp-user-enum, swaks, waybackurls, subfinder, and crt.sh. Pure reconnaissance — no active exploitation.
 
   Produces: confidence-scored findings, infrastructure diagram, employee roster, email pattern confirmation, subdomain takeover candidates. Chains into /pentester for active testing.
-argument-hint: <domain-or-org> [depth=quick|standard|thorough] [focus=email|infra|social|all]
+argument-hint: "<domain-or-org> [depth=quick|standard|thorough] [focus=email|infra|social|all]"
 user-invocable: true
 ---
 

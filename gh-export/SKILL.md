@@ -1,7 +1,7 @@
 ---
 name: gh-export
 description: Formats all confirmed pentest findings from findings.json into copy-pasteable GitHub issue markdown blocks, following the AppSec reporting guide template.
-argument-hint: [optional: path to findings.json]
+argument-hint: "[optional: path to findings.json]"
 user-invocable: true
 ---
 

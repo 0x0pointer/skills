@@ -4,7 +4,7 @@ description: |
   Exploit validation and exploitation using Metasploit Framework. Runs in a dedicated Docker container (separate from Kali). Validates CVEs discovered by nuclei, nikto, or other scanners with actual exploit modules. Covers exploit selection, payload configuration, exploitation, and post-exploitation pivoting.
 
   Uses msfconsole, msfvenom, and the Metasploit module database. Chains from /pentester, /analyze-cve, or /post-exploit when exploitable CVEs are confirmed.
-argument-hint: <target> [cve=CVE-YYYY-NNNNN] [service=http|smb|ssh|...] [depth=quick|standard|thorough]
+argument-hint: "<target> [cve=CVE-YYYY-NNNNN] [service=http|smb|ssh|...] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

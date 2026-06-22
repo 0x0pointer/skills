@@ -6,7 +6,7 @@ description: |
   Core activities: Component Mapping (architecture + data flows), Critical Assessment (business impact prioritization), and Logic Flaw Identification (attacker mindset on business logic).
 
   Produces: component map diagram (Mermaid), data flow diagram (Mermaid), attack tree (Mermaid), STRIDE threat table, prioritized risk register, and an actionable mitigation plan. Invoke proactively for any security review, architecture review, or "what could go wrong?" session.
-argument-hint: [target application or architecture description]
+argument-hint: "[target application or architecture description]"
 user-invocable: true
 ---
 

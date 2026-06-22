@@ -4,7 +4,7 @@ description: |
   Active Directory and network lateral movement assessment. Pass-the-hash, pass-the-ticket, Kerberoasting, AS-REP roasting, NTLM relay, SMB relay, WMI/WinRM/PSRemoting abuse, constrained/unconstrained delegation, RBCD, cross-trust exploitation, and pivoting.
 
   Uses impacket, netexec, enum4linux-ng, smbmap, smbclient, bloodhound-python, Responder, ntlmrelayx, mitm6, and ldap-utils. Chains from /post-exploit or /credential-audit.
-argument-hint: <target-network> [domain=DOMAIN] [user=USER] [pass-or-hash=CRED] [depth=quick|standard|thorough]
+argument-hint: "<target-network> [domain=DOMAIN] [user=USER] [pass-or-hash=CRED] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 

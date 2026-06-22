@@ -12,7 +12,7 @@ description: |
   predictability. Domain-agnostic — applies to SaaS, e-commerce, banking, gaming, social
   platforms, APIs, or any multi-user application with stateful workflows. Chains from /pentester;
   chains into /param-fuzz when boundary violations or mass assignment are confirmed.
-argument-hint: <target-url> [focus=value|workflow|trust|replay|quota|all] [depth=quick|standard|thorough]
+argument-hint: "<target-url> [focus=value|workflow|trust|replay|quota|all] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
 
