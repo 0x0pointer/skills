@@ -119,8 +119,9 @@ Before touching architecture, capture business context:
 - **Assets to protect**: Data confidentiality, integrity, availability, reputation — what matters most?
 - **Compliance constraints**: GDPR, PCI-DSS, HIPAA, SOC2, ISO 27001, etc.
 - **Risk appetite**: What level of residual risk is acceptable to the business?
+- **Baseline comparable**: name 1–2 comparable mainstream systems of the same class (a payments API → Stripe/Adyen; a CMS → WordPress/Ghost). What security tradeoffs do those deliberately accept (e.g. "admins are fully trusted", "rate limiting is the edge's job")? Use this to calibrate which threats are *real and prioritized here* versus which are accepted-by-design across the whole class — it focuses the STRIDE pass, it never excuses skipping an exploitable threat. A genuinely novel system may have no meaningful comparable; say so.
 
-**Output**: A 3–5 bullet objectives statement. Ask the user for missing context before proceeding.
+**Output**: A 3–5 bullet objectives statement + the baseline comparable(s) and the tradeoffs they accept. Ask the user for missing context before proceeding.
 
 ---
 
