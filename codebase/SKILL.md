@@ -150,6 +150,16 @@ If the request does not specify depth or focus, ask the user:
   - If any LLM framework is detected: `report(action="note", data={"message": "LLM_DETECTED: [frameworks list]. Phase 5b will run.")`
 - Call `report(action="note", data={...})` with: language, framework, major dependencies, framework version
 
+**Step 1b — Baseline calibration (determine the baseline dynamically):**
+Before hunting, decide what this application *is* and what comparable mainstream software exists — this calibrates effort and severity, it does NOT dismiss findings.
+- Name 1–2 comparable mainstream projects of the same class (a CMS → other CMSes; an API gateway → other gateways; a novel app may have no meaningful comparable — say so).
+- For each comparable, what security tradeoffs does it deliberately accept? (e.g. "admins are fully trusted", "rate limiting is the CDN's job", "tokens live in localStorage by design").
+- Use this two ways: (a) if the comparable has the *same* pattern and it has been exploited there → that's a **stronger** finding, not a weaker one; (b) if the comparable has the same pattern and it's never been exploited in years of production → understand *why* before reporting.
+- **Invent target-specific attack classes** the generic ASVS chapters won't name: read the domain and list 2–4 abuse cases unique to *this* app (e.g. for a billing app: negative-quantity refunds; for a multi-tenant SaaS: cross-tenant ID confusion; for an MCP server: tool rug-pull). These are advisory hunting leads layered ON TOP of ASVS — ASVS/STRIDE stays the backstop, never replaced.
+- **Guardrail:** baseline calibration focuses effort, it never excuses skipping. "The comparable accepts this" is a reason to understand a pattern, never a reason to leave an exploitable finding unreported.
+
+Call `report(action="note", data={...})` with the baseline comparable(s), the tradeoffs they accept, and the target-specific attack classes you'll prioritize.
+
 **Step 2 — Map project structure:**
 - Use Glob to understand the directory layout (MVC? microservice? monolith?)
 - Identify entry point files (e.g. `app.py`, `manage.py`, `server.js`, `main.go`, `Application.java`)
@@ -398,6 +408,29 @@ Call `report(action="finding", data={...})` for each confirmed LLM-specific weak
 
 ---
 
+### Phase 5c — Execution Confirmation (thorough only, opt-in)
+
+**Trigger:** thorough depth, for the **no-live-path** findings where static "input reaches sink" is the *only* evidence — library code, CLI parsers, deserialization gadgets, format-string bugs, crypto misuse. Skip when a live endpoint already lets `/web-exploit` reproduce the issue (a live re-run is stronger evidence).
+
+**Goal:** turn a static claim into a real, artifact-backed crash/exec — the same falsifiable standard the rest of the engagement enforces.
+
+Build and run the relevant code in the **isolated sandbox** (network-disabled, capabilities dropped, over a staged copy — the original source is never mutated):
+
+```
+scan(tool="exec_sandbox", target="<codebase path>", options={
+  "subdir": "packages/parser",                 # stage only the package under test (keep it small)
+  "setup":  "pip install -e .",                # optional build/deps step
+  "cmd":    "python -c \"import parser; parser.loads(open('/work/poc.bin','rb').read())\"",
+  "image":  "python:3.11-slim",                # pick an image matching the stack (node:20-slim, golang:1.22, etc.)
+  "timeout": 180
+})
+```
+It returns an `artifact_id` capturing stdout/stderr + exit code. If the run **proves** the finding (crash, traceback, code execution, leaked data), file the finding and pass that `artifact_id` as the reproduction artifact — that's what lets the adjudication pass mark it `reproducible: true`. If it does **not** reproduce, the static claim is unconfirmed → downgrade or drop it.
+
+**This phase is opt-in and fail-soft.** A build that can't be set up (missing private deps, multi-service compose, fixtures) returns a diagnostic, not a finding — fall back to the static source-to-sink trace. Execution confirmation is **never** a completion gate; a clean static trace remains acceptable evidence.
+
+---
+
 ### Phase 6 — Infrastructure, Crypto & Configuration (thorough)
 
 **Goal:** Review supporting infrastructure for security weaknesses. Map to ASVS V11-V14, V16.
@@ -554,6 +587,36 @@ ASVS 5.0 Coverage:
 
 ---
 
+## Reporting findings — structure & the severity bar
+
+**Attach a source `trace[]` to every white-box finding.** Because a codebase is pinned
+(`set_codebase`), the server RESOLVES each cited `file:line` against the repo and **rejects a
+finding whose trace points at a file or line that does not exist** — this catches a hallucinated
+citation before it ever reaches the report. Build the trace from the source-to-sink data flow you
+already traced in Phase 5:
+
+```
+report(action="finding", data={
+  "title": "SQL injection in order lookup",
+  "severity": "high", "target": "/path/to/repo",
+  "description": "...", "evidence": "...",
+  "trace": [
+    {"kind": "entrypoint",   "file": "api/orders.py",  "line": 42, "scope": "get_order",      "description": "order_id taken from query string, unvalidated"},
+    {"kind": "propagation",  "file": "db/query.py",    "line": 88, "scope": "build_filter",   "description": "order_id concatenated into SQL string"},
+    {"kind": "sink",         "file": "db/query.py",    "line": 91, "scope": "execute_raw",    "description": "raw query executed against the DB"}
+  ]
+})
+```
+Rules for `trace`: first step `kind:"entrypoint"`, last `kind:"sink"`, ≥2 steps; `line` a positive
+integer that exists in the cited file; `scope` the bare function/method name. Cite the real lines you
+read — don't approximate. (Black-box findings with no source omit `trace` entirely.)
+
+**The severity bar (one canonical doctrine — the server applies the same rubric at adjudication):**
+- **Only report what you can exploit.** A concrete attack + observed result, never "an attacker could theoretically…".
+- **Severity = likelihood × impact**, not deviation from an ASVS checklist. ASVS is a guide to *where* to look, not a bug list.
+- **Defense-in-depth gaps are LOW hardening notes, never high/critical.** If an existing layer already prevents the attack, the absence of another layer is a hardening note — record it as LOW, don't inflate it.
+- Don't pad with LOWs to look thorough; an honest "no exploitable issue here" is a valid result.
+
 ## Finding Severity Guide
 
 | Severity | Criteria | Examples |
@@ -576,5 +639,7 @@ ASVS 5.0 Coverage:
 - **The security profile feeds downstream skills** — write it clearly in `report(action="note", data={...})` so other skills can parse and act on it
 - **Use `report(action="note", data={...})` liberally** — document your understanding of each component before analyzing it
 - **Never fabricate findings** — only report what the code actually shows
+- **Attach a `trace[]` to every white-box finding** (entrypoint→…→sink with real `file:line:scope`) — the server resolves the citations against the codebase and rejects a hallucinated location, so cite lines you actually read
+- **Severity = likelihood × impact** — a defense-in-depth gap behind an existing control is a LOW hardening note, never high/critical (the adjudication pass applies this same rubric)
 - **ASVS is a guide, not a checklist** — focus on high-risk areas first, not sequential chapter review
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels with spaces/special chars, no em-dashes, short alphanumeric node IDs

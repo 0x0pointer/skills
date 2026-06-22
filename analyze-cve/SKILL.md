@@ -146,6 +146,21 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
      - Content-type restrictions
    - Rate exploitability: **HIGH** / **MEDIUM** / **LOW** / **NOT EXPLOITABLE**
 
+### Phase 4b: Execution Confirmation (optional, white-box — when MCP tools are available)
+
+A CVE analysis usually has **no live endpoint** to attack, so the strongest evidence is to actually trigger the vulnerable code path. When the codebase is local and the build is tractable, confirm in the **isolated sandbox** (network-disabled, capabilities dropped, staged copy — original source untouched):
+
+```
+scan(tool="exec_sandbox", target="<codebase path>", options={
+  "subdir": "<smallest dir that builds>",
+  "setup":  "pip install -e .",            # or: npm ci / go build ./... / mvn -q compile
+  "cmd":    "python repro.py",             # a minimal script that drives user input into the vulnerable sink
+  "image":  "python:3.11-slim",            # match the dependency's runtime
+  "timeout": 180
+})
+```
+It returns an `artifact_id` with the captured stdout/stderr + exit code. A crash/traceback/exec from the vulnerable function **proves** exploitability — pass the `artifact_id` to `report(action="finding", ...)` as the reproduction artifact and rate it accordingly. If it cannot be built (private artifactories, complex multi-service setup) the tool returns a diagnostic and you simply fall back to the static dataflow trace — **execution confirmation is opt-in and never required**.
+
 ### Phase 5: Proof of Concept Development
 
 9. **Craft HTTP Request**
