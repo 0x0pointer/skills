@@ -29,16 +29,33 @@ jobs:
       - name: Scan skills
         run: |
           pip install uv
+          {
+            echo "## SkillSpector results"
+            echo ""
+            echo "| Skill | Failed |"
+            echo "|-------|:------:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
           for skill in $(find . -name SKILL.md -not -path './.git/*' -printf '%h\n' | sort -u); do
-            echo "::group::$skill"
-            uvx --from git+https://github.com/NVIDIA/skillspector.git \
-              skillspector scan "$skill" --no-llm; rc=$?
+            name=$(basename "$skill")
+            # Scan once; capture output so the verdict can go in the group title.
+            out=$(uvx --from git+https://github.com/NVIDIA/skillspector.git \
+              skillspector scan "$skill" --no-llm 2>&1); rc=$?
+
+            # Warn-only: exit 1 = DO_NOT_INSTALL, >=2 = scan error, 0 = ok.
+            case "$rc" in
+              0) icon="✅"; failed="no" ;;
+              1) icon="❌"; failed="yes" ;;
+              *) icon="⚠️"; failed="error" ;;
+            esac
+
+            # Collapsible per-skill log with the verdict in the (collapsed) title.
+            echo "::group::$icon $name — failed: $failed"
+            echo "$out"
             echo "::endgroup::"
-            # Warn-only: never fail the job. Exit 1 = DO_NOT_INSTALL, >=2 = scan error.
-            if [ "$rc" -eq 1 ]; then
-              echo "::warning title=SkillSpector::$skill flagged DO_NOT_INSTALL — see its group above"
-            elif [ "$rc" -ge 2 ]; then
-              echo "::warning title=SkillSpector::$skill scan errored (exit $rc)"
-            fi
+
+            echo "| \`$name\` | $icon $failed |" >> "$GITHUB_STEP_SUMMARY"
+            [ "$rc" -ne 0 ] && echo "::warning title=SkillSpector::$name failed: $failed (exit $rc)"
           done
+
           exit 0
