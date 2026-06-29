@@ -1,16 +1,12 @@
 name: Scan skills (SkillSpector)
 
 on:
+  # No path filters: every push to main and every PR re-scans all skills, so a
+  # change to any file (SKILL.md, refs/*, CSV/JSON/HTML, etc.) is never missed.
   push:
     branches:
       - main
-    paths:
-      - "**/SKILL.md"
-      - ".github/workflows/scan-skills.yml"
   pull_request:
-    paths:
-      - "**/SKILL.md"
-      - ".github/workflows/scan-skills.yml"
   workflow_dispatch:
 
 permissions:
