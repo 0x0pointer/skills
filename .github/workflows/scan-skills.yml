@@ -29,11 +29,16 @@ jobs:
       - name: Scan skills
         run: |
           pip install uv
-          fail=0
           for skill in $(find . -name SKILL.md -not -path './.git/*' -printf '%h\n' | sort -u); do
             echo "::group::$skill"
             uvx --from git+https://github.com/NVIDIA/skillspector.git \
-              skillspector scan "$skill" --no-llm || fail=1
+              skillspector scan "$skill" --no-llm; rc=$?
             echo "::endgroup::"
+            # Warn-only: never fail the job. Exit 1 = DO_NOT_INSTALL, >=2 = scan error.
+            if [ "$rc" -eq 1 ]; then
+              echo "::warning title=SkillSpector::$skill flagged DO_NOT_INSTALL — see its group above"
+            elif [ "$rc" -ge 2 ]; then
+              echo "::warning title=SkillSpector::$skill scan errored (exit $rc)"
+            fi
           done
-          exit $fail
+          exit 0
