@@ -42,9 +42,13 @@ jobs:
 
           for skill in $(find . -name SKILL.md -not -path './.git/*' -printf '%h\n' | sort -u); do
             name=$(basename "$skill")
+            # Suppress reviewed false positives via the skill's committed baseline.
+            # Regenerate with scripts/gen-baselines.sh; prune entries to re-surface.
+            baseline=""
+            [ -f "$skill/.skillspector-baseline.yaml" ] && baseline="--baseline $skill/.skillspector-baseline.yaml"
             # Scan once; capture output so the verdict can go in the group title.
             out=$(uvx --from git+https://github.com/NVIDIA/skillspector.git \
-              skillspector scan "$skill" --no-llm 2>&1); rc=$?
+              skillspector scan "$skill" --no-llm $baseline 2>&1); rc=$?
 
             # Warn-only: exit 1 = DO_NOT_INSTALL, >=2 = scan error, 0 = ok.
             case "$rc" in
