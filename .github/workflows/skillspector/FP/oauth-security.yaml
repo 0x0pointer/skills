@@ -1,0 +1,15 @@
+# SkillSpector baseline — findings listed here are suppressed on future scans.
+# Edit 'reason' fields and add glob 'rules' as needed. See docs/SUPPRESSION.md.
+version: 1
+rules: []
+fingerprints:
+- hash: sha256:48bae5f5f7fee40b
+  rule_id: PE3
+  file: SKILL.md
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:aae1f159b1f73b95
+  rule_id: SSRF1
+  file: SKILL.md
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'

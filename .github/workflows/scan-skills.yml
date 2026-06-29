@@ -1,0 +1,123 @@
+name: Scan skills (SkillSpector)
+
+on:
+  # No path filters: the job decides which skills to scan from the diff, so a
+  # change to any file (SKILL.md, refs/*, CSV/JSON/HTML, etc.) is never missed.
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skillspector:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so we can diff against the base
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scan skills
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          EVENT_BEFORE: ${{ github.event.before }}
+        run: |
+          # errexit (GitHub's default `bash -e`) would kill the job on the first
+          # DO_NOT_INSTALL: `out=$(...)` inherits the scan's exit 1. We handle
+          # exit codes ourselves and end with `exit 0`, so turn it off.
+          set +e
+
+          # --- Decide which skills to scan -------------------------------------
+          all_skills=$(find . -name SKILL.md -not -path './.git/*' -printf '%h\n' | sed 's#^\./##' | sort -u)
+
+          scan_all=0
+          changed=""
+          case "$EVENT_NAME" in
+            pull_request)
+              git fetch --no-tags --depth=1 origin "$BASE_REF" >/dev/null 2>&1
+              changed=$(git diff --name-only "origin/$BASE_REF...HEAD" 2>/dev/null) || scan_all=1
+              ;;
+            push)
+              if [ -n "$EVENT_BEFORE" ] && [ "$EVENT_BEFORE" != "0000000000000000000000000000000000000000" ] \
+                 && git cat-file -e "${EVENT_BEFORE}^{commit}" 2>/dev/null; then
+                changed=$(git diff --name-only "$EVENT_BEFORE" HEAD)
+              else
+                scan_all=1 # first push / shallow / unknown base
+              fi
+              ;;
+            *)
+              scan_all=1 # manual dispatch
+              ;;
+          esac
+
+          # The workflow or any baseline changing affects every skill -> scan all.
+          if printf '%s\n' "$changed" | grep -qE '^\.github/workflows/(scan-skills\.yml|skillspector/)'; then
+            scan_all=1
+          fi
+
+          if [ "$scan_all" -eq 1 ]; then
+            targets="$all_skills"
+          else
+            # Map each changed file to its top-level skill dir, keep the real ones.
+            targets=$(printf '%s\n' "$changed" | while IFS= read -r f; do
+              echo "${f%%/*}"
+            done | sort -u | grep -Fxf <(printf '%s\n' "$all_skills"))
+          fi
+
+          {
+            echo "## SkillSpector results"
+            echo ""
+            if [ "$scan_all" -eq 1 ]; then echo "_Scanning all skills._"; else echo "_Scanning changed skills only._"; fi
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -z "$targets" ]; then
+            echo "No skill changes detected — nothing to scan."
+            echo "_No skill changes detected._" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # --- Scan ------------------------------------------------------------
+          pip install uv
+          {
+            echo "| Skill | Failed |"
+            echo "|-------|:------:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          printf '%s\n' "$targets" | while IFS= read -r name; do
+            [ -z "$name" ] && continue
+            # Suppress reviewed false positives via the skill's baseline, kept
+            # centrally under .github/workflows/skillspector/FP/<skill>.yaml.
+            # Regenerate with scripts/gen-baselines.sh; prune entries to re-surface.
+            baseline=""
+            bfile=".github/workflows/skillspector/FP/$name.yaml"
+            [ -f "$bfile" ] && baseline="--baseline $bfile"
+            # Scan once; capture output so the verdict can go in the group title.
+            out=$(uvx --from git+https://github.com/NVIDIA/skillspector.git \
+              skillspector scan "./$name" --no-llm $baseline 2>&1); rc=$?
+
+            # Warn-only: exit 1 = DO_NOT_INSTALL, >=2 = scan error, 0 = ok.
+            case "$rc" in
+              0) icon="✅"; failed="no" ;;
+              1) icon="❌"; failed="yes" ;;
+              *) icon="⚠️"; failed="error" ;;
+            esac
+
+            # Collapsible per-skill log with the verdict in the (collapsed) title.
+            echo "::group::$icon $name — failed: $failed"
+            echo "$out"
+            echo "::endgroup::"
+
+            echo "| \`$name\` | $icon $failed |" >> "$GITHUB_STEP_SUMMARY"
+            [ "$rc" -ne 0 ] && echo "::warning title=SkillSpector::$name failed: $failed (exit $rc)"
+          done
+
+          exit 0

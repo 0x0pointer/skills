@@ -1,0 +1,45 @@
+# SkillSpector baseline — findings listed here are suppressed on future scans.
+# Edit 'reason' fields and add glob 'rules' as needed. See docs/SUPPRESSION.md.
+version: 1
+rules: []
+fingerprints:
+- hash: sha256:da7ddd0452251d97
+  rule_id: PE3
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:53e71a4987aed5ed
+  rule_id: P2
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:435e1b5b28905af5
+  rule_id: P2
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:c18534bf0f103607
+  rule_id: P2
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:d94d1173b4ea341b
+  rule_id: SC2
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:1fb46fa4bc4660af
+  rule_id: TM3
+  file: SKILL.md
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:8b0d2caadd746356
+  rule_id: TM1
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
+- hash: sha256:5516a69748b2ded2
+  rule_id: TM2
+  file: example-output/asvs-report-2026-04-29.html
+  reason: 'Reviewed: intended security-skill content (offensive tooling, payloads,
+    recon). Accepted false positive.'
