@@ -37,38 +37,57 @@ jobs:
           mkdir -p reports
           fail=0
 
-          {
-            echo "## SkillSpector results"
-            echo ""
-            echo "| Skill | Score | Severity | Recommendation |"
-            echo "|-------|------:|----------|----------------|"
-          } >> "$GITHUB_STEP_SUMMARY"
+          rows=""
+          details=""
 
           # One directory per SKILL.md, sorted and de-duplicated.
           while IFS= read -r skill; do
             name=$(basename "$skill")
             out="reports/${name}.json"
+            md="reports/${name}.md"
 
             # --no-llm = static-only (no API key needed). To enable the LLM
             # stage, drop --no-llm and set SKILLSPECTOR_PROVIDER + the matching
             # API key env below (see the commented `env:` block).
             uvx --from git+https://github.com/NVIDIA/skillspector.git \
               skillspector scan "$skill" --no-llm --format json --output "$out" || true
+            # Second pass: human-readable findings (the "why") for the summary.
+            uvx --from git+https://github.com/NVIDIA/skillspector.git \
+              skillspector scan "$skill" --no-llm --format markdown --output "$md" || true
 
             score=$(jq -r '.risk_assessment.score // "?"' "$out" 2>/dev/null || echo "?")
             sev=$(jq -r '.risk_assessment.severity // "ERROR"' "$out" 2>/dev/null || echo "ERROR")
             rec=$(jq -r '.risk_assessment.recommendation // "ERROR"' "$out" 2>/dev/null || echo "ERROR")
+            count=$(jq -r '.issues | length' "$out" 2>/dev/null || echo "?")
 
-            echo "| \`$name\` | $score | $sev | $rec |" >> "$GITHUB_STEP_SUMMARY"
+            rows="${rows}| \`$name\` | $score | $sev | $rec | $count |"$'\n'
+
+            # Expand the full findings for anything not clean.
+            if [ "$rec" != "SAFE" ]; then
+              details="${details}<details><summary><strong>$name</strong> — $rec ($sev, score $score, $count issues)</summary>"$'\n\n'
+              details="${details}$(cat "$md" 2>/dev/null || echo '_no report produced_')"$'\n\n'
+              details="${details}</details>"$'\n\n'
+            fi
 
             # Non-blocking for now: warn on DO_NOT_INSTALL instead of failing the
-            # job, so the first run surfaces every skill's score. Flip `fail=1`
-            # back on (and `exit $fail`) once a baseline suppresses intended
-            # security payloads.
+            # job, so the first run surfaces every skill's score. Flip this back to
+            # `fail=1` / `exit $fail` once a baseline suppresses intended payloads.
             if [ "$rec" = "DO_NOT_INSTALL" ]; then
-              echo "::warning title=SkillSpector::$name flagged as DO_NOT_INSTALL (score $score)"
+              echo "::warning title=SkillSpector::$name flagged as DO_NOT_INSTALL (score $score, $count issues) — see job summary for details"
             fi
           done < <(find . -name SKILL.md -not -path './.git/*' -printf '%h\n' | sort -u)
+
+          {
+            echo "## SkillSpector results"
+            echo ""
+            echo "| Skill | Score | Severity | Recommendation | Issues |"
+            echo "|-------|------:|----------|----------------|-------:|"
+            printf '%s' "$rows"
+            echo ""
+            echo "### Why these were flagged"
+            echo ""
+            printf '%s' "$details"
+          } >> "$GITHUB_STEP_SUMMARY"
 
           exit 0
         # Uncomment to enable the LLM semantic stage (and remove --no-llm above):
