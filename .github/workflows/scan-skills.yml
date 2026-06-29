@@ -28,6 +28,10 @@ jobs:
 
       - name: Scan skills
         run: |
+          # errexit (GitHub's default `bash -e`) would kill the job on the first
+          # DO_NOT_INSTALL: `out=$(...)` inherits the scan's exit 1. We handle
+          # exit codes ourselves and end with `exit 0`, so turn it off.
+          set +e
           pip install uv
           {
             echo "## SkillSpector results"
