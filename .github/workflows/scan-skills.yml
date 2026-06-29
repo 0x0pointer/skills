@@ -2,6 +2,8 @@ name: Scan skills (SkillSpector)
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "**/SKILL.md"
       - ".github/workflows/scan-skills.yml"
