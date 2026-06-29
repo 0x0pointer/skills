@@ -1,0 +1,84 @@
+name: Scan skills (SkillSpector)
+
+on:
+  push:
+    paths:
+      - "**/SKILL.md"
+      - ".github/workflows/scan-skills.yml"
+  pull_request:
+    paths:
+      - "**/SKILL.md"
+      - ".github/workflows/scan-skills.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  skillspector:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      # Resolve SkillSpector once so the per-skill loop reuses the cached env.
+      - name: Warm SkillSpector cache
+        run: uvx --from git+https://github.com/NVIDIA/skillspector.git skillspector --help
+
+      - name: Scan every skill
+        run: |
+          set -uo pipefail
+          mkdir -p reports
+          fail=0
+
+          {
+            echo "## SkillSpector results"
+            echo ""
+            echo "| Skill | Score | Severity | Recommendation |"
+            echo "|-------|------:|----------|----------------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # One directory per SKILL.md, sorted and de-duplicated.
+          while IFS= read -r skill; do
+            name=$(basename "$skill")
+            out="reports/${name}.json"
+
+            # --no-llm = static-only (no API key needed). To enable the LLM
+            # stage, drop --no-llm and set SKILLSPECTOR_PROVIDER + the matching
+            # API key env below (see the commented `env:` block).
+            uvx --from git+https://github.com/NVIDIA/skillspector.git \
+              skillspector scan "$skill" --no-llm --format json --output "$out" || true
+
+            score=$(jq -r '.risk_assessment.score // "?"' "$out" 2>/dev/null || echo "?")
+            sev=$(jq -r '.risk_assessment.severity // "ERROR"' "$out" 2>/dev/null || echo "ERROR")
+            rec=$(jq -r '.risk_assessment.recommendation // "ERROR"' "$out" 2>/dev/null || echo "ERROR")
+
+            echo "| \`$name\` | $score | $sev | $rec |" >> "$GITHUB_STEP_SUMMARY"
+
+            # Non-blocking for now: warn on DO_NOT_INSTALL instead of failing the
+            # job, so the first run surfaces every skill's score. Flip `fail=1`
+            # back on (and `exit $fail`) once a baseline suppresses intended
+            # security payloads.
+            if [ "$rec" = "DO_NOT_INSTALL" ]; then
+              echo "::warning title=SkillSpector::$name flagged as DO_NOT_INSTALL (score $score)"
+            fi
+          done < <(find . -name SKILL.md -not -path './.git/*' -printf '%h\n' | sort -u)
+
+          exit 0
+        # Uncomment to enable the LLM semantic stage (and remove --no-llm above):
+        # env:
+        #   SKILLSPECTOR_PROVIDER: anthropic
+        #   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skillspector-reports
+          path: reports/
