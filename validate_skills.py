@@ -139,6 +139,24 @@ def main() -> int:
     for path in files:
         all_errors.extend(validate_file(path))
 
+    # Leaf skill-dir names must be globally unique: skills install to a FLAT target
+    # (~/.claude/skills/<leaf>/), so two skills with the same leaf name in different
+    # domain folders (e.g. web/foo and infra/foo) would clobber each other and break
+    # by-name invocation. Enforce it now that skills are organised into /domain/ dirs.
+    _seen: dict[str, str] = {}
+    for path in files:
+        if os.path.basename(path) != "SKILL.md":
+            continue  # top-level *.md skills (e.g. pentester.md) have no dir to collide
+        leaf = os.path.basename(os.path.dirname(path))
+        if leaf in _seen:
+            all_errors.append(
+                f"duplicate skill name '{leaf}': {os.path.relpath(path, REPO_ROOT)} "
+                f"collides with {os.path.relpath(_seen[leaf], REPO_ROOT)} "
+                f"(both install to ~/.claude/skills/{leaf}/)"
+            )
+        else:
+            _seen[leaf] = path
+
     print(f"Validated {len(files)} skill file(s).")
     if all_errors:
         print(f"\n{len(all_errors)} problem(s) found:\n")
