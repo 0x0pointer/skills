@@ -1,0 +1,25 @@
+# Manual-setup prerequisite for the DYNAMIC phase of /ios-security.
+# iOS dynamic analysis CANNOT be containerized — it needs a real jailbroken device
+# with Frida installed. Its presence makes Smith open a (non-blocking) setup gate:
+# elect now/defer/skip, follow the runbook, then verify with the probe. Static
+# analysis of the IPA needs NONE of this.
+- id: ios-dynamic
+  category: device
+  description: Jailbroken iOS device with Frida (over USB/SSH) for runtime instrumentation (objection/Frida)
+  requires_host: true            # frida-ps -U runs on the host the device is attached to
+  satisfied_by_assets:
+    - kind: ios
+  runbook:
+    - step: "Connect a JAILBROKEN iOS device via USB and trust the host"
+      command: "idevice_id -l"
+      expected: "the device UDID listed"
+    - step: "Install Frida on the device (Frida repo via Sileo/Cydia), matching the host frida-tools version"
+      expected: "frida-server running on the device"
+    - step: "Confirm Frida can reach the device"
+      command: "frida-ps -U"
+      expected: "a process list from the device"
+  readiness_probe:
+    run_on: host
+    verb: frida-ps
+    args: ["-U"]
+    success: exit_zero_nonempty

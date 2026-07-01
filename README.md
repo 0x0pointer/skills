@@ -316,6 +316,20 @@ After adding a skill, update the submodule pointer in `agent-smith` (`git add sk
 
 ---
 
+## Acknowledgements
+
+The **mobile** skills (`mobile/android-security`, `mobile/ios-security`, `mobile/mobile-pentest-plan`,
+`mobile/masvs-checklist`) were distilled and adapted from
+[**dweinstein/mobile-security-skills**](https://github.com/dweinstein/mobile-security-skills) — its
+per-MASVS-category checks, MASTG test-ID crosswalks, NowSecure risk-tiering, and workflow orchestration
+were rewritten into Smith's tool-executing, chaining skill model. That collection is itself built on:
+
+- [OWASP MASVS v2](https://mas.owasp.org/MASVS/) — Mobile Application Security Verification Standard
+- [OWASP MASTG](https://mas.owasp.org/MASTG/) — Mobile Application Security Testing Guide
+- [NowSecure Secure Mobile Development](https://github.com/nowsecure/secure-mobile-development)
+
+---
+
 ## License
 
 GNU Affero General Public License v3.0 — see [LICENSE](LICENSE).

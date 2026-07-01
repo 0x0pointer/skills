@@ -1,0 +1,25 @@
+# Manual-setup prerequisite for the DYNAMIC phase of /android-security.
+# Its presence makes Smith open a (non-blocking) setup gate when the skill is
+# invoked: elect now/defer/skip, follow the runbook, then verify with the probe.
+# Static analysis needs NONE of this — only Phase 2 (Frida/objection) does.
+- id: android-dynamic
+  category: device
+  description: Rooted Android device/emulator with frida-server running, for runtime instrumentation (Frida/objection)
+  requires_host: true            # frida-ps -U runs on the host where the device/emulator is attached
+  satisfied_by_assets:
+    - kind: adb                   # suppresses the re-prompt (never the probe) if a device is already known
+  runbook:
+    - step: "Start an emulator or connect a rooted test device with USB debugging enabled"
+      command: "adb devices"
+      expected: "the device/emulator listed as 'device' (not 'unauthorized'/'offline')"
+    - step: "Push and start a frida-server whose version MATCHES the Kali container's frida-tools (12.5.x)"
+      command: "adb push frida-server /data/local/tmp/ && adb shell 'chmod 755 /data/local/tmp/frida-server && /data/local/tmp/frida-server &'"
+      expected: "frida-server running on the device"
+    - step: "Confirm Frida can reach the device"
+      command: "frida-ps -U"
+      expected: "a process list, not 'unable to connect to remote frida-server'"
+  readiness_probe:
+    run_on: host
+    verb: frida-ps
+    args: ["-U"]
+    success: exit_zero_nonempty
