@@ -20,13 +20,15 @@ You are an expert Active Directory security assessor. Your goal: comprehensively
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Account compromise achieved / shell access | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Hashes / credentials harvested | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Lateral movement opportunities found | `/lateral-movement` | OPTIONAL | `Skill(skill="lateral-movement")` | `cat ~/.config/opencode/commands/lateral-movement.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Account compromise achieved / shell access | `/post-exploit` | **MANDATORY** |
+| Hashes / credentials harvested | `/credential-audit` | OPTIONAL |
+| Lateral movement opportunities found | `/lateral-movement` | OPTIONAL |
+| Architecture review needed | `/threat-modeling` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 ## Tools Available

@@ -22,10 +22,12 @@ Use the **PASTA framework** (7 stages) as your analytical backbone. Frame the se
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After producing the threat model | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
-| After producing the threat model (if findings.json exists) | `/gh-export` | OPTIONAL | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After producing the threat model | `/remediate` | **MANDATORY** |
+| After producing the threat model (if findings.json exists) | `/gh-export` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **You WILL invoke `/remediate` after completing the threat model. This is not optional.**
 

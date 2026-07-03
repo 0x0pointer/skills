@@ -22,9 +22,11 @@ You are an expert application security engineer generating specific, implementab
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After all findings remediated | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After all findings remediated | `/gh-export` | OPTIONAL — user request only |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 

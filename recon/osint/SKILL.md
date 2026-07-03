@@ -22,12 +22,14 @@ You are an expert OSINT analyst performing comprehensive passive reconnaissance.
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Leaked credentials found | `/credential-audit` | **MANDATORY** | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Sufficient intel gathered; active testing ready | `/pentester` | OPTIONAL | `Skill(skill="pentester")` | `cat ~/.config/opencode/commands/pentester.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Leaked credentials found | `/credential-audit` | **MANDATORY** |
+| Sufficient intel gathered; active testing ready | `/pentester` | OPTIONAL |
+| Architecture review needed | `/threat-modeling` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **If leaked credentials are found: MUST invoke `/credential-audit` to validate them.**
 

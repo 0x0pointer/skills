@@ -20,12 +20,14 @@ You are an expert credential security tester. Your goal: systematically test aut
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| AD domain credentials found | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
-| Cloud credentials found | `/cloud-security` | OPTIONAL | `Skill(skill="cloud-security")` | `cat ~/.config/opencode/commands/cloud-security.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Credentials provide shell/RCE access to a system | `/post-exploit` | **MANDATORY** |
+| AD domain credentials found | `/ad-assessment` | OPTIONAL |
+| Cloud credentials found | `/cloud-security` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
 

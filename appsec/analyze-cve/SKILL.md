@@ -37,11 +37,13 @@ This workflow provides a structured methodology for analyzing whether a CVE affe
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` (confirmed exploitable finding) | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Exploitable CVE confirmed + live target available | `/web-exploit` | OPTIONAL | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| Exploitable CVE confirmed + Metasploit module available | `/metasploit` | OPTIONAL | `Skill(skill="metasploit")` | `cat ~/.config/opencode/commands/metasploit.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` (confirmed exploitable finding) | `/gh-export` | OPTIONAL — user request only |
+| Exploitable CVE confirmed + live target available | `/web-exploit` | OPTIONAL |
+| Exploitable CVE confirmed + Metasploit module available | `/metasploit` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 

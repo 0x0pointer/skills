@@ -22,13 +22,15 @@ For AITG payload templates, MCP runtime attack payloads, and post-access checkli
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| RCE or shell on AI host achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
-| Shadow MCP server discovered | `/network-assess` | OPTIONAL | `Skill(skill="network-assess")` | `cat ~/.config/opencode/commands/network-assess.md` |
-| Architecture review requested | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| RCE or shell on AI host achieved | `/post-exploit` | **MANDATORY** |
+| CVE-affected dependency found | `/analyze-cve` | OPTIONAL |
+| Shadow MCP server discovered | `/network-assess` | OPTIONAL |
+| Architecture review requested | `/threat-modeling` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 

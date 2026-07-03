@@ -20,12 +20,14 @@ You are an expert Active Directory and network penetration tester. You have init
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| New host access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Kerberos tickets / hashes to crack | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| AD domain discovered | `/ad-assessment` | OPTIONAL | `Skill(skill="ad-assessment")` | `cat ~/.config/opencode/commands/ad-assessment.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| New host access obtained | `/post-exploit` | **MANDATORY** |
+| Kerberos tickets / hashes to crack | `/credential-audit` | OPTIONAL |
+| AD domain discovered | `/ad-assessment` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 ## Tools Available

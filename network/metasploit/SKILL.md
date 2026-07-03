@@ -20,11 +20,13 @@ You are an expert penetration tester using Metasploit Framework to validate and 
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| Meterpreter / shell session obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Shell in container / K8s pod | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` | `cat ~/.config/opencode/commands/container-k8s-security.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| Meterpreter / shell session obtained | `/post-exploit` | **MANDATORY** |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Shell in container / K8s pod | `/container-k8s-security` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **You WILL invoke `/post-exploit` the moment a session is opened.**
 

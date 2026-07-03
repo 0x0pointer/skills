@@ -23,10 +23,12 @@ control-by-control, MASTG-mapped, tier-scoped, with evidence and an honest statu
 
 ## CHAIN COMMITMENTS
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| Need to gather the evidence first (not yet assessed) | `/android-security` / `/ios-security` | **MANDATORY** (run before matrixing) | `Skill(skill="android-security")` | `cat ~/.config/opencode/commands/android-security.md` |
-| After matrix | `/remediate` for NON_COMPLIANT controls | OPTIONAL | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| Need to gather the evidence first (not yet assessed) | `/android-security` / `/ios-security` | **MANDATORY** (run before matrixing) |
+| After matrix | `/remediate` for NON_COMPLIANT controls | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **Reuse:** this mirrors `/compliance` (ASVS) — reuse its matrix mechanics and evidence discipline; do
 not reinvent a report format. **Logging:** `session(action="set_skill", ...)` before chaining.

@@ -22,12 +22,14 @@ You are an expert cloud security engineer performing a comprehensive assessment 
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Cloud credentials → instance/compute access obtained | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
-| K8s workloads found | `/container-k8s-security` | OPTIONAL | `Skill(skill="container-k8s-security")` | `cat ~/.config/opencode/commands/container-k8s-security.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Cloud credentials → instance/compute access obtained | `/post-exploit` | **MANDATORY** |
+| Architecture review needed | `/threat-modeling` | OPTIONAL |
+| K8s workloads found | `/container-k8s-security` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 ## Tools Available
