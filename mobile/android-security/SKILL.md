@@ -29,14 +29,16 @@ analysis is opt-in and needs an operator-provided device; it never blocks comple
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| Backend API endpoints discovered (from static strings or captured traffic) | `/api-security` | **MANDATORY** | `Skill(skill="api-security")` | `cat ~/.config/opencode/commands/api-security.md` |
-| Injection reachable in an API/WebView parameter | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| Command execution / device RCE achieved | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Embedded LLM / AI endpoint discovered | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` | `cat ~/.config/opencode/commands/ai-redteam.md` |
-| App source tree available | `/codebase` | OPTIONAL (white-box enrich) | `Skill(skill="codebase")` | `cat ~/.config/opencode/commands/codebase.md` |
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| Backend API endpoints discovered (from static strings or captured traffic) | `/api-security` | **MANDATORY** |
+| Injection reachable in an API/WebView parameter | `/web-exploit` | **MANDATORY** |
+| Command execution / device RCE achieved | `/post-exploit` | **MANDATORY** |
+| Embedded LLM / AI endpoint discovered | `/ai-redteam` | **MANDATORY** |
+| App source tree available | `/codebase` | OPTIONAL (white-box enrich) |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"android-security"})`.
 

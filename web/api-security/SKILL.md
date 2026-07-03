@@ -22,12 +22,14 @@ APIs are not "websites without HTML." They have their own attack surface, their 
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Injection points or deep vuln found | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
-| CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Injection points or deep vuln found | `/web-exploit` | **MANDATORY** |
+| Architecture review needed | `/threat-modeling` | OPTIONAL |
+| CVE-affected dependency confirmed | `/analyze-cve` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 
 ## Tools Available

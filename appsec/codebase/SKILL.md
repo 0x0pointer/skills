@@ -27,15 +27,17 @@ This review is structured around the **OWASP Application Security Verification S
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/threat-modeling` | **MANDATORY** | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
-| After `/threat-modeling` completes | `/remediate` | **MANDATORY** | `Skill(skill="remediate")` | `cat ~/.config/opencode/commands/remediate.md` |
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** | `Skill(skill="ai-redteam")` | `cat ~/.config/opencode/commands/ai-redteam.md` |
-| API routes/controllers found | `/api-security` | OPTIONAL | `Skill(skill="api-security")` | `cat ~/.config/opencode/commands/api-security.md` |
-| CVE-affected dependency found | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/threat-modeling` | **MANDATORY** |
+| After `/threat-modeling` completes | `/remediate` | **MANDATORY** |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** |
+| LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** |
+| API routes/controllers found | `/api-security` | OPTIONAL |
+| CVE-affected dependency found | `/analyze-cve` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **You WILL invoke `/threat-modeling` after `session(action="complete")`.**
 **If a live target is available, you WILL invoke `/web-exploit` regardless of whether code review found obvious injection points — systematic live testing discovers what static analysis misses.**

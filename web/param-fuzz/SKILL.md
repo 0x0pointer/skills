@@ -84,12 +84,26 @@ If depth is not specified, ask:
 
 ---
 
-### Phase 0 — Scope & Setup
+### Phase 0 — Scope, Setup & Coverage Matrix Gate
+
+Do these in order — the session must exist before the matrix gate can read its state:
 
 0. `session(action="start", options={...})` with target URL, depth, and limits
 1. `report(action="dashboard", data={"port": 7777})`
-2. Load endpoint inventory from coverage matrix (`session(action="status")`), or spider if none exists
-3. `report(action="note", ...)` with: total endpoints, which require auth, which params are numeric/boolean/array, which endpoints mutate state (POST/PUT/PATCH/DELETE)
+2. `report(action="note", ...)` with: total endpoints, which require auth, which params are numeric/boolean/array, which endpoints mutate state (POST/PUT/PATCH/DELETE)
+
+**Then, before ANY fuzzing action, run the coverage-matrix gate:**
+```
+session(action="status")
+```
+Read `coverage.total_cells` in the response.
+
+| `coverage.total_cells` | Action |
+|------------------------|--------|
+| **> 0** | Matrix pre-built by pentester/web-exploit. Load the endpoint inventory from it and resume from pending cells. |
+| **== 0** | Matrix empty. **STOP.** Spider the target, register every discovered endpoint with its full param list via `report(action="coverage", data={"type":"endpoint", ...})`, then continue. |
+
+**RULE: Never fuzz a parameter without first registering its endpoint and marking the cell `in_progress`.** Transition every cell `pending → in_progress → tested_clean/vulnerable` so `session(action="recovery")` can tell where you left off. The coverage matrix (`coverage_matrix.json`) is the only scan state that survives context compaction.
 
 ---
 
@@ -630,6 +644,27 @@ Review every 4xx/5xx response collected across all phases. Flag:
 | Full request echoed back in error | **Low** | Confirms input reflection point — test for XSS/SSTI |
 
 For each finding: save the exact response snippet as evidence, save a PoC via `http(action="save_poc", ...)`.
+
+---
+
+## Completion Gate
+
+Before calling `session(action="complete")`, you MUST:
+- Have every endpoint's fuzzed cells transitioned out of `pending` (`tested_clean`, `vulnerable`, `not_applicable`, or `skipped`) — check with `report(action="coverage", data={"type":"list", "status":"in_progress"})` and close anything left open.
+- Every `vulnerable` cell must have a linked `finding_id` (file the `report(action="finding")` first, pass its returned `id`).
+- Log a completion note summarizing which phases ran PASS/FAIL/N/A per endpoint. The completion call will be blocked otherwise — do not skip this gate.
+
+---
+
+## Context Recovery After Compaction
+
+When your context is compacted mid-scan:
+
+1. **Re-invoke `/param-fuzz`** — use the Skill tool to reload this full workflow
+2. **Call `session(action="status")`** — coverage stats tell you exactly where you are
+3. **Call `report(action="coverage", data={"type":"list", "status":"in_progress"})`** — recover the cell IDs you were mid-way through (the matrix persists in `coverage_matrix.json`)
+4. **Do NOT re-register endpoints** — they persist across context compactions
+5. **Resume from pending/in-progress cells** — the matrix enforces completeness
 
 ---
 

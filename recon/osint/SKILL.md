@@ -22,12 +22,14 @@ You are an expert OSINT analyst performing comprehensive passive reconnaissance.
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Leaked credentials found | `/credential-audit` | **MANDATORY** | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| Sufficient intel gathered; active testing ready | `/pentester` | OPTIONAL | `Skill(skill="pentester")` | `cat ~/.config/opencode/commands/pentester.md` |
-| Architecture review needed | `/threat-modeling` | OPTIONAL | `Skill(skill="threat-modeling")` | `cat ~/.config/opencode/commands/threat-modeling.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Leaked credentials found | `/credential-audit` | **MANDATORY** |
+| Sufficient intel gathered; active testing ready | `/pentester` | OPTIONAL |
+| Architecture review needed | `/threat-modeling` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **If leaked credentials are found: MUST invoke `/credential-audit` to validate them.**
 
@@ -205,6 +207,11 @@ kali(command="fierce --domain DOMAIN")
 kali(command="dnstwist --format csv DOMAIN | head -50")
 kali(command="whatweb -a 1 https://DOMAIN")
 kali(command="wafw00f https://DOMAIN")
+```
+
+**Consolidate all discovered subdomains into `/tmp/subdomains.txt`** (required before Phase 5 — the takeover checks read this file):
+```
+kali(command="{ subfinder -silent -d DOMAIN; amass enum -passive -d DOMAIN -timeout 5 2>/dev/null; curl -s 'https://crt.sh/?q=%25.DOMAIN&output=json' | jq -r '.[].name_value' | sed 's/^\\*\\.//'; } | grep -iE '(^|\\.)DOMAIN$' | sort -u > /tmp/subdomains.txt; wc -l /tmp/subdomains.txt")
 ```
 
 Call `report(action="diagram", data={...})` with infrastructure map after this phase.

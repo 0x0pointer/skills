@@ -22,13 +22,15 @@ OAuth is not "just authentication." It is an authorization delegation protocol g
 
 Read this before executing any workflow phase. Commit to MANDATORY chains before your first tool call.
 
-| Trigger | Chain | Mandatory? | Claude Code | opencode |
-|---------|-------|-----------|-------------|---------|
-| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only | `Skill(skill="gh-export")` | `cat ~/.config/opencode/commands/gh-export.md` |
-| Account takeover confirmed | `/post-exploit` | **MANDATORY** | `Skill(skill="post-exploit")` | `cat ~/.config/opencode/commands/post-exploit.md` |
-| Open redirect / XSS / SSRF found as chaining primitive | `/web-exploit` | **MANDATORY** | `Skill(skill="web-exploit")` | `cat ~/.config/opencode/commands/web-exploit.md` |
-| Access tokens / refresh tokens / client secrets recovered | `/credential-audit` | OPTIONAL | `Skill(skill="credential-audit")` | `cat ~/.config/opencode/commands/credential-audit.md` |
-| CVE-affected OAuth library confirmed | `/analyze-cve` | OPTIONAL | `Skill(skill="analyze-cve")` | `cat ~/.config/opencode/commands/analyze-cve.md` |
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| After `session(action="complete")` | `/gh-export` | OPTIONAL — user request only |
+| Account takeover confirmed | `/post-exploit` | **MANDATORY** |
+| Open redirect / XSS / SSRF found as chaining primitive | `/web-exploit` | **MANDATORY** |
+| Access tokens / refresh tokens / client secrets recovered | `/credential-audit` | OPTIONAL |
+| CVE-affected OAuth library confirmed | `/analyze-cve` | OPTIONAL |
+
+> **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **If account takeover is achieved: MUST invoke `/post-exploit` — do not stop at confirming login.**
 
@@ -988,7 +990,7 @@ flowchart TD
 
 ## Context Recovery After Compaction
 
-1. Re-invoke `/oauth-security` via `Skill(skill="oauth-security")`
+1. Re-invoke `/oauth-security` (see your client's invocation table in CLAUDE.md / AGENTS.md)
 2. `session(action="status")` — check coverage matrix
 3. Resume from the last incomplete phase
 4. Do NOT re-run Phase 1 discovery — endpoints persist

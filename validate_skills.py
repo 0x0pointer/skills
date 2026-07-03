@@ -68,11 +68,42 @@ def frontmatter_lines(fm: str) -> list[tuple[str, str]]:
     return out
 
 
+# ── anti-drift: chaining tables must stay client-neutral ───────────────────────
+# Per-client "how to invoke a skill" belongs in ONE place (the project's
+# CLAUDE.md / AGENTS.md), never duplicated into every skill — that duplication
+# rots (skills drifted to a deprecated opencode `cat` invocation while CLAUDE.md
+# had moved on). These markers flag a SKILL.md that reintroduces client-specific
+# invocation syntax. The `pentester*` orchestrators are the intentional
+# per-client entrypoints and are exempt.
+_CLIENT_SYNTAX_MARKERS = (
+    ("| Claude Code | opencode |", "per-client chaining-table columns"),
+    ("cat ~/.config/opencode/commands/", "deprecated opencode `cat` invocation"),
+    ("Skill(skill=", "Claude-specific Skill() invocation"),
+    ("Skill(name=", "Claude-specific Skill() invocation"),
+    ("skill({", "opencode-specific skill() invocation"),
+)
+
+
+def _client_neutral_errors(rel: str, text: str) -> list[str]:
+    if "pentester" in rel:  # intentional per-client orchestrator entrypoints
+        return []
+    errs: list[str] = []
+    for marker, why in _CLIENT_SYNTAX_MARKERS:
+        if marker in text:
+            errs.append(
+                f"{rel}: client-specific invocation syntax found ({why}) — keep "
+                "chaining client-neutral; put per-client invocation in CLAUDE.md / AGENTS.md"
+            )
+    return errs
+
+
 def validate_file(path: str) -> list[str]:
     rel = os.path.relpath(path, REPO_ROOT)
     errors: list[str] = []
     with open(path, encoding="utf-8") as fh:
         text = fh.read()
+
+    errors.extend(_client_neutral_errors(rel, text))
 
     if not text.startswith("---"):
         return [f"{rel}: missing YAML frontmatter (must start with '---')"]
