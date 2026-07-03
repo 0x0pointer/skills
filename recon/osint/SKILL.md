@@ -209,6 +209,11 @@ kali(command="whatweb -a 1 https://DOMAIN")
 kali(command="wafw00f https://DOMAIN")
 ```
 
+**Consolidate all discovered subdomains into `/tmp/subdomains.txt`** (required before Phase 5 — the takeover checks read this file):
+```
+kali(command="{ subfinder -silent -d DOMAIN; amass enum -passive -d DOMAIN -timeout 5 2>/dev/null; curl -s 'https://crt.sh/?q=%25.DOMAIN&output=json' | jq -r '.[].name_value' | sed 's/^\\*\\.//'; } | grep -iE '(^|\\.)DOMAIN$' | sort -u > /tmp/subdomains.txt; wc -l /tmp/subdomains.txt")
+```
+
 Call `report(action="diagram", data={...})` with infrastructure map after this phase.
 
 ---
