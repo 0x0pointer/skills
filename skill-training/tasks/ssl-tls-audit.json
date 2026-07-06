@@ -1,0 +1,72 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "network/ssl-tls-audit/SKILL.md",
+  "reviewed": true,
+  "_comment": "Each task hands the ssl-tls-audit skill a scanner-output excerpt (invented) and rule-judges the written findings: the weakness, a severity, a remediation, and a compliance mapping (PCI DSS / NIST). Judges the analysis text, so checks hold with tools disabled.",
+  "tasks": [
+    {
+      "id": "tls-legacy-protocols-rc4",
+      "project": "skills",
+      "intent": "Interpret the testssl.sh excerpt below and write the confirmed findings: name each weakness, assign a severity, give a concrete remediation, and map to PCI DSS 4.0 / NIST SP 800-52r2.",
+      "context_excerpt": "testssl.sh excerpt for host shop.example.test:443:\n  SSLv3      offered (NOT ok)\n  TLS 1.0    offered (deprecated)\n  TLS 1.1    offered (deprecated)\n  TLS 1.2    offered (OK)\n  TLS 1.3    not offered\n  RC4        offered (NOT ok) - cipher TLS_RSA_WITH_RC4_128_SHA\n  3DES       offered (NOT ok)",
+      "reference_kind": "rule",
+      "reference": "Findings flagging SSLv3/TLS1.0/1.1, RC4 and 3DES, each with severity, remediation (disable legacy protocols/ciphers, enable TLS1.2+/1.3), and PCI DSS 4.2.1 / NIST mapping.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "TLS 1.0"},
+          {"op": "contains", "arg": "RC4"},
+          {"op": "regex", "arg": "(?i)remediation|disable|remove"},
+          {"op": "regex", "arg": "(?i)pci dss|nist"},
+          {"op": "regex", "arg": "(?i)critical|high|medium|low"},
+          {"op": "min_chars", "arg": 300}
+        ]
+      },
+      "tags": ["ssl-tls", "protocols", "ciphers"],
+      "split": "train"
+    },
+    {
+      "id": "tls-weak-cert-sha1-1024",
+      "project": "skills",
+      "intent": "From the certificate details below, write the findings with severity, remediation, and compliance mapping.",
+      "context_excerpt": "openssl cert summary for api.example.test:443:\n  Signature Algorithm: sha1WithRSAEncryption\n  Public-Key: (1024 bit)\n  Not After : expired 2026-01-02\n  Chain: leaf only (intermediate not served)",
+      "reference_kind": "rule",
+      "reference": "Findings for SHA-1 signature, 1024-bit key, expired cert, and incomplete chain — each with severity and remediation (reissue with SHA-256 + >=2048-bit/ECDSA, serve intermediates), mapped to PCI DSS 4.2.1.1 / NIST 3.5.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)sha1|sha-1"},
+          {"op": "regex", "arg": "(?i)1024"},
+          {"op": "regex", "arg": "(?i)remediation|reissue|replace|renew"},
+          {"op": "regex", "arg": "(?i)pci dss|nist"},
+          {"op": "min_chars", "arg": 300}
+        ]
+      },
+      "tags": ["ssl-tls", "certificate"],
+      "split": "train"
+    },
+    {
+      "id": "tls-poodle-sslv3-hsts",
+      "project": "skills",
+      "intent": "Interpret the scan output below and write the findings, including the named vulnerability, severity, remediation, and HSTS analysis.",
+      "context_excerpt": "sslscan + header check for portal.example.test:443:\n  SSLv3 enabled; CBC ciphers present\n  POODLE (CVE-2014-3566): VULNERABLE\n  HTTP Strict-Transport-Security header: absent\n  HTTP -> HTTPS redirect: present",
+      "reference_kind": "rule",
+      "reference": "Findings naming POODLE (disable SSLv3), plus missing HSTS with a remediation (add Strict-Transport-Security, includeSubDomains, preload).",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "POODLE"},
+          {"op": "regex", "arg": "(?i)sslv3"},
+          {"op": "contains", "arg": "HSTS"},
+          {"op": "regex", "arg": "(?i)remediation|disable|add"},
+          {"op": "min_chars", "arg": 300}
+        ]
+      },
+      "tags": ["ssl-tls", "poodle", "hsts"],
+      "split": "val"
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "reporting/gh-export/SKILL.md",
+  "reviewed": true,
+  "_comment": "Worked example. Each task feeds a findings.json to the gh-export skill and rule-judges the produced GitHub-issue markdown. reviewed:true is REQUIRED for --backend claude replay. All checks are local (no judge API). See skill-training/README.md.",
+  "tasks": [
+    {
+      "id": "ghx-sqli-critical",
+      "project": "skills",
+      "intent": "Convert this findings.json into a copy-pasteable GitHub issue markdown block using the gh-export output template.",
+      "context_excerpt": "findings.json:\n[{\"id\":\"F-01\",\"title\":\"SQL injection in /api/reports export\",\"severity\":\"critical\",\"component\":\"GET /api/reports?sort=\",\"description\":\"The sort parameter is concatenated directly into an ORDER BY clause.\",\"evidence\":\"sort=id)--%20 returns full table; sort=(SELECT%20version()) leaks DB version\",\"reproduction\":{\"command\":\"curl 'https://target/api/reports?sort=id);SELECT%20pg_sleep(5)--'\"},\"remediation\":{\"diff\":\"- order_by(request.args['sort'])\\n+ order_by(ALLOWED_SORTS[request.args['sort']])\",\"file\":\"api/reports.py\",\"line\":88,\"verification\":\"Same payload now returns HTTP 400 invalid sort key\",\"references\":[\"https://cwe.mitre.org/data/definitions/89.html\"],\"effort\":\"low\",\"breaking_change\":false}}]",
+      "reference_kind": "rule",
+      "reference": "A well-formed gh-export issue block with concrete impact, reproduction, and a remediation section.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "**Summary:**"},
+          {"op": "contains", "arg": "**Impact:**"},
+          {"op": "contains", "arg": "**Severity Level:**"},
+          {"op": "section_present", "arg": "Steps To Reproduce"},
+          {"op": "section_present", "arg": "Remediation"},
+          {"op": "regex", "arg": "(?i)severity level:\\*\\*\\s*critical"}
+        ]
+      },
+      "tags": ["gh-export", "sqli"],
+      "split": "train"
+    },
+    {
+      "id": "ghx-xss-high",
+      "project": "skills",
+      "intent": "Format this findings.json entry as a GitHub issue markdown block following the gh-export template.",
+      "context_excerpt": "findings.json:\n[{\"id\":\"F-02\",\"title\":\"Reflected XSS in search box\",\"severity\":\"high\",\"component\":\"GET /search?q=\",\"description\":\"The q parameter is reflected into the page without HTML-encoding.\",\"evidence\":\"q=<script>alert(document.domain)</script> executes\",\"reproduction\":{\"command\":\"open 'https://target/search?q=%3Cscript%3Ealert(1)%3C/script%3E'\"},\"remediation\":{\"diff\":\"- innerHTML = q\\n+ textContent = q\",\"file\":\"web/search.js\",\"line\":42,\"verification\":\"Payload renders as inert text\",\"references\":[\"https://cwe.mitre.org/data/definitions/79.html\"],\"effort\":\"low\",\"breaking_change\":false}}]",
+      "reference_kind": "rule",
+      "reference": "A gh-export issue block for a reflected XSS finding, severity High.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "**Summary:**"},
+          {"op": "contains", "arg": "**Impact:**"},
+          {"op": "section_present", "arg": "Steps To Reproduce"},
+          {"op": "section_present", "arg": "Remediation"},
+          {"op": "regex", "arg": "(?i)severity level:\\*\\*\\s*high"}
+        ]
+      },
+      "tags": ["gh-export", "xss"],
+      "split": "train"
+    },
+    {
+      "id": "ghx-idor-high",
+      "project": "skills",
+      "intent": "Produce the gh-export GitHub issue markdown for this IDOR finding from findings.json.",
+      "context_excerpt": "findings.json:\n[{\"id\":\"F-03\",\"title\":\"IDOR on invoice download\",\"severity\":\"high\",\"component\":\"GET /invoices/{id}/pdf\",\"description\":\"Any authenticated user can fetch any invoice by incrementing the numeric id; no ownership check.\",\"evidence\":\"User A (id 1001) fetches /invoices/2002/pdf belonging to User B and receives 200 + PDF\",\"reproduction\":{\"command\":\"curl -H 'Cookie: session=A' https://target/invoices/2002/pdf -o leaked.pdf\"},\"remediation\":{\"diff\":\"+ if invoice.owner_id != current_user.id: abort(403)\",\"file\":\"api/invoices.py\",\"line\":120,\"verification\":\"Cross-user id now returns 403\",\"references\":[\"https://cwe.mitre.org/data/definitions/639.html\"],\"effort\":\"low\",\"breaking_change\":false}}]",
+      "reference_kind": "rule",
+      "reference": "A gh-export issue block for an IDOR finding with a self-contained reproduction command.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "**Summary:**"},
+          {"op": "contains", "arg": "**Impact:**"},
+          {"op": "section_present", "arg": "Steps To Reproduce"},
+          {"op": "contains", "arg": "curl"},
+          {"op": "regex", "arg": "(?i)severity level:\\*\\*\\s*high"}
+        ]
+      },
+      "tags": ["gh-export", "idor"],
+      "split": "train"
+    },
+    {
+      "id": "ghx-header-low-noremediation",
+      "project": "skills",
+      "intent": "Convert this findings.json entry (no remediation field) into a gh-export GitHub issue markdown block; the Remediation section must be omitted when there is no remediation.",
+      "context_excerpt": "findings.json:\n[{\"id\":\"F-04\",\"title\":\"Missing Content-Security-Policy header\",\"severity\":\"low\",\"component\":\"https://target/ (all responses)\",\"description\":\"Responses do not set a Content-Security-Policy header, weakening defense-in-depth against XSS.\",\"evidence\":\"curl -I https://target/ shows no CSP header\"}]",
+      "reference_kind": "rule",
+      "reference": "A gh-export issue block for a low-severity finding with NO remediation section (the skill omits ## Remediation when the finding has no remediation field).",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "**Summary:**"},
+          {"op": "contains", "arg": "**Impact:**"},
+          {"op": "section_present", "arg": "Steps To Reproduce"},
+          {"op": "regex", "arg": "(?i)severity level:\\*\\*\\s*low"}
+        ]
+      },
+      "tags": ["gh-export", "headers"],
+      "split": "val"
+    },
+    {
+      "id": "ghx-datexposure-medium",
+      "project": "skills",
+      "intent": "Format this findings.json entry as a GitHub issue markdown block using the gh-export template.",
+      "context_excerpt": "findings.json:\n[{\"id\":\"F-05\",\"title\":\"Verbose error leaks stack trace\",\"severity\":\"medium\",\"component\":\"POST /api/checkout\",\"description\":\"Unhandled exceptions return a full stack trace including file paths and library versions.\",\"evidence\":\"Sending a malformed body returns a 500 with a Python traceback and app path /srv/app/checkout.py\",\"remediation\":{\"diff\":\"+ app.config['PROPAGATE_EXCEPTIONS'] = False\",\"file\":\"app.py\",\"line\":15,\"verification\":\"Malformed body now returns a generic 500 JSON error\",\"references\":[\"https://cwe.mitre.org/data/definitions/209.html\"],\"effort\":\"low\",\"breaking_change\":false}}]",
+      "reference_kind": "rule",
+      "reference": "A gh-export issue block for a medium-severity information-exposure finding.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "contains", "arg": "**Summary:**"},
+          {"op": "contains", "arg": "**Impact:**"},
+          {"op": "section_present", "arg": "Steps To Reproduce"},
+          {"op": "section_present", "arg": "Remediation"},
+          {"op": "regex", "arg": "(?i)severity level:\\*\\*\\s*medium"}
+        ]
+      },
+      "tags": ["gh-export", "info-exposure"],
+      "split": "val"
+    }
+  ]
+}

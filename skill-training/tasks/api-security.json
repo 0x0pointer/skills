@@ -1,0 +1,68 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "web/api-security/SKILL.md",
+  "reviewed": true,
+  "_comment": "Each task hands the api-security skill an endpoint + observed behaviour (invented) and rule-judges the write-up: the OWASP API Top-10 category, a concrete PoC request, and impact. Judges analysis text (classification + PoC), so checks hold with tools disabled. NOTE: api-security is offensive — live runs may be Usage-Policy-refused; these tasks are for later use, not a live run.",
+  "tasks": [
+    {
+      "id": "apisec-bola-invoice-idor",
+      "project": "skills",
+      "intent": "Classify the vulnerability below against the OWASP API Security Top 10 (2023), then write a concrete PoC request and the impact.",
+      "context_excerpt": "Observation on GET /api/v1/invoices/{id}: user A (id 1001) requests /api/v1/invoices/2002 (belongs to user B) with A's bearer token and receives 200 + B's invoice PDF. IDs are sequential integers; no ownership check.",
+      "reference_kind": "rule",
+      "reference": "Classified as API1 Broken Object Level Authorization (BOLA/IDOR), with a curl PoC enumerating ids and an impact statement (cross-tenant data disclosure).",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)bola|api1|object level"},
+          {"op": "regex", "arg": "(?i)curl|GET /|Authorization:"},
+          {"op": "contains", "arg": "Impact"},
+          {"op": "min_chars", "arg": 250}
+        ]
+      },
+      "tags": ["api-security", "bola", "idor"],
+      "split": "train"
+    },
+    {
+      "id": "apisec-bopla-mass-assignment",
+      "project": "skills",
+      "intent": "Identify the OWASP API category for the behaviour below and write the PoC request plus impact.",
+      "context_excerpt": "Observation on PATCH /api/v1/users/me: the endpoint updates a profile. Sending {\"name\":\"x\",\"role\":\"admin\"} as a normal user returns 200 and the account's role becomes admin; the role field is not documented and not filtered server-side.",
+      "reference_kind": "rule",
+      "reference": "Classified as API3 Broken Object Property Level Authorization (mass assignment), with a PoC PATCH setting role=admin and an impact statement (vertical privilege escalation).",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)bopla|api3|mass assignment|property level"},
+          {"op": "regex", "arg": "(?i)patch|curl|role"},
+          {"op": "contains", "arg": "Impact"},
+          {"op": "min_chars", "arg": 250}
+        ]
+      },
+      "tags": ["api-security", "bopla", "mass-assignment"],
+      "split": "train"
+    },
+    {
+      "id": "apisec-bfla-admin-endpoint",
+      "project": "skills",
+      "intent": "Classify the finding below against the OWASP API Top 10 and write a PoC request and the impact.",
+      "context_excerpt": "Observation: a low-privilege user calls POST /api/v1/admin/users/9001/disable with their normal bearer token and receives 200 — the endpoint is not exposed in the UI for their role and performs no function-level authorization check.",
+      "reference_kind": "rule",
+      "reference": "Classified as API5 Broken Function Level Authorization (BFLA), with a PoC calling the admin endpoint as a low-priv user and an impact statement.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)bfla|api5|function level"},
+          {"op": "regex", "arg": "(?i)curl|POST /|admin"},
+          {"op": "contains", "arg": "Impact"},
+          {"op": "min_chars", "arg": 250}
+        ]
+      },
+      "tags": ["api-security", "bfla"],
+      "split": "val"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "DOMAIN/your-skill/SKILL.md",
+  "reviewed": false,
+  "_comment": "Copy this to skill-training/tasks/<skill>.json. Author >=3 tasks so the 0.34 holdout leaves a non-empty val split (or set split explicitly). Flip reviewed to true ONLY after you've checked every task contains no secrets/client data — --backend claude refuses to replay a tasks file unless reviewed:true.",
+  "_reference_kinds": "rule = local checks, no API (recommended) | rubric = optimizer LLM judges against `reference` text | exact = response must match `reference`.",
+  "_rule_ops": "section_present <heading substring> | contains <substring, case-insensitive> | regex <python regex> | min_chars <n> | max_chars <n> | tool_called <name>. hard=1.0 iff ALL checks pass; soft = fraction passed (the gate reads soft).",
+  "tasks": [
+    {
+      "id": "unique-task-id-1",
+      "project": "skills",
+      "intent": "What you want the skill to do for this task (this is the prompt the target sees).",
+      "context_excerpt": "Minimal self-contained context the skill needs (paste the input, e.g. a findings.json snippet, a target description). Keep it small and secret-free.",
+      "reference_kind": "rule",
+      "reference": "Optional: for rubric/exact kinds, the gold answer or rubric text.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "section_present", "arg": "Remediation"},
+          {"op": "regex", "arg": "(?i)cvss"},
+          {"op": "min_chars", "arg": 200}
+        ]
+      },
+      "tags": ["your-skill"],
+      "split": "train"
+    },
+    {
+      "id": "unique-task-id-2",
+      "project": "skills",
+      "intent": "Second representative task.",
+      "context_excerpt": "...",
+      "reference_kind": "rule",
+      "judge": {"kind": "rule", "checks": [{"op": "contains", "arg": "Impact"}]},
+      "tags": ["your-skill"],
+      "split": "train"
+    },
+    {
+      "id": "unique-task-id-3",
+      "project": "skills",
+      "intent": "A held-out task the validation gate scores candidate edits against.",
+      "context_excerpt": "...",
+      "reference_kind": "rule",
+      "judge": {"kind": "rule", "checks": [{"op": "contains", "arg": "Impact"}]},
+      "tags": ["your-skill"],
+      "split": "val"
+    }
+  ]
+}

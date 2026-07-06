@@ -44,8 +44,9 @@ def find_skill_files(root: str) -> list[str]:
     """Every `*/SKILL.md`, plus any top-level `*.md` carrying YAML frontmatter."""
     skills: list[str] = []
     for dirpath, dirnames, filenames in os.walk(root):
-        # don't descend into VCS / tooling dirs
-        dirnames[:] = [d for d in dirnames if d not in (".git", ".github", "node_modules")]
+        # don't descend into VCS / tooling / hidden dirs (e.g. .git, .github,
+        # .venv, .sleep-home, .skillopt-sleep staging+backups)
+        dirnames[:] = [d for d in dirnames if not d.startswith(".") and d != "node_modules"]
         for name in filenames:
             if name == "SKILL.md":
                 skills.append(os.path.join(dirpath, name))

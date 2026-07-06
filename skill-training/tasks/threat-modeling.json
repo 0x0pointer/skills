@@ -1,0 +1,183 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "appsec/threat-modeling/SKILL.md",
+  "reviewed": true,
+  "_comment": "Each task hands the threat-modeling skill an invented system and rule-judges the PASTA report (Mermaid diagrams, STRIDE, Risk & Traceability Matrix, tiered mitigations).",
+  "tasks": [
+    {
+      "id": "tm-payments-api-full-report",
+      "intent": "Run a full PASTA threat model on the Acme Pay checkout API described below. Produce the complete markdown threat model report: executive summary, a component map and a data flow diagram as Mermaid, a STRIDE threat inventory, business logic flaws, attack trees, the Risk & Traceability Matrix, and tiered mitigations.",
+      "context_excerpt": "Acme Pay Checkout API (invented, non-production sample):\n- Node.js 20 / Express REST API on AWS ECS Fargate behind an ALB + AWS WAF.\n- Endpoints: POST /v1/charges, POST /v1/refunds, GET /v1/charges/:id, POST /v1/webhooks/stripe.\n- Auth: merchant API keys (bearer) for server-to-server; customer card data tokenized client-side via Stripe.js (no full PAN stored).\n- Data: PostgreSQL 15 (RDS) holds merchant records and charge metadata (amount, currency, last4, merchant_id).\n- Integrations: Stripe (charge/refund), SendGrid (receipt email), an internal ledger service over gRPC.\n- Compliance: PCI-DSS SAQ-A scope, SOC2 Type II in progress.",
+      "reference_kind": "rule",
+      "split": "train",
+      "tags": [
+        "payments",
+        "fintech",
+        "stride",
+        "rtm"
+      ],
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {
+            "op": "regex",
+            "arg": "```mermaid"
+          },
+          {
+            "op": "section_present",
+            "arg": "STRIDE"
+          },
+          {
+            "op": "section_present",
+            "arg": "Traceability Matrix"
+          },
+          {
+            "op": "contains",
+            "arg": "Abuse Case"
+          },
+          {
+            "op": "contains",
+            "arg": "Immediate"
+          },
+          {
+            "op": "min_chars",
+            "arg": 3000
+          }
+        ]
+      },
+      "project": "skills"
+    },
+    {
+      "id": "tm-healthcare-portal-diagrams",
+      "intent": "Threat model the MediView patient portal below and output the complete PASTA report. Include the component map, data flow diagram, and attack trees as Mermaid diagrams, the STRIDE threat table, the Risk & Traceability Matrix, and mitigations by tier.",
+      "context_excerpt": "MediView patient portal (fictional HIPAA-regulated demo system):\n- React 18 SPA + ASP.NET Core 8 Web API on Azure App Service.\n- SSO via Auth0 (OIDC); patients and clinicians share the portal with role-based access.\n- Data: Azure SQL stores PHI (name, DOB, MRN, diagnoses); lab results ingested from an external LIS over HL7 FHIR R4; scanned documents in Azure Blob Storage.\n- Features: view lab results, message a clinician, book appointments, download visit summaries (PDF).\n- Compliance: HIPAA and state medical-privacy laws.",
+      "reference_kind": "rule",
+      "split": "val",
+      "tags": [
+        "healthcare",
+        "hipaa",
+        "mermaid",
+        "attack-tree"
+      ],
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {
+            "op": "section_present",
+            "arg": "Data Flow"
+          },
+          {
+            "op": "section_present",
+            "arg": "Attack Tree"
+          },
+          {
+            "op": "regex",
+            "arg": "flowchart\\s+(TD|LR)"
+          },
+          {
+            "op": "contains",
+            "arg": "STRIDE"
+          },
+          {
+            "op": "contains",
+            "arg": "Severity"
+          },
+          {
+            "op": "contains",
+            "arg": "Long-term"
+          },
+          {
+            "op": "min_chars",
+            "arg": 3000
+          }
+        ]
+      },
+      "project": "skills"
+    },
+    {
+      "id": "tm-iot-smartlock-logic-rtm",
+      "intent": "Perform a threat model of the KeyNest smart-lock backend below, paying special attention to business logic and authorization flaws around guest access codes and remote unlock. Produce the full threat model report, including the Business Logic Flaws section and the Risk & Traceability Matrix.",
+      "context_excerpt": "KeyNest smart-lock backend (invented consumer IoT product):\n- Go microservices on GKE; EMQX MQTT broker for device comms; PostgreSQL for user/device state; Firebase Cloud Messaging for push.\n- Flows: pair a lock to an account, grant a temporary guest access code with start/end time, remotely unlock, view access history.\n- Mobile app authenticates via Firebase Auth (JWT); locks authenticate with per-device X.509 certs.\n- Guest codes are 6-digit; unlock commands are published to a per-device MQTT topic.",
+      "reference_kind": "rule",
+      "split": "train",
+      "tags": [
+        "iot",
+        "business-logic",
+        "authorization",
+        "rtm"
+      ],
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {
+            "op": "section_present",
+            "arg": "Business Logic Flaws"
+          },
+          {
+            "op": "section_present",
+            "arg": "Traceability Matrix"
+          },
+          {
+            "op": "contains",
+            "arg": "How to Test"
+          },
+          {
+            "op": "regex",
+            "arg": "RTM-\\d"
+          },
+          {
+            "op": "min_chars",
+            "arg": 2500
+          }
+        ]
+      },
+      "project": "skills"
+    },
+    {
+      "id": "tm-hr-saas-exec-summary-stride",
+      "intent": "Do a security review / threat model of the PeopleHub HR SaaS described below. Produce the full PASTA threat model markdown, starting with the executive summary (what are we working on / what can go wrong) and covering the STRIDE threat inventory, logic flaws, attack trees, and tiered mitigations.",
+      "context_excerpt": "PeopleHub HR SaaS (fictional B2B multi-tenant app):\n- Ruby on Rails monolith + Sidekiq workers; MySQL (multi-tenant via tenant_id column); Redis; documents in S3.\n- Roles: employee, manager, HR admin, org owner. Employees submit PTO requests, expense claims, and edit their profile; managers approve; HR admins run payroll exports.\n- Auth: email/password + optional TOTP; sessions via signed cookies. SCIM provisioning for enterprise tenants.\n- Sensitive data: salary, national ID, bank account for reimbursements.",
+      "reference_kind": "rule",
+      "split": "train",
+      "tags": [
+        "saas",
+        "multi-tenant",
+        "executive-summary",
+        "stride"
+      ],
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {
+            "op": "section_present",
+            "arg": "Executive Summary"
+          },
+          {
+            "op": "contains",
+            "arg": "What can go wrong"
+          },
+          {
+            "op": "regex",
+            "arg": "T-\\d"
+          },
+          {
+            "op": "contains",
+            "arg": "Likelihood"
+          },
+          {
+            "op": "regex",
+            "arg": "```mermaid"
+          },
+          {
+            "op": "min_chars",
+            "arg": 3000
+          }
+        ]
+      },
+      "project": "skills"
+    }
+  ]
+}
