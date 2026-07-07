@@ -1,0 +1,89 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "appsec/remediate/SKILL.md",
+  "reviewed": true,
+  "_comment": "Each task hands the remediate skill one finding and rule-judges the remediation write-up (unified diff + verification step + effort + a reference). All context is invented and secret-free. Checks target text the model produces directly, so they hold even with tools disabled.",
+  "tasks": [
+    {
+      "id": "rem-sqli-python-paramquery",
+      "project": "skills",
+      "intent": "Produce the remediation for the finding below: a unified-diff code patch (before/after), a verification step derived from the reproduction command, an effort level, and a reference.",
+      "context_excerpt": "finding:\n{\"id\":\"F-11\",\"title\":\"SQL injection in user lookup\",\"severity\":\"critical\",\"type\":\"sqli\",\"file\":\"app/users.py\",\"line\":54,\"evidence\":\"cur.execute(\\\"SELECT * FROM users WHERE email='\\\" + email + \\\"'\\\")\",\"reproduction\":{\"command\":\"curl 'https://target/lookup?email=x%27%20OR%20%271%27%3D%271'\"}}",
+      "reference_kind": "rule",
+      "reference": "A code_patch remediation: parameterized query, a verification step, effort level, CWE-89 reference.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "```"},
+          {"op": "contains", "arg": "verification"},
+          {"op": "regex", "arg": "(?i)effort"},
+          {"op": "regex", "arg": "(?i)parameter|prepared statement|placeholder"},
+          {"op": "min_chars", "arg": 200}
+        ]
+      },
+      "tags": ["remediate", "sqli", "code_patch"],
+      "split": "train"
+    },
+    {
+      "id": "rem-hardcoded-secret-config",
+      "project": "skills",
+      "intent": "Generate the remediation for this hardcoded-secret finding: a config_change moving the secret to an environment variable, with before/after and a verification step.",
+      "context_excerpt": "finding:\n{\"id\":\"F-12\",\"title\":\"Hardcoded AWS secret key\",\"severity\":\"high\",\"type\":\"hardcoded_secret\",\"file\":\"config/settings.py\",\"line\":8,\"evidence\":\"AWS_SECRET_ACCESS_KEY = \\\"AKIAgibberishEXAMPLE0000\\\"\"}",
+      "reference_kind": "rule",
+      "reference": "A config_change remediation moving the secret to an env var + rotation note + verification.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "```"},
+          {"op": "regex", "arg": "(?i)environ|getenv|os\\.environ|env var"},
+          {"op": "contains", "arg": "verification"},
+          {"op": "min_chars", "arg": 200}
+        ]
+      },
+      "tags": ["remediate", "secret", "config_change"],
+      "split": "train"
+    },
+    {
+      "id": "rem-vuln-dependency-update",
+      "project": "skills",
+      "intent": "Produce the remediation for this vulnerable-dependency finding: a dependency_update with the exact upgrade command to a safe version and a verification step.",
+      "context_excerpt": "finding:\n{\"id\":\"F-13\",\"title\":\"Vulnerable dependency: lodash 4.17.11 (CVE-2019-10744)\",\"severity\":\"high\",\"type\":\"dependency\",\"file\":\"package.json\",\"evidence\":\"\\\"lodash\\\": \\\"4.17.11\\\" — prototype pollution in defaultsDeep\"}",
+      "reference_kind": "rule",
+      "reference": "A dependency_update remediation: npm/yarn upgrade command to >=4.17.12 + verification.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "```"},
+          {"op": "regex", "arg": "(?i)npm|yarn|install|4\\.17\\.1[2-9]"},
+          {"op": "contains", "arg": "verification"},
+          {"op": "min_chars", "arg": 150}
+        ]
+      },
+      "tags": ["remediate", "dependency", "dependency_update"],
+      "split": "train"
+    },
+    {
+      "id": "rem-missing-security-header",
+      "project": "skills",
+      "intent": "Generate the remediation for this missing-security-header finding: a config_change adding the header, before/after, effort level, and a verification step.",
+      "context_excerpt": "finding:\n{\"id\":\"F-14\",\"title\":\"Missing HSTS header\",\"severity\":\"low\",\"type\":\"missing_header\",\"component\":\"nginx reverse proxy\",\"evidence\":\"Responses over HTTPS lack Strict-Transport-Security\"}",
+      "reference_kind": "rule",
+      "reference": "A config_change adding Strict-Transport-Security with a sensible max-age + verification.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "```"},
+          {"op": "contains", "arg": "Strict-Transport-Security"},
+          {"op": "contains", "arg": "verification"},
+          {"op": "regex", "arg": "(?i)effort"},
+          {"op": "min_chars", "arg": 150}
+        ]
+      },
+      "tags": ["remediate", "header", "config_change"],
+      "split": "val"
+    }
+  ]
+}

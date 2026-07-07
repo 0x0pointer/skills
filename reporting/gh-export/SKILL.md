@@ -81,3 +81,11 @@ For every finding, output exactly this structure (omit `## Browsers Verified In`
 - **Remediation section** — if the finding has a `remediation` field, include the ## Remediation section with the diff, effort level, verification step, and references. If no remediation exists, omit the section entirely
 - **Severity mapping**: critical → `Critical`, high → `High`, medium → `Medium`, low → `Low`
 - Output only the markdown blocks and the final summary line — no extra prose, no headers, no explanation around the blocks
+
+<!-- SKILLOPT-SLEEP:LEARNED START -->
+## Learned preferences & procedures
+
+_This block is maintained by SkillOpt-Sleep. Edits here are proposed offline, validated against your past tasks, and adopted only after you approve them. Hand-edits outside this block are never touched._
+
+- OVERRIDE — MANDATORY HEADING: Every GitHub issue block MUST include the exact level-2 heading '## Steps To Reproduce' (this exact capitalisation and spelling, no colon appended). Never omit this section, never rename it to 'Reproduction Steps', 'How To Reproduce', or any variant. If reproduction details are sparse, still emit the heading followed by at least one step derived from the finding's 'reproduction.command', 'evidence', or 'description' field. This requirement supersedes any instruction that would allow the section to be skipped or condensed into prose.
+<!-- SKILLOPT-SLEEP:LEARNED END -->

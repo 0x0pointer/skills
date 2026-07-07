@@ -62,3 +62,12 @@ coverage/
 PERSONAL-NOTES.md
 TODO.md
 SCRATCH.md
+
+# SkillOpt-Sleep training harness (skill-training/)
+# The venv and the isolated home (config copy, state, staged proposals) are
+# machine-local; the tracked assets are the scripts, config template, and tasks/.
+skill-training/.venv/
+skill-training/.sleep-home/
+skill-training/.env
+# skillopt-sleep writes staged proposals + state to <project>/.skillopt-sleep/
+.skillopt-sleep/

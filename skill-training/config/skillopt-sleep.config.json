@@ -1,0 +1,12 @@
+{
+  "evolve_skill": true,
+  "evolve_memory": false,
+  "gate_mode": "on",
+  "gate_metric": "mixed",
+  "gate_mixed_weight": 0.5,
+  "edit_budget": 4,
+  "target_task_filter": true,
+  "redact_secrets": true,
+  "max_tasks_per_night": 40,
+  "seed": 42
+}

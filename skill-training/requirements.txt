@@ -1,0 +1,3 @@
+# SkillOpt-Sleep toolchain (pinned). Installed into skill-training/.venv by setup.sh.
+# Gives the `skillopt-sleep` CLI. MIT-licensed. https://github.com/microsoft/SkillOpt
+skillopt==0.2.0
