@@ -128,7 +128,13 @@ class ToolEnabledClaudeCliBackend(ClaudeCliBackend):
         if self.model:
             cmd += ["--model", self.model]
         cmd += ["--", prompt]
-        cwd = tempfile.mkdtemp(prefix="skillopt_tools_")
+        # SKILLOPT_TOOLS_CWD lets the rollout read a real codebase (e.g. a review
+        # target) with the built-in Read/Bash tools. Otherwise use a throwaway dir.
+        persistent = os.environ.get("SKILLOPT_TOOLS_CWD", "")
+        if persistent:
+            cwd, cleanup = os.path.abspath(persistent), False
+        else:
+            cwd, cleanup = tempfile.mkdtemp(prefix="skillopt_tools_"), True
         try:
             proc = subprocess.run(
                 cmd, capture_output=True, text=True, timeout=self.timeout, cwd=cwd
@@ -136,7 +142,8 @@ class ToolEnabledClaudeCliBackend(ClaudeCliBackend):
         except Exception:
             return "", []
         finally:
-            shutil.rmtree(cwd, ignore_errors=True)
+            if cleanup:
+                shutil.rmtree(cwd, ignore_errors=True)
         text, called = _parse_stream(proc.stdout or "")
         self._detect_cli_error(text, proc.stderr or "")
         return text, called

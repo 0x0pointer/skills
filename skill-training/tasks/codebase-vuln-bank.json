@@ -1,0 +1,73 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "appsec/codebase/SKILL.md",
+  "reviewed": true,
+  "_comment": "Tool-enabled tasks for the codebase skill against Commando-X/vuln-bank (a deliberately vulnerable Flask banking app). Clone it to skill-training/targets/vuln-bank, then run with SKILLOPT_TOOLS_CWD=skill-training/targets/vuln-bank so the rollout reads the real code with built-in Read/Bash. Judges match the app's documented vulnerabilities. Tasks are scoped to a few files each to keep rollouts bounded.",
+  "tasks": [
+    {
+      "id": "vb-auth-review",
+      "project": "skills",
+      "intent": "White-box security review of this Python Flask banking app, scoped to authentication and authorization. Read auth.py and database.py in the current working directory, then produce the findings INLINE: for each issue give the file, the vulnerability class, a severity, and an OWASP ASVS chapter or CWE.",
+      "context_excerpt": "Flask banking app. Focus files: auth.py, database.py. Look for injection, weak tokens, broken authorization, and account-recovery weaknesses.",
+      "reference_kind": "rule",
+      "reference": "Finds SQL injection in login, weak JWT / weak secret, broken object-level authorization (BOLA), the 3-digit-PIN password reset, and plaintext password storage.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)sql injection"},
+          {"op": "regex", "arg": "(?i)jwt|json web token|weak secret"},
+          {"op": "regex", "arg": "(?i)authorization|bola|idor"},
+          {"op": "regex", "arg": "(?i)password reset|pin|plaintext"},
+          {"op": "regex", "arg": "(?i)asvs|cwe|severity"},
+          {"op": "min_chars", "arg": 600}
+        ]
+      },
+      "tags": ["codebase", "vuln-bank", "auth"],
+      "split": "train"
+    },
+    {
+      "id": "vb-api-injection-review",
+      "project": "skills",
+      "intent": "White-box review of this Flask banking app scoped to the API, payments and transaction code. Read app.py, merchant_payments.py and transaction_graphql.py, then list the findings inline with file, class, severity and ASVS/CWE.",
+      "context_excerpt": "Focus files: app.py, merchant_payments.py, transaction_graphql.py. Look for injection, SSRF, object-level authorization gaps, race conditions, and GraphQL issues.",
+      "reference_kind": "rule",
+      "reference": "Finds SQL injection (incl. GraphQL resolver), SSRF via URL profile-image import, race conditions in transfers/payments, and object-level authorization gaps.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)sql injection"},
+          {"op": "regex", "arg": "(?i)ssrf|server-side request"},
+          {"op": "regex", "arg": "(?i)race condition"},
+          {"op": "regex", "arg": "(?i)authorization|bola|idor|graphql"},
+          {"op": "regex", "arg": "(?i)asvs|cwe|severity"},
+          {"op": "min_chars", "arg": 600}
+        ]
+      },
+      "tags": ["codebase", "vuln-bank", "api"],
+      "split": "train"
+    },
+    {
+      "id": "vb-llm-agent-review",
+      "project": "skills",
+      "intent": "White-box review of the AI customer-support agent in this app for LLM/AI security issues. Read ai_agent_deepseek.py in the current working directory, then produce the findings inline with class, severity and CWE.",
+      "context_excerpt": "Focus file: ai_agent_deepseek.py — a real/mock LLM customer-support agent. Look for prompt injection, broken authorization in AI context, insufficient input validation, and exposed system prompts.",
+      "reference_kind": "rule",
+      "reference": "Finds prompt injection (CWE-77), broken authorization in AI context (CWE-862), insufficient input validation (CWE-20), and exposed AI system prompts.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)prompt injection"},
+          {"op": "regex", "arg": "(?i)llm|ai|system prompt"},
+          {"op": "regex", "arg": "(?i)authorization|input validation|cwe"},
+          {"op": "regex", "arg": "(?i)severity"},
+          {"op": "min_chars", "arg": 400}
+        ]
+      },
+      "tags": ["codebase", "vuln-bank", "llm"],
+      "split": "val"
+    }
+  ]
+}

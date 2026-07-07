@@ -1,0 +1,74 @@
+{
+  "format": "skillopt_sleep.tasks.v1",
+  "project": "skills",
+  "transcript_source": "authored",
+  "n_sessions": 0,
+  "target_skill_path": "appsec/codebase/SKILL.md",
+  "reviewed": true,
+  "_comment": "Tool-enabled tasks for the codebase skill against the tiny vuln-flask fixture. Run with sleep-tools.sh and SKILLOPT_TOOLS_CWD=skill-training/fixtures/vuln-flask so the rollout reads the code with built-in Read/Bash. Judges check the review names the planted vulns. For the richer target see codebase-vuln-bank.json.",
+  "tasks": [
+    {
+      "id": "cb-flask-full-review",
+      "project": "skills",
+      "intent": "Perform a white-box security review of the Python Flask application in the current working directory. Read the source files (start with app.py), then produce the review INLINE as your final answer: for each vulnerability give the file, the vulnerability class, a severity, and the relevant OWASP ASVS chapter.",
+      "context_excerpt": "A small single-file Flask service (app.py) plus a README. Review all of it.",
+      "reference_kind": "rule",
+      "reference": "A review that finds SQL injection, OS command injection, path traversal, hardcoded secret, weak MD5 hashing, and debug mode — each with severity and an ASVS reference.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)sql injection"},
+          {"op": "regex", "arg": "(?i)command injection|os\\.popen|os command"},
+          {"op": "regex", "arg": "(?i)path traversal|directory traversal"},
+          {"op": "regex", "arg": "(?i)hardcoded|secret_key|secret"},
+          {"op": "regex", "arg": "(?i)md5|weak hash"},
+          {"op": "regex", "arg": "(?i)asvs|cwe|\\bV\\d"},
+          {"op": "regex", "arg": "(?i)severity|critical|high|medium|low"},
+          {"op": "min_chars", "arg": 500}
+        ]
+      },
+      "tags": ["codebase", "review", "flask"],
+      "split": "train"
+    },
+    {
+      "id": "cb-flask-injection-focus",
+      "project": "skills",
+      "intent": "Review the source code in the current working directory with a focus on injection flaws. Read the files, then list every injection vulnerability inline with file, class, and ASVS reference.",
+      "context_excerpt": "Focus on injection: SQL, OS command, and path/file. The app is app.py.",
+      "reference_kind": "rule",
+      "reference": "Names SQL injection, OS command injection, and path traversal with ASVS V2.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)sql injection"},
+          {"op": "regex", "arg": "(?i)command injection|os\\.popen"},
+          {"op": "regex", "arg": "(?i)path traversal|traversal"},
+          {"op": "regex", "arg": "(?i)asvs|cwe"},
+          {"op": "min_chars", "arg": 300}
+        ]
+      },
+      "tags": ["codebase", "injection", "flask"],
+      "split": "train"
+    },
+    {
+      "id": "cb-flask-crypto-secrets",
+      "project": "skills",
+      "intent": "Review the source code in the current working directory for cryptography, secrets management, and configuration weaknesses. Produce the findings inline with severity and ASVS reference.",
+      "context_excerpt": "Focus on crypto/config/secrets. The app is app.py.",
+      "reference_kind": "rule",
+      "reference": "Names the hardcoded secret, weak MD5 password hashing, and debug mode enabled, with ASVS references.",
+      "judge": {
+        "kind": "rule",
+        "checks": [
+          {"op": "regex", "arg": "(?i)hardcoded|secret"},
+          {"op": "regex", "arg": "(?i)md5|weak"},
+          {"op": "regex", "arg": "(?i)debug"},
+          {"op": "regex", "arg": "(?i)asvs|cwe"},
+          {"op": "min_chars", "arg": 300}
+        ]
+      },
+      "tags": ["codebase", "crypto", "flask"],
+      "split": "val"
+    }
+  ]
+}
