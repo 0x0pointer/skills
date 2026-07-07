@@ -165,12 +165,63 @@ python validate_skills.py
 
 ---
 
+## Running skills WITH tools (agentic skills)
+
+The default `sleep.sh` runs each rollout as a single **tool-disabled** text turn.
+That's correct for text-generation skills, but **agentic** skills (threat-modeling,
+api-security, …) are built to call `session()`/`http()`/`scan()`/`report()` and
+produce nothing useful without them — run tool-disabled they return empty output
+and can't be optimized.
+
+`sleep-tools.sh` is a drop-in variant that runs the rollout with **tools enabled**:
+built-in `Bash`/`Read`/`Edit` plus the reused **agent-smith `pentest-agent` MCP
+server** (`session`/`http`/`scan`/`report`/`kali`). Same isolation, gate, and
+stage→adopt flow; only the rollout changes.
+
+```bash
+# point at your agent-smith checkout if it isn't the default location
+echo 'AGENT_SMITH_DIR=/path/to/agent-smith' >> skill-training/.env   # optional
+
+./skill-training/sleep-tools.sh run \
+  --target-skill-path appsec/threat-modeling/SKILL.md \
+  --tasks-file skill-training/tasks/threat-modeling.json --progress
+```
+
+How it works: `tools_runner.py` monkeypatches skillopt-sleep's `ClaudeCliBackend`
+with `tools_backend.py`'s tool-enabled subclass (drops `--disallowedTools '*'`,
+adds `--allowedTools`/`--mcp-config`, parses `stream-json` for the result + which
+tools fired), then hands off to the stock CLI. Only the **rollout** gets tools —
+the judge/reflect calls stay lean.
+
+Author **tool-aware** checks with the `tool_called` op to score real tool use:
+`{"op":"tool_called","arg":"report"}` passes only if the skill actually invoked
+`report()`. Combine with `contains`/`section_present` on the produced write-up.
+
+Tunables (env / `.env`): `AGENT_SMITH_DIR`, `SKILLOPT_TOOLS_MCP=0` (built-ins only,
+no MCP), `SKILLOPT_TOOLS_BUILTIN` (default `Bash,Read,Edit`), `SKILLOPT_TOOLS_TIMEOUT`
+(default 600s — agentic rollouts are slow).
+
+**Tiers of tool use:**
+- **Tier 1 — `session`/`report`/`http`(local)** — pure Python, no Docker. Runnable now.
+- **Tier 2 — `scan`(semgrep/trufflehog)** — static analysis, needs Docker (images present).
+- **Tier 3 — `kali()` / network `scan()`** — needs a **live target lab** + the Kali
+  container. agent-smith ships the runtime but **no target fixtures**, so you must
+  supply a vulnerable target (e.g. Juice Shop) and a ground-truth scorer. Out of scope here.
+
+Verified: the MCP server connects and the model executes real tools (e.g. `session()`);
+full agentic optimization runs are slow and API-costly, so budget accordingly.
+
+---
+
 ## Honest scope
 
 - Sleep **augments** a skill — it appends learned rules to the LEARNED block. It
   does not restructure the body or rewrite the description. For a holistic rewrite
   you'd need SkillOpt's heavier research training loop (a scored env per skill);
   we deliberately deferred that.
+- **Text skills** optimize cleanly with `sleep.sh`; **agentic skills** need
+  `sleep-tools.sh` (tools enabled) or they return empty output. Fully exercising
+  the offensive ones (real `scan`/`kali`) additionally needs a target lab (Tier 3).
 - No tasks file ⇒ no signal ⇒ no improvement. The leverage is in authoring good
   tasks with sharp rule judges. Treat `tasks/*.json` as first-class repo assets and
   grow them over time.
@@ -183,7 +234,10 @@ skill-training/
 ├── README.md                          # this guide
 ├── requirements.txt                   # pinned skillopt==0.2.0
 ├── setup.sh                           # bootstraps .venv
-├── sleep.sh                           # isolated, repo-scoped wrapper
+├── sleep.sh                           # isolated wrapper — tool-DISABLED (text skills)
+├── sleep-tools.sh                     # isolated wrapper — tools ENABLED (agentic skills)
+├── tools_backend.py                   # tool-enabled ClaudeCliBackend subclass
+├── tools_runner.py                    # monkeypatch injector → stock skillopt-sleep CLI
 ├── config/skillopt-sleep.config.json  # gate on, evolve_memory off
 ├── tasks/
 │   ├── _TEMPLATE.json                 # start here for a new skill
