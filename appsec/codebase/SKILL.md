@@ -645,3 +645,12 @@ read — don't approximate. (Black-box findings with no source omit `trace` enti
 - **Severity = likelihood × impact** — a defense-in-depth gap behind an existing control is a LOW hardening note, never high/critical (the adjudication pass applies this same rubric)
 - **ASVS is a guide, not a checklist** — focus on high-risk areas first, not sequential chapter review
 - **Mermaid syntax rules**: use `flowchart TD`, quote labels with spaces/special chars, no em-dashes, short alphanumeric node IDs
+
+<!-- SKILLOPT-SLEEP:LEARNED START -->
+## Learned preferences & procedures
+
+_This block is maintained by SkillOpt-Sleep. Edits here are proposed offline, validated against past tasks, and adopted only after review. Hand-edits outside this block are never touched._
+
+- **Confidence rating (required per finding)** — every finding MUST include an explicit `**Confidence:**` label immediately after its severity, set to `high`, `medium`, or `low` by trace completeness: `high` = full source-to-sink trace confirmed with real `file:line`; `medium` = partial trace, likely but not fully verified; `low` = pattern-only, no complete trace.
+<!-- SKILLOPT-SLEEP:LEARNED END -->
+
