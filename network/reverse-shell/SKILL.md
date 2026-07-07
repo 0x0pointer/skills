@@ -35,6 +35,19 @@ Read this before generating any payload. Commit to MANDATORY chains before your 
 | --- | --- | --- |
 | Shell / Meterpreter session obtained | `/post-exploit` | **MANDATORY** |
 
+> **You are also chained INTO from a confirmed RCE** (`/post-exploit` opens a hard
+> `reverse-shell` gate). When you arrive with a command-execution primitive but no
+> session, your job is to OBTAIN one — turn one-shot exec into an interactive/persistent
+> shell.
+>
+> **Callback rendezvous for REMOTE / egress-restricted targets:** you rarely have a
+> routable listener the target can reach directly. Use the built-in OOB collaborator as
+> the rendezvous: `session(action='oob_start')` then `session(action='oob_mint')` to get
+> a callback host, aim the reverse-shell / exfil payload at it, and `session(action='oob_poll')`
+> for the hit (the callback artifact is the proof that satisfies the gate). If no egress
+> path exists at all, document precisely why an interactive shell is unreachable — that
+> is a valid gate outcome; stopping silently is not.
+
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
 **You WILL invoke `/post-exploit` the moment a reverse shell connects. Do not spend time manually enumerating — hand off immediately.**
