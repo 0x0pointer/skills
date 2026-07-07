@@ -71,3 +71,5 @@ skill-training/.sleep-home/
 skill-training/.env
 # skillopt-sleep writes staged proposals + state to <project>/.skillopt-sleep/
 .skillopt-sleep/
+# Cloned third-party review targets (e.g. vuln-bank)
+skill-training/targets/
