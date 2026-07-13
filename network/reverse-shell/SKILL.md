@@ -40,13 +40,31 @@ Read this before generating any payload. Commit to MANDATORY chains before your 
 > session, your job is to OBTAIN one — turn one-shot exec into an interactive/persistent
 > shell.
 >
-> **Callback rendezvous for REMOTE / egress-restricted targets:** you rarely have a
-> routable listener the target can reach directly. Use the built-in OOB collaborator as
-> the rendezvous: `session(action='oob_start')` then `session(action='oob_mint')` to get
-> a callback host, aim the reverse-shell / exfil payload at it, and `session(action='oob_poll')`
-> for the hit (the callback artifact is the proof that satisfies the gate). If no egress
-> path exists at all, document precisely why an interactive shell is unreachable — that
-> is a valid gate outcome; stopping silently is not.
+> **LHOST resolution — resolve a REAL callback endpoint BEFORE generating any payload.**
+> You almost never have a routable listener the target can reach directly (your Kali is
+> NAT'd; the target is remote / inside a cluster). Work this order and STOP at the first that
+> applies:
+>
+> 1. **Operator listener** — if `known_assets.attacker_host` is set (operator exported
+>    `SMITH_LHOST=host[:port]`), use that `lhost`/`lport`: start the listener (nc / msf
+>    `multi/handler`) and fire the payload.
+> 2. **OOB collaborator (the default for remote / egress-restricted targets)** —
+>    `session(action='oob_start')` → `session(action='oob_mint')` to mint a PUBLIC callback host,
+>    then fire a beacon FROM the RCE sink (`wget http://<sub>/`, `curl`, or a DNS lookup of
+>    `<sub>`) to PROVE egress + code-exec, and `session(action='oob_poll')` for the hit. Firing
+>    that beacon is real reverse-shell work (a tool call under THIS skill), which is what
+>    discharges the `post_exploit_rce` gate — and the callback is your evidence of impact. You do
+>    NOT need a full interactive shell if you can prove the target reaches your collaborator.
+> 3. **No egress at all** — if even the OOB beacon returns no callback, the interactive shell is
+>    a DEAD-END: file a **dismissed `escalation_lead`** on the RCE finding (e.g. "RCE proven via
+>    <sink>; interactive reverse shell unreachable — no routable listener and no outbound egress;
+>    a shell would enable persistent interactive access / pivoting") AND
+>    `session(action='wishlist_add', options={need:'public reverse-shell listener (VPS/tunnel) +
+>    confirm target egress', category:'environment'})`. That discharges the gate honestly.
+>
+> **NEVER** run msfvenom / a one-liner with a placeholder LHOST (`attacker.example.com`,
+> `ATTACKER`, `LHOST`, `YOUR_IP`) — it validate-fails or calls back nowhere and burns a turn.
+> **NEVER** silently switch skills leaving the shell objective neither proven nor documented.
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
