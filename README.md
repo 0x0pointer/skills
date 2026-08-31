@@ -234,7 +234,7 @@ poetry run python -m mcp_server</code></pre>
 | `/threat-modeling` | PASTA + STRIDE + 4-question, attack tree, risk register, mitigation plan |
 | `/codebase` | OWASP ASVS 5.0 white-box review (16 chapters, 427 requirements) |
 | `/analyze-cve` | CVE code-path tracing from user input to sink, with Burp-ready PoC |
-| `/aikido-triage` | Triage Aikido SAST/SCA/secret-scan CSV against your code, output reviewed CSV + HTML evidence |
+| `/aikido-triage` | Triage Aikido findings live via its MCP (SCA/SAST/Secrets/Misconfiguration), score business impact, close confirmed non-issues directly — no CSV |
 | `/compliance` | Full ASVS 5.0 compliance matrix (346 controls) — COMPLIANT/NON_COMPLIANT/NOT_RELEVANT per control with code evidence, outputs CSV + HTML report |
 </details>
 

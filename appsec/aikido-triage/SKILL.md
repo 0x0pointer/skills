@@ -1,302 +1,202 @@
 ---
 name: aikido-triage
-description: Triages an Aikido security findings CSV against a local codebase. For each finding, reads the flagged file, traces the code path, and verdicts it as KEEP OPEN or CLOSE with a specific reason. Outputs a reviewed CSV and a self-contained HTML evidence report. Run this at the end of a pentest when an Aikido CSV is available.
-argument-hint: "[path/to/findings.csv] [path/to/codebase]"
+description: |
+  Triages Aikido security findings live via the Aikido MCP — no CSV. Splits findings into SCA, SAST, Application Secrets, and Misconfiguration, applies a category-specific verification playbook to each (source-to-sink taint analysis with trust-boundary/reachability assessment for SAST, /analyze-cve chaining for SCA, usage + opt-in liveness checks for secrets, blast-radius reasoning with optional live-chain confirmation for misconfiguration), scores every finding's business impact and severity, then closes confirmed non-issues directly in Aikido after a single review checkpoint.
+argument-hint: "<codebase-path> [repo=<name>] [team=<name>] [workspace=<name>] [severity=critical,high,medium,low]"
 user-invocable: true
 ---
 
 # Aikido Findings Triage Workflow
 
-You are triaging an Aikido SAST/SCA/secret-scanning CSV export against a local codebase. Your job is to read every finding, investigate the flagged code, and verdict each one with evidence. At the end you produce a reviewed CSV and a self-contained HTML report.
+You are triaging Aikido's live security feed against a local codebase, using the Aikido MCP for
+both reading and closing findings — **there is no CSV in this workflow**. For each finding, read
+the flagged file, run the verification playbook for its category, score its business impact, and
+render a verdict. Confirmed non-issues get closed directly in Aikido with a specific reason;
+everything else is reported back to the user ranked by business severity.
 
-**Do not guess. Read the actual files before rendering a verdict.**
+**Do not guess. Read the actual files before rendering a verdict. Never call
+`aikido_ignore_issue` before the user has confirmed the batch in Phase 5.**
 
 ---
 
 ## Arguments
 
 Parse from the user's invocation:
-- `CSV_PATH` — path to the Aikido CSV export
-- `CODEBASE_PATH` — absolute path to the local codebase to investigate
-
-If either argument is missing, ask the user before proceeding.
-
----
-
-## Phase 1 — Parse the CSV
-
-1. Read `CSV_PATH` with the Read tool.
-2. Parse every row. Key columns to extract per finding:
-   - `aikido_issue_id` — unique ID
-   - `type` — `sast` | `open_source` | `leaked_secret` | `eol`
-   - `severity` — critical / high / medium / low
-   - `affected_file` — relative path to the flagged file
-   - `related_cve` — CVE or advisory ID (may be empty)
-   - `rule` — rule name that fired
-   - `start_line` / `end_line` — flagged line range
-   - `installed_version` / `patched_version` — for SCA findings
-   - `affected_package` — for SCA/EOL findings
-
-3. Group findings by `type` so you can batch-investigate efficiently.
+- `CODEBASE_PATH` — absolute path to the local codebase to investigate. **Required** — Aikido's
+  feed gives you file/line/type/severity/remediation text, never source code, so every category
+  still needs a local read. Ask the user if missing.
+- Optional scoping filters, passed straight through to `aikido_issues_list`: `repo`, `team`,
+  `workspace`, `severity` (one or more of `critical|high|medium|low`), `labels`,
+  `out_of_sla`/`sla_due_soon`. Ask only if the user's Aikido workspace spans multiple
+  repos/teams and it's ambiguous which one `CODEBASE_PATH` corresponds to.
 
 ---
 
-## Phase 2 — Investigate Each Finding
+## CHAIN COMMITMENTS — declare before starting
 
-Work through findings type by type. For each one, read the flagged file and apply the investigation playbook for that type.
+| Trigger | Chain | Mandatory? |
+| --- | --- | --- |
+| `open_source` finding where the package is imported and reachability can't be resolved from a quick grep alone | `/analyze-cve` | **MANDATORY** |
+| Misconfiguration finding (`cloud`, `iac`, `docker_container`, `cloud_instance`, `surface_monitoring`) AND the user has already provided/authorized live target access | `/cloud-security`, `/container-k8s-security`, `/api-security`, or `/ssl-tls-audit` (pick by resource type — see `references/misconfig-playbook.md`) | OPTIONAL — only with authorized live access |
+| `scm_security` finding that is specifically a CI/CD OIDC trust misconfiguration | `/cloud-identity-federation` | OPTIONAL |
+| Unmapped `mobile` finding | `/android-security` or `/ios-security` | OPTIONAL — suggest, don't run automatically |
+| Unmapped `ai_pentest` finding | `/ai-redteam` | OPTIONAL — suggest, don't run automatically |
 
-### 2a — `leaked_secret` findings
+`/analyze-cve` is the one mandatory chain — reuse it exactly as documented in
+`references/sca-playbook.md` rather than re-deriving a dataflow trace inline.
 
-**Step 1 — Does the file exist?**
+---
 
-Use the Read tool on `CODEBASE_PATH/affected_file`. If the file does not exist:
-→ Verdict: **CLOSE — File Removed**
-→ Note: "File does not exist at HEAD. Finding references removed code in git history."
-→ Move on. Do not investigate further.
+## Phase 0 — Auth check
 
-**Step 2 — Read the flagged lines.**
+Call `mcp__aikido__aikido_issues_list` once with no filters as a probe. If the response signals
+sign-in is required, call `mcp__aikido__aikido_login` and wait for the user to complete the
+browser flow before continuing. Do not proceed to Phase 1 until issues can actually be listed.
 
-Read `start_line` to `end_line` (expand by ±3 lines for context).
+---
 
-Apply these patterns:
+## Phase 1 — Ingest (Aikido MCP only)
 
-| What you see | Verdict |
+1. Call `mcp__aikido__aikido_issues_list`, applying any scoping filters the user gave
+   (`repo_name`/`team_name`/`workspace_name`/`severity`/`labels`/`out_of_sla`/`sla_due_soon`).
+2. Paginate: increment `page` (zero-based) until a page comes back with no issues. **Do not stop
+   after page 0** — a truncated first page silently under-triages the workspace.
+3. Collect every issue's full field set (`issue_id`, `issue_title`, `issue_type`,
+   `issue_severity`, `issue_remediation`, and whichever extra fields the tool surfaces for that
+   issue — `issue_file`/`issue_start_line`, `location`, `issue_link`,
+   `issue_remediate_by_date`, package/version fields for `open_source`, a liveness field for
+   `leaked_secret` if Aikido already reports one).
+4. **Optional supplement**: if `CODEBASE_PATH` has local changes not yet reflected in the Aikido
+   dashboard (`git -C CODEBASE_PATH diff --name-only`, plus untracked files), offer to run
+   `mcp__aikido__aikido_full_scan` on those changed files (max 50 per call — batch if more) so
+   new SAST/secrets issues are caught before they even land in the feed. This is additive, not a
+   replacement for Phase 1 step 1 — mention it's available, don't force it.
+
+---
+
+## Phase 2 — Categorize
+
+Bucket every issue by its `issue_type` into one of five categories. Full rationale and Unmapped
+handling: `references/category-map.md`.
+
+| Category | `issue_type` values |
 |---|---|
-| `ENV.fetch(...)`, `ENV[...]`, `ENV.fetch(..., nil)` | **CLOSE — False Positive** (env var read) |
-| `${{ secrets.* }}` (GitHub Actions) | **CLOSE — False Positive** (GH Actions secret) |
-| `${VARIABLE_NAME}` in .npmrc/.env.example | **CLOSE — False Positive** (env var placeholder) |
-| `--mount=type=secret` in Dockerfile | **CLOSE — False Positive** (Docker build secret) |
-| A long regex, UA string, or binary-looking data | **CLOSE — False Positive** (pattern mismatch) |
-| An actual hardcoded token/key/password string | **KEEP OPEN** — check liveness if possible |
-| A real URL with embedded credentials (user:pass@host) | **KEEP OPEN** |
+| SCA | `open_source`, `license`, `eol` |
+| SAST | `sast`, `ai_code_analysis` |
+| Application Secrets | `leaked_secret` |
+| Misconfiguration | `cloud`, `iac`, `docker_container`, `cloud_instance`, `scm_security`, `surface_monitoring` |
+| Unmapped | `malware`, `mobile`, `ai_pentest` |
 
-For `sidekiq-sensitive-url` rule: check whether the flagged content is a Redis URL with credentials or just a gem declaration. Almost always a false positive in Gemfile/Gemfile.lock.
-
-**Step 3 — If hardcoded secret found:**
-- Note the exact line and masked value
-- Check if `secret_liveness` column says `active` — if so, escalate to critical
-- Verdict: **KEEP OPEN — Hardcoded Secret**
+Print the counts per category to the user before investigating anything — **never silently drop a
+finding**, including Unmapped ones.
 
 ---
 
-### 2b — `sast` findings
+## Phase 3 — Dispatch & investigate
 
-**Step 1 — Read the flagged file and lines.**
-
-Read `CODEBASE_PATH/affected_file` at `start_line` ± 10 lines of context.
-
-**Step 2 — Apply rule-specific investigation:**
-
-**NoSQL injection (`NoSQL injection attack possible`)**
-- Trace what the flagged call actually does. Follow the call chain:
-  1. What does the flagged function call?
-  2. Does it call a NoSQL driver (MongoDB, Redis query, Elasticsearch, Mongoose)?
-  3. Or does it call an HTTP client (axios, fetch, HTTParty)?
-- Check `CODEBASE_PATH/Gemfile` and `CODEBASE_PATH/package.json` for NoSQL drivers.
-- If no NoSQL driver exists in the stack: **CLOSE — False Positive**
-
-**SQL injection (`SQL injection`, `string-based query concatenation`)**
-- Read the flagged method. Check:
-  1. Is there actual string interpolation into a raw SQL string? (`"... #{variable}"`)
-  2. What is the type of the interpolated variable? (Ruby `Date`, `Integer`, `String`?)
-  3. Is it executed via `select_all`, `execute`, or `connection.exec`?
-  4. Trace the variable back to its source — is it user-controlled?
-- If raw interpolation exists but type coercion removes the injection vector: **KEEP OPEN — Medium** (dangerous pattern, mitigated)
-- If raw interpolation with no type coercion on a user-controlled string: **KEEP OPEN — High**
-- If interpolation is of a hardcoded or server-side-only value: **CLOSE — False Positive**
-
-**Unpinned GitHub Actions (`3rd party Github Actions should be pinned`)**
-- Read the workflow file at the flagged line.
-- Check if `uses:` has a SHA pin (`@abc123def...`) or only a tag (`@v2`, `@main`).
-- Tag-pinned or branch-pinned: **KEEP OPEN — Real Finding**
-- SHA-pinned: **CLOSE — False Positive**
-
-**NODE_AUTH_TOKEN (`Use of NODE_AUTH_TOKEN`)**
-- Read the flagged line. If value is `${{ secrets.* }}`: **CLOSE — False Positive**
-- If hardcoded token value: **KEEP OPEN**
-
-**Other SAST rules**
-- Read the flagged lines. Apply judgment: is the finding actually present in the code, or is it a pattern-match on a non-vulnerable construct? Document what you found.
-
----
-
-### 2c — `open_source` / SCA findings
-
-For each SCA finding:
-
-**Step 1 — Identify the vulnerable function from the CVE/advisory.**
-
-Use your knowledge of the CVE to identify what specific function/class is vulnerable. If you need more detail, use `/analyze-cve` to do a full dataflow trace.
-
-**Step 2 — Check if the package is used in application source code.**
-
-Use Grep to search for imports of the package in the application source:
-- JS/TS: `import .* from 'package-name'` or `require('package-name')`
-- Ruby: `require 'package'` or check Gemfile for direct gem declaration vs transitive
-
-**Step 3 — Apply these verdicts:**
-
-| Scenario | Verdict |
-|---|---|
-| Package not imported anywhere in app source (transitive/build-only) | **CLOSE — Not Exploitable** |
-| Package imported but vulnerable function never called | **CLOSE — Not Exploitable** |
-| Package imported, vulnerable function called, no user input reaches it | **CLOSE — Not Exploitable** |
-| Package imported, vulnerable function called with user-controlled input, no sanitization | **KEEP OPEN** |
-| devDependency only (webpack-dev-server, jest, babel plugins) | **CLOSE — Not Exploitable** |
-
-**Step 4 — For complex SCA findings with user-reachable code paths:**
-Run `/analyze-cve` skill to do a full dataflow trace before rendering the verdict.
-
----
-
-### 2d — `eol` findings
-
-- Read the version file (`.ruby-version`, check `package.json` for the framework version).
-- Confirm the actual installed version.
-- Look up the EOL date from your knowledge.
-- If EOL date has passed: **KEEP OPEN — Real Finding**
-- Document the EOL date and recommended upgrade path.
-
----
-
-## Phase 3 — Assign Final Verdicts
-
-For every finding, assign:
-
-| Field | Values |
-|---|---|
-| `recommended_action` | `KEEP OPEN` or `CLOSE` |
-| `close_category` | `False Positive` / `File Removed` / `Not Exploitable` / `Real Finding` |
-| `analyst_notes` | One sentence — what you found and why |
-| `evidence` | Specific file:line references and code fragments proving the verdict |
-
----
-
-## Phase 4 — Output the Reviewed CSV
-
-Write a new CSV to the same directory as the input CSV, named `<original-name>-reviewed.csv`.
-
-**Column set (lean — do not include empty cloud/VM/container columns from the original):**
+For each category, load the matching reference file and run its playbook against every finding in
+that bucket, reading `CODEBASE_PATH` as needed. Each playbook produces a **finding record**:
 
 ```
-aikido_issue_id, type, severity, affected_file, related_cve, rule, start_line,
-recommended_action, close_category, analyst_notes, evidence
+{
+  issue_id, issue_title, category, issue_type, aikido_severity,
+  file, line,
+  technical_verdict:      "KEEP OPEN" | "CLOSE",
+  close_category:         "False Positive" | "File Removed" | "Not Exploitable" | "Real Finding",
+  exploitability_rating:  "HIGH" | "MEDIUM" | "LOW" | "NOT EXPLOITABLE",
+  verification_method:    <free text — how the verdict was reached, e.g. "static taint trace",
+                            "/analyze-cve dataflow trace", "live-confirmed via /cloud-security",
+                            "static assessment only — not live-confirmed">,
+  evidence:                <file:line references + the specific detail that proves the verdict>
+}
 ```
 
-Rules:
-- Wrap any field containing commas in double quotes
-- Use ` | ` (space-pipe-space) as separator within the `evidence` field — never commas
-- Keep `analyst_notes` to one sentence with no commas
-- Every row must have exactly 11 fields
+| Category | Reference file | Core method |
+|---|---|---|
+| SCA | `references/sca-playbook.md` | Package-usage check → `/analyze-cve` chain for `open_source`; native EOL/license check otherwise |
+| SAST | `references/sast-taint-playbook.md` | Verify sink → taint trace → identify source → trust-boundary/proxy crossing → reachability |
+| Application Secrets | `references/secrets-playbook.md` | Removal check → static usage estimate → opt-in liveness probe |
+| Misconfiguration | `references/misconfig-playbook.md` | Static blast-radius reasoning → optional live-chain confirmation |
+| Unmapped | `references/category-map.md` | Lightweight judgment call + suggested chain-out, per finding |
 
 ---
 
-## Phase 5 — Generate the HTML Evidence Report
+## Phase 4 — Business impact & severity
 
-Write a self-contained HTML file to the same directory as the CSV, named `<project-name>-security-review.html`.
-
-### HTML structure (follow this exactly)
+For **every** finding record from every category (Unmapped included), apply
+`references/business-impact-rubric.md` to add:
 
 ```
-1. <header>  — project name, analyst, date, branch/source
-2. Stats bar — total / close / keep open / false positive / file removed / not exploitable counts
-3. Jump nav  — anchor links to each section
-4. Full summary table — all findings, colour-coded by severity and action
-5. KEEP OPEN section — one detailed card per finding with full code evidence
-6. FALSE POSITIVES section — one card per finding with evidence showing why it's a FP
-7. FILE REMOVED section — simple table (no code to show)
-8. NOT EXPLOITABLE section — one card per finding with code evidence
-9. <footer>
+business_severity:      "Critical" | "High" | "Medium" | "Low"
+business_justification: <required only when business_severity != aikido_severity — one line>
 ```
 
-### Card anatomy (for sections 5, 6, 8)
-
-Each finding card must contain:
-- Finding ID, severity badge, type, file:line
-- `recommended_action` badge
-- **Verdict paragraph** — plain English explanation
-- **Fix** (for KEEP OPEN only) — exact command or code change required
-- **Evidence code block** — the actual lines from the file, syntax-highlighted, with line numbers and comments explaining what is or isn't vulnerable
-
-### Code block style
-
-Use `<pre>` blocks with dark background. Add inline `<span>` highlights:
-- `class="highlight"` — red, for the vulnerable or suspicious line
-- `class="ok"` — green, for the safe/correct pattern
-- `class="comment"` — gray, for explanatory annotations added by the analyst
-
-### Severity badge colours
-
-- Critical → red background
-- High → orange background
-- Medium → yellow background
-- Low → green background
-
-### Action badge colours
-
-- KEEP OPEN → red
-- CLOSE → green
-
-### Close category badge colours
-
-- False Positive → blue
-- File Removed → purple
-- Not Exploitable → green
-- Real Finding → red
-
-### CSS
-
-Embed all CSS in a `<style>` block in `<head>`. No external dependencies — the file must be fully self-contained and openable offline.
-
-Use a clean, professional light theme. Monospace font for file paths and code. System font stack for prose.
+`business_severity`, not Aikido's raw `aikido_severity`, is what drives ranking in Phase 5 and 7.
 
 ---
 
-## Phase 6 — Summary to User
+## Phase 5 — Review & confirm
 
-After writing both files, output a short summary:
+Before writing anything to Aikido, present one categorized table to the user:
 
 ```
-## Triage complete
+## Proposed triage — review before I close anything
 
-**CSV:** /path/to/reviewed.csv
-**Report:** /path/to/report.html
+| Category | ID | Business Severity | Verdict | Reason |
+|---|---|---|---|---|
+| SAST | AIK-1234 | Low | CLOSE — Not Exploitable | ... |
+| Secrets | AIK-5678 | Critical | KEEP OPEN | ... |
+...
 
-| Action     | Count |
-|------------|-------|
-| KEEP OPEN  | N     |
-| CLOSE      | N     |
-| — False Positive | N |
-| — File Removed   | N |
-| — Not Exploitable| N |
-
-**Keep open findings:**
-- [ID] severity — short description
-- ...
+N proposed closures, M kept open. Confirm closures before I call aikido_ignore_issue?
 ```
+
+Wait for explicit confirmation. This is a real, shared-state write against the team's Aikido
+workspace — do not skip this checkpoint even under an otherwise autonomous invocation.
+
+---
+
+## Phase 6 — Execute closures
+
+For every confirmed `CLOSE` verdict, call:
+
+```
+mcp__aikido__aikido_ignore_issue(issue_id=<id>, reason=<one-line, specific — reuse the finding
+  record's evidence/verification_method, not a generic "not exploitable">)
+```
+
+Report per-call success/failure. If a call fails, do not retry silently — surface it in the Phase
+7 summary so the user knows which issues are still open in Aikido despite the intended verdict.
+
+---
+
+## Phase 7 — Final summary
+
+Chat-facing only — **no file is generated**. Include:
+- Category counts (found / closed / kept open), including the Unmapped bucket.
+- Every closed issue with its ID and the reason sent to Aikido.
+- Every kept-open finding, ranked by `business_severity` (Critical first), with its
+  `exploitability_rating` and one-line evidence.
+- For Unmapped findings, or KEEP OPEN findings whose verdict is "static assessment only — not
+  live-confirmed," a one-line suggested next skill (see CHAIN COMMITMENTS).
 
 ---
 
 ## Rules
 
-- **Read every flagged file before rendering a verdict.** Never close a finding based on the rule name alone.
-- **Batch independent reads in parallel** — read multiple files in one response when they don't depend on each other.
-- **Use `/analyze-cve` for complex SCA findings** where user input may reach the vulnerable function. Do not skip this.
-- **For `leaked_secret` findings on files that exist**: always read the exact flagged lines. Do not assume it's a false positive without looking.
-- **Preserve line numbers** in all code snippets — use the actual line numbers from the source file.
-- **Do not fabricate code.** Only quote lines you have actually read from the file.
-- **Write the HTML last** — after all verdicts are finalized, so the report is complete.
-- **Do not include empty columns** in the output CSV — strip the cloud/VM/container/ARN columns from the original Aikido export.
-
----
-
-## Finding type quick reference
-
-| Aikido `type` | Primary check | Most common outcome |
-|---|---|---|
-| `leaked_secret` | Does file exist? Then read flagged lines. | False Positive or File Removed |
-| `sast` — NoSQL | Trace call chain to actual DB driver | Almost always False Positive if MySQL/Postgres stack |
-| `sast` — SQLi | Read raw SQL method, check interpolation + type coercion | Medium finding, often partially mitigated |
-| `sast` — Actions | Check for SHA pin vs tag pin | Real finding if tag-pinned |
-| `open_source` | Grep app source for import, check if vulnerable function used | Often Not Exploitable (transitive/build-only) |
-| `eol` | Read version file, check EOL date | Always a real finding if EOL date passed |
+- **Read every flagged file before rendering a verdict.** Never close a finding based on the rule
+  name or Aikido's remediation text alone.
+- **Batch independent reads in parallel** — read multiple files in one response when they don't
+  depend on each other.
+- **`/analyze-cve` is mandatory** for `open_source` findings where a quick grep can't settle
+  reachability. Do not skip it to save time.
+- **Never call `aikido_ignore_issue` before Phase 5's confirmation.** Batch confirmation once,
+  then execute — don't re-confirm per issue, and don't fire early either.
+- **Never auto-probe a secret's liveness.** `references/secrets-playbook.md` requires asking
+  first, every time, even for an allowlisted provider.
+- **Label unconfirmed misconfiguration verdicts as such** — "static assessment only" is a valid,
+  honest result. Never present reasoning as if it were live-confirmed.
+- **Never silently drop a finding type.** Anything that isn't SCA/SAST/Secrets/Misconfiguration
+  goes in Unmapped and still gets a verdict and a business-severity score.
+- **Preserve line numbers** in all evidence — use the actual line numbers from the source file.
+- **Do not fabricate code or evidence.** Only cite lines you have actually read.
