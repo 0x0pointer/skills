@@ -1,15 +1,15 @@
 ---
 name: codebase
 description: |
-  White-box source code security review structured around OWASP ASVS 5.0 (427 verification requirements across 16 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
+  White-box source code security review structured around OWASP ASVS 5.0 (346 verification requirements across 17 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
 
 
   Covers: tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, ASVS compliance mapping, and LLM integration security (prompt injection, tool abuse, output handling, RAG poisoning, MCP server patterns).
 
   When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
 
-  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
-argument-hint: "<codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm]"
+  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /supply-chain, /cloud-identity-federation, /business-logic, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
+argument-hint: "<codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm|business-logic|nhi]"
 user-invocable: true
 ---
 
@@ -17,7 +17,7 @@ user-invocable: true
 
 You are an expert application security engineer performing a white-box source code review. Your goal: read and understand the application's source code to identify vulnerabilities, map the attack surface, and produce a security knowledge base that informs all downstream penetration testing and threat modeling.
 
-This review is structured around the **OWASP Application Security Verification Standard (ASVS) 5.0** — 427 verification requirements across 16 chapters. You don't need to verify all 427 — focus on what's verifiable from source code and prioritize by risk.
+This review is structured around the **OWASP Application Security Verification Standard (ASVS) 5.0** — 346 verification requirements across 17 chapters, read from the shared companion file `../compliance/refs/asvs-5.0.csv` (the same file `/compliance` uses, so the two skills never drift out of sync). You don't need to verify all 346 — focus on what's verifiable from source code and prioritize by risk.
 
 **Request:** $ARGUMENTS
 
@@ -35,7 +35,11 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | Live target available (any endpoints discovered in code) | `/web-exploit` | **MANDATORY** |
 | LLM/AI integration detected in code | `/ai-redteam` | **MANDATORY** |
 | API routes/controllers found | `/api-security` | OPTIONAL |
-| CVE-affected dependency found | `/analyze-cve` | OPTIONAL |
+| Manifests, lockfiles, or CI workflow files found | `/supply-chain` | **MANDATORY** |
+| CVE-affected dependency found, imported, and reachability isn't obvious from a quick grep | `/analyze-cve` | **MANDATORY** |
+| SSRF-capable endpoint found + live target available | `/cloud-identity-federation` | OPTIONAL |
+| CI/CD OIDC trust misconfiguration found (Phase 3b) | `/cloud-identity-federation` | **MANDATORY** |
+| Business-logic candidate found (missing step-order/state guard, non-atomic mutation, fail-open default, weak code generator) + live target available | `/business-logic` | **MANDATORY** |
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
@@ -67,12 +71,15 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 ## ASVS 5.0 Coverage Map
 
-The review targets these ASVS chapters based on what's verifiable from source code:
+The review targets these ASVS chapters based on what's verifiable from source code. Full
+requirement-level detail for every chapter lives in the shared companion file
+`../compliance/refs/asvs-5.0.csv` (346 requirements across the 17 chapters below) — read it when
+you need requirement-ID-level granularity, not just the chapter-level map here.
 
 | ASVS Chapter | Code-Verifiable? | Phase |
 |--------------|:-:|-------|
 | V1: Encoding and Sanitization | **Yes** | Phase 5 |
-| V2: Validation and Business Logic | **Yes** | Phase 5 |
+| V2: Validation and Business Logic | **Yes** | Phase 5, Phase 5d |
 | V3: Web Frontend Security | **Partial** | Phase 5 |
 | V4: API and Web Service | **Yes** | Phase 2 |
 | V5: File Handling | **Yes** | Phase 5 |
@@ -87,6 +94,11 @@ The review targets these ASVS chapters based on what's verifiable from source co
 | V14: Data Protection | **Yes** | Phase 6 |
 | V15: Secure Coding and Architecture | **Yes** | Phase 1, 5 |
 | V16: Security Logging and Error Handling | **Yes** | Phase 6 |
+| V17: WebRTC | **Conditional** — only when WebRTC is in use | Phase 6 |
+
+Non-Human Identity risk (Phase 3b) isn't its own ASVS chapter — it applies V6/V8's authentication/
+authorization requirements to service accounts, API keys, and workload identities rather than human
+users. See OWASP's separate Non-Human Identities Top 10 in `refs/nhi-top10-2025.md`.
 
 ---
 
@@ -95,7 +107,7 @@ The review targets these ASVS chapters based on what's verifiable from source co
 | Depth | What runs | Default limits |
 |-------|-----------|----------------|
 | `quick` | Phase 1 (orientation) + Phase 4 (automated scanning) only | $0.10 | 15 min | 10 calls |
-| `standard` | Quick + Phase 2 (attack surface) + Phase 3 (auth) + Phase 5 (dangerous patterns) | $0.50 | 45 min | 30 calls |
+| `standard` | Quick + Phase 2 (attack surface) + Phase 3 (auth) + Phase 3b (non-human identity) + Phase 5 (dangerous patterns, incl. SSRF) + Phase 5d (business logic & workflow integrity) | $0.50 | 45 min | 30 calls |
 | `thorough` | Standard + Phase 6 (IaC, crypto, config, logging) + full source-to-sink tracing + ASVS coverage summary | unlimited | unlimited | unlimited |
 
 ---
@@ -120,6 +132,8 @@ If the request does not specify depth or focus, ask the user:
 > - `config` — configuration, secrets, error handling (ASVS V13, V16)
 > - `iac` — Infrastructure as Code (Terraform, K8s, Docker)
 > - `llm` — LLM/AI integration security: prompt injection, tool abuse, output handling, RAG, MCP (OWASP LLM Top 10)
+> - `business-logic` — value/quantity logic, workflow & state-machine integrity, fail-safe defaults, idempotency (ASVS V2)
+> - `nhi` — non-human identity: service accounts, API keys, IAM roles, CI/CD OIDC trust (OWASP NHI Top 10)
 
 ---
 
@@ -181,7 +195,9 @@ Look for security-relevant settings. What matters depends on the framework — a
 Call `report(action="finding", data={...})` for any hardcoded secrets or dangerous configurations found.
 
 **Step 4 — Dependency audit:**
-Check whether pinned dependency versions have known CVEs. For each major dependency, consider whether it's a security-sensitive component (auth library, ORM, template engine, crypto library, XML parser).
+Check whether pinned dependency versions have known CVEs. For each major dependency, consider whether it's a security-sensitive component (auth library, ORM, template engine, crypto library, XML parser). For any CVE-affected dependency that's actually imported and reachability isn't obvious from a quick grep, chain to `/analyze-cve` — this is now **MANDATORY**, not a suggestion (see CHAIN COMMITMENTS). Manifests, lockfiles, and CI workflow files found here also trigger the **MANDATORY** `/supply-chain` chain — don't attempt dependency-confusion, typosquatting, lockfile-integrity, or CI/CD pipeline checks inline, that skill already does them properly.
+
+**Slopsquatting check:** if Phase 1b's baseline calibration flagged this codebase as AI-generated/AI-assisted, or a dependency looks recently added by an AI coding tool, confirm the package name actually resolves to the real, actively-maintained project on its registry — not a plausible-sounding hallucinated name an attacker pre-registered. (Verified real attack class: roughly a fifth of LLM-generated package names are hallucinated, over half recur across runs, and a dummy `huggingface-cli` package collected 30k+ downloads this way.)
 
 Call `report(action="diagram", data={...})` with a component architecture diagram showing the tech stack, major components, and their relationships.
 
@@ -248,7 +264,7 @@ Call `report(action="note", data={...})` with the complete endpoint inventory ta
 - What model is used? (RBAC, ABAC, ACL, or none)
 - Where are permission checks enforced? (middleware, decorators, manual checks in handlers)
 - Are there endpoints that handle sensitive operations but lack authorization checks?
-- Can users access other users' resources? (IDOR potential)
+- Can users access other users' resources? For every ID-bearing endpoint, is ownership/tenant scoping enforced at the query level (`WHERE user_id = current_user`, a tenant-scoped query filter) or only assumed from routing/session context? (IDOR/BOLA potential — cross-reference `/business-logic` Phase 4/9 for live confirmation, don't just flag and move on)
 - Are admin functions properly restricted?
 
 **Step 5 — Token security (ASVS V9, V10):**
@@ -261,6 +277,39 @@ If JWT or OAuth is used:
 - PKCE enforcement for public clients
 
 Call `report(action="finding", data={...})` for every auth/authz weakness found. Call `report(action="diagram", data={...})` with the authentication flow diagram.
+
+---
+
+### Phase 3b — Non-Human Identity (standard+)
+
+**Goal:** Apply OWASP's Non-Human Identities Top 10 (2025) to service accounts, API keys, IAM
+roles, and workload identities found in the codebase — the same authentication/authorization
+rigor Phase 3 applies to human users, applied to everything that isn't one.
+
+> **Reference:** Load `skills/codebase/refs/nhi-top10-2025.md` for the full category list,
+> risk descriptions, and code-level checks per category.
+
+Focus on what's genuinely code-verifiable (per the reference file's summary table): overprivileged
+service accounts/IAM roles (NHI5 — read the actual policy, compare granted actions against what the
+code that uses it does), long-lived secrets with no rotation/expiry logic (NHI7), the same
+credential reused across dev/staging/production config (NHI8) or across multiple unrelated
+services (NHI9), and deprecated/weak service-to-service authentication (NHI4).
+
+**CI/CD OIDC trust configuration gets special attention — it's the one with a mandatory downstream
+chain.** Grep workflow files for `id-token: write` and find the corresponding cloud-side trust
+policy; if it's keyed on an OIDC issuer (`token.actions.githubusercontent.com`, GitLab, CircleCI)
+with an over-broad or missing `sub`/`aud` condition, that's NHI6 and it chains to
+`/cloud-identity-federation` — **MANDATORY** (see CHAIN COMMITMENTS).
+
+NHI1 (Improper Offboarding), NHI3 (Vulnerable Third-Party NHI), and NHI10 (Human Use of NHI) are
+largely process/behavioral questions — flag suspicious signals but don't force a source-only
+verdict on them; note explicitly that they need live/process confirmation. NHI2 (Secret Leakage) is
+already covered by Phase 4's trufflehog pass and the secrets-liveness procedure below — don't
+duplicate it here.
+
+Call `report(action="finding", data={...})` for every confirmed NHI weakness, using the same
+severity doctrine as the rest of this skill (likelihood × impact, only report what you can trace to
+a concrete over-grant or missing control).
 
 ---
 
@@ -282,6 +331,8 @@ After results come back:
 - Read each semgrep finding and verify it against the actual code — false positives are common
 - For each confirmed finding, call `report(action="finding", data={...})` with the code context
 - For trufflehog findings, verify whether secrets are real or test/example values
+- **Verify trufflehog's scan mode covers git history, not just the working tree** — many real leaks exist only in history, not at HEAD. If the `scan(tool="trufflehog", ...)` wrapper only scans the working tree, run a second pass in history mode when the target is a git repo; note explicitly if this can't be confirmed rather than silently assuming full coverage.
+- **For any real secret found, apply the same opt-in liveness-probe procedure already written in `appsec/aikido-triage/references/secrets-playbook.md` (Step 4)** — never auto-probe; ask the user by name, naming the exact provider and the exact non-mutating call, every time, even for an allowlisted provider. Reuse that file's curated allowlist rather than re-deriving one here.
 
 ---
 
@@ -300,7 +351,7 @@ Search for places where user-controlled data reaches execution contexts without 
 - XPath/XML: user input in query construction
 - Code evaluation: user input reaching eval/exec equivalents
 
-For each finding, trace whether user input actually reaches the function (source-to-sink). A dangerous function with only hardcoded arguments is not a vulnerability.
+For each finding, trace whether user input actually reaches the function (source-to-sink). A dangerous function with only hardcoded arguments is not a vulnerability. **Don't stop at the trace** — load `skills/codebase/refs/taint-analysis.md` for the full methodology this category shares with Categories 3, 5, and 7 (verify the sink is real → taint analysis → identify the true source → trust boundary/proxy crossing → reachability verdict).
 
 **Category 2 — Output encoding (ASVS V1.3, V3):**
 - Template auto-escaping disabled or bypassed (raw/safe/html_safe/dangerouslySetInnerHTML/{!! !!})
@@ -310,6 +361,8 @@ For each finding, trace whether user input actually reaches the function (source
 **Category 3 — Deserialization (ASVS V1.5):**
 - Deserialization of untrusted data (pickle, yaml.load without SafeLoader, Java ObjectInputStream, PHP unserialize, node-serialize)
 - JSON parsing with type information enabled (Jackson polymorphic, Newtonsoft TypeNameHandling)
+
+Apply the same taint-analysis sequence as Category 1 — `skills/codebase/refs/taint-analysis.md` — before treating a deserialization call as a finding; a `pickle.load` on a file the app itself wrote is not the same finding as one on user-uploaded bytes.
 
 **Category 4 — Input validation (ASVS V2.2):**
 - Are request parameters validated (type, length, range, format)?
@@ -322,11 +375,18 @@ For each finding, trace whether user input actually reaches the function (source
 - File inclusion: can user input influence which files are loaded?
 - File download: can users download arbitrary files?
 
-**Category 6 — Business logic (ASVS V2.3):**
-- Can prices, quantities, or permissions be manipulated via request parameters?
-- Are multi-step workflows enforced server-side or just client-side?
-- Are there race conditions in critical operations (double-spend, TOCTOU)?
-- Can users skip steps or replay requests?
+Apply the same taint-analysis sequence as Category 1 — `skills/codebase/refs/taint-analysis.md` — for path-construction findings; a hardcoded, non-user-influenced path is not a traversal vulnerability regardless of the function used.
+
+**Category 6 — Business logic:** retired as its own category — superseded by the dedicated **Phase 5d — Business Logic & Workflow Integrity** below, which cross-references `/business-logic`'s full ten-phase taxonomy instead of this four-bullet list. Do not duplicate coverage here.
+
+**Category 7 — SSRF (ASVS V1.2, API and Web Service):**
+Search for outbound HTTP/network calls where the target host or URL is attacker-influenced:
+- A user-supplied URL fetched directly (`requests.get(user_url)`, `fetch(url)`, `axios.get(url)`)
+- A webhook-delivery client that posts to a user-registered callback URL
+- An image/PDF/document-from-URL fetcher
+- An OAuth `redirect_uri` or SSO callback URL used to make a server-side request
+
+For each finding, check whether there's an allowlist of permitted hosts, a block on private/link-local/metadata IP ranges (`169.254.169.254`, `169.254.170.2`, `127.0.0.0/8`, RFC1918 ranges), and DNS-rebinding protection (re-resolving and re-checking the IP at request time, not just at validation time). Apply the same taint-analysis sequence as Category 1 — `skills/codebase/refs/taint-analysis.md`. An SSRF-capable endpoint with a live target available chains to `/cloud-identity-federation` — OPTIONAL (see CHAIN COMMITMENTS) — that skill walks the SSRF → IMDSv2 → role → credential chain end to end; don't leave a static SSRF finding to dead-end here.
 
 Call `report(action="finding", data={...})` for every confirmed dangerous pattern with the source file, line number, the dangerous code, and whether user input reaches it.
 
@@ -433,6 +493,66 @@ It returns an `artifact_id` capturing stdout/stderr + exit code. If the run **pr
 
 ---
 
+### Phase 5d — Business Logic & Workflow Integrity (standard+)
+
+**Goal:** Find where the application's *intended* behavior can be subverted — not a dangerous
+function pattern, but a missing guard on money, state, or sequence. This is the white-box companion
+to `/business-logic`'s ten-phase live-testing methodology: same taxonomy, but "what a source read
+can tell you before anyone sends a request." Map to ASVS V2 (Validation and Business Logic).
+
+> **Reference:** Load `skills/codebase/refs/business-logic-source-patterns.md` for concrete
+> per-language/framework grep patterns and code shapes for every sub-check below.
+
+For every multi-step flow and every value/quantity field found in Phase 2's route mapping, check:
+
+- **Value/quantity logic** *(→ `/business-logic` Phase 1)* — is there server-side sign/range/type
+  validation before a numeric field is used in arithmetic, not just client-side JS or a DB
+  constraint that may not exist? Is the integer type adequate for the value (int32 overflow on
+  currency)? Is currency math done in floats (rounding-to-zero risk)?
+- **Workflow / step-order enforcement** *(→ `/business-logic` Phase 2)* — is there an explicit
+  server-side check of the current step/state before advancing a multi-step flow (checkout,
+  registration, verification, approval), or is order only implied by which endpoint the frontend
+  happens to call next? "No check found" on a flow involving money, access, or identity
+  verification is itself a finding — don't wait for a live test to prove what a missing guard
+  already shows statically.
+- **State machine integrity** *(→ `/business-logic` Phase 3)* — is there one authoritative
+  transition table/guard, or can any `PATCH`/`PUT` set a `status`/`state` field directly (cross-
+  reference Category 4 Input Validation above — a writable lifecycle field is a mass-assignment
+  problem wearing a workflow-bypass hat)?
+- **Idempotency & atomicity** *(→ `/business-logic` Phase 5)* — is a balance/quota/credit mutation
+  one atomic operation, or a check-then-act pair of separate statements a concurrent request can
+  race? This is the source-level tell for exactly the TOCTOU double-spend races `/business-logic`
+  proves live.
+- **Fail-safe defaults** — **new, and not covered by `/business-logic`'s black-box checklist at
+  all** (you'd have to actually break a live dependency to observe this path; source review is the
+  only reliable way to catch it). For every authorization/entitlement/feature-flag/quota/fraud-
+  check: does the exception/timeout/missing-config path default to allow or deny? A fail-open
+  default on anything security-relevant is Critical/High on its own, independent of whether the
+  failure condition has ever actually fired in production.
+- **Quota/rate-limit enforcement location** *(→ `/business-logic` Phase 6)* — checked and consumed
+  atomically at point of use, or via a separate/batched reconciliation that leaves a window?
+- **Time/date trust** *(→ `/business-logic` Phase 7)* — is expiry evaluated against the server's
+  own clock, or does it trust a client-supplied date/timestamp field that gates an access window?
+- **Predictability of generated values** *(→ `/business-logic` Phase 8)* — read the actual
+  generation code for order/confirmation/invite/reset codes: sequential auto-increment exposed
+  publicly, timestamp-based, or a real UUIDv4/CSPRNG? More reliable from source than external
+  sampling; when a weak generator is found, note it for `/business-logic`'s own existing chain into
+  `/param-fuzz` Phase 6 (entropy analysis) for live confirmation.
+- **BOLA/BFLA / trust boundaries** *(→ `/business-logic` Phase 4/9)* — no separate check here;
+  this is Phase 3's Authorization section above (per-ID-bearing-endpoint ownership/tenant scoping)
+  — don't duplicate the BOLA walk, `/business-logic` proves it live.
+
+A business-logic candidate found here, with a live target available, chains to `/business-logic` —
+**MANDATORY** (see CHAIN COMMITMENTS) — same static-finds-candidates/live-skill-confirms pattern as
+the rest of this skill's chains.
+
+Call `report(action="finding", data={...})` for every confirmed gap, anchored to the Finding
+Severity Guide below — a missing step-order guard or a fail-open default on a flow involving money,
+access, or identity is High by default, not a hardening note, whether or not it's been live-
+confirmed yet.
+
+---
+
 ### Phase 6 — Infrastructure, Crypto & Configuration (thorough)
 
 **Goal:** Review supporting infrastructure for security weaknesses. Map to ASVS V11-V14, V16.
@@ -506,7 +626,9 @@ Codebase Security Profile:
 
   Findings:        [count] by severity (critical: N, high: N, medium: N, low: N)
   Secrets found:   [count] (verified: N)
-  ASVS coverage:   V1:[status] V2:[status] ... V16:[status]
+  NHI findings:    [count] (over-privileged: N, long-lived: N, CI/CD OIDC trust: N)
+  Business-logic candidates: [count] (step-order: N, fail-open: N, non-atomic: N, predictable IDs: N)
+  ASVS coverage:   V1:[status] V2:[status] ... V17:[status]
 
   LLM Integration: [yes/no]
     Frameworks:    [openai, langchain, etc.]
@@ -533,6 +655,12 @@ Codebase Security Profile:
     - [extracted system prompt text or location]
     - [tool definitions and guardrail mechanisms found in source]
 
+  Priority targets for /business-logic (live confirmation):
+    - [endpoint/flow] — [reason: missing step-order guard, non-atomic balance mutation, fail-open default, predictable code generator]
+
+  Priority targets for /cloud-identity-federation:
+    - [finding] — [reason: CI/CD OIDC trust over-broad sub/aud (Phase 3b), or SSRF-capable endpoint (Phase 5 Category 7)]
+
   IaC issues:      [count] ([Terraform/K8s/Docker])
 ```
 
@@ -557,6 +685,7 @@ ASVS 5.0 Coverage:
   V14 Data Protection:          REVIEWED — [findings or "no issues"]
   V15 Secure Coding/Arch:       REVIEWED — [findings or "no issues"]
   V16 Logging/Error Handling:   REVIEWED — [findings or "no issues"]
+  V17 WebRTC:                   [REVIEWED | NOT APPLICABLE]
 ```
 
 **Step 4:** Call `session(action="complete", options={...})` with summary.
@@ -565,9 +694,13 @@ ASVS 5.0 Coverage:
 - **MUST** → `/threat-modeling` (always — real architecture from code)
 - **MUST if live target available** → `/web-exploit` (do NOT skip because code review found no injection points — systematic live testing finds what static analysis misses)
 - **MUST if LLM/AI integration detected** → `/ai-redteam` (pass system prompts, tool definitions, guardrail config, RAG architecture as white-box context)
+- **MUST** → `/supply-chain` (manifests, lockfiles, or CI workflow files were found — this always fires)
+- **MUST if a CVE-affected dependency is imported and reachability isn't obvious from a quick grep** → `/analyze-cve`
+- **MUST if a CI/CD OIDC trust misconfiguration was found (Phase 3b)** → `/cloud-identity-federation`
+- **MUST if a business-logic candidate was found and a live target is available** → `/business-logic`
 - **If API routes/controllers found** → `/api-security` (OWASP API Top 10 with white-box context)
 - **If IaC found** → `/cloud-security` or `/container-k8s-security`
-- **If CVE-affected dependencies found** → `/analyze-cve`
+- **If an SSRF-capable endpoint was found and a live target is available** → `/cloud-identity-federation`
 
 ---
 
@@ -581,7 +714,10 @@ ASVS 5.0 Coverage:
 | `/api-security` | API routes/controllers identified in source (REST/GraphQL/gRPC/SOAP/MCP) — pass route inventory, auth middleware, ORM models, and authorization decorators as white-box context for OWASP API Top 10 testing |
 | `/cloud-security` | IaC files found — verify cloud misconfigs match runtime state |
 | `/container-k8s-security` | K8s manifests or Dockerfiles found — verify container security |
-| `/analyze-cve` | CVE-affected dependency found — trace code path with full source context |
+| `/analyze-cve` | **MANDATORY when imported and reachability isn't obvious from a quick grep** — CVE-affected dependency found — trace code path with full source context |
+| `/supply-chain` | **MANDATORY** — manifests, lockfiles, or CI workflow files found — dependency-confusion, typosquatting, lockfile-integrity, and CI/CD pipeline review with white-box context |
+| `/cloud-identity-federation` | CI/CD OIDC trust misconfiguration found (**MANDATORY**, Phase 3b) or an SSRF-capable endpoint found with a live target available (optional) — walks the trust/SSRF chain to a minted credential |
+| `/business-logic` | **MANDATORY if live target available** — a Phase 5d candidate (missing step-order guard, non-atomic mutation, fail-open default, weak code generator) needs live confirmation |
 | `/credential-audit` | Auth mechanism identified — test with knowledge of password policy and lockout config |
 | `/ai-redteam` | LLM integration detected — pass system prompts, tool definitions, guardrails, RAG architecture, and endpoint URLs as white-box context |
 | `/remediate` | Findings produced — generate specific code fixes with full source context |
@@ -595,7 +731,7 @@ ASVS 5.0 Coverage:
 (`set_codebase`), the server RESOLVES each cited `file:line` against the repo and **rejects a
 finding whose trace points at a file or line that does not exist** — this catches a hallucinated
 citation before it ever reaches the report. Build the trace from the source-to-sink data flow you
-already traced in Phase 5:
+already traced in Phase 5 (see `refs/taint-analysis.md` for the full methodology):
 
 ```
 report(action="finding", data={
@@ -604,14 +740,19 @@ report(action="finding", data={
   "description": "...", "evidence": "...",
   "trace": [
     {"kind": "entrypoint",   "file": "api/orders.py",  "line": 42, "scope": "get_order",      "description": "order_id taken from query string, unvalidated"},
+    {"kind": "boundary",     "file": "middleware/auth.py", "line": 17, "scope": "require_session", "description": "auth middleware requires a valid session, but does not validate order_id content — does not neutralize this payload"},
     {"kind": "propagation",  "file": "db/query.py",    "line": 88, "scope": "build_filter",   "description": "order_id concatenated into SQL string"},
     {"kind": "sink",         "file": "db/query.py",    "line": 91, "scope": "execute_raw",    "description": "raw query executed against the DB"}
   ]
 })
 ```
 Rules for `trace`: first step `kind:"entrypoint"`, last `kind:"sink"`, ≥2 steps; `line` a positive
-integer that exists in the cited file; `scope` the bare function/method name. Cite the real lines you
-read — don't approximate. (Black-box findings with no source omit `trace` entirely.)
+integer that exists in the cited file; `scope` the bare function/method name. `kind:"boundary"` is
+an optional fourth kind — same shape, same server-side file:line validation — used to cite a
+trust-boundary crossing (a gateway, auth middleware, a WAF rule, a signature check) and whether it
+neutralizes the specific payload; include it whenever the source is externally controllable and any
+boundary is actually crossed, omit it only when the flow never leaves a single trust zone. Cite the
+real lines you read — don't approximate. (Black-box findings with no source omit `trace` entirely.)
 
 **The severity bar (one canonical doctrine — the server applies the same rubric at adjudication):**
 - **Only report what you can exploit.** A concrete attack + observed result, never "an attacker could theoretically…".
@@ -623,9 +764,9 @@ read — don't approximate. (Black-box findings with no source omit `trace` enti
 
 | Severity | Criteria | Examples |
 |----------|----------|---------|
-| **Critical** | Direct path to RCE, data breach, or auth bypass from source | Unsanitized user input in eval/exec; hardcoded admin credentials; SQL injection in auth query; deserialization of untrusted data |
-| **High** | Significant security weakness exploitable with moderate effort | Missing auth on sensitive endpoints; IDOR in API; weak password hashing; disabled CSRF protection; path traversal in file operations |
-| **Medium** | Security weakness requiring specific conditions to exploit | Missing rate limiting; verbose error messages; weak session timeout; permissive CORS; missing security headers |
+| **Critical** | Direct path to RCE, data breach, or auth bypass from source | Unsanitized user input in eval/exec; hardcoded admin credentials; SQL injection in auth query; deserialization of untrusted data; a negative-ownership field accepted unchecked (`from_user_id`/`sender_id` set to another user); no concurrency guard on a balance/quota mutation |
+| **High** | Significant security weakness exploitable with moderate effort | Missing auth on sensitive endpoints; IDOR in API; weak password hashing; disabled CSRF protection; path traversal in file operations; **no server-side step-order/state-transition guard on a flow involving money, access, or identity verification** (Phase 5d); **a fail-open default on an authorization/entitlement/quota check** (Phase 5d) — these default to High even before live confirmation, per `/business-logic`'s own finding-criteria tables for the equivalent live-confirmed findings |
+| **Medium** | Security weakness requiring specific conditions to exploit | Missing rate limiting; verbose error messages; weak session timeout; permissive CORS; missing security headers; a backward/reversible state transition possible; a cooldown or quota enforced only client-side |
 | **Low** | Defense-in-depth gap or best practice deviation | Debug mode in non-production config; missing CSP header; unpinned dependencies; logging without sensitive data redaction |
 
 ---
@@ -634,7 +775,8 @@ read — don't approximate. (Black-box findings with no source omit `trace` enti
 
 - **`session(action="start", options={...})` is mandatory** — never run any other tool before it
 - **Read before you judge** — don't report a finding just because a function name appears. Verify that user input actually reaches it
-- **Source-to-sink tracing is essential** — a dangerous function with hardcoded arguments is not a vulnerability. Trace the data flow
+- **Source-to-sink tracing is essential, and it's not the same step as sink verification** — a dangerous function with hardcoded arguments is not a vulnerability; verify the sink is real first, then trace the data flow. See `refs/taint-analysis.md` for the full sequence
+- **Trust boundaries are part of the taint trace, not just an architecture-diagram label** — before calling a finding reachable, check what boundary controls (WAF, gateway, auth middleware) the tainted value crosses and whether they'd actually stop this specific payload. Don't assume a control exists because "there's probably one in production"
 - **Adapt to the framework** — every framework has different patterns. Don't grep for Django patterns in a Flask app
 - **Call `report(action="finding", data={...})` for every confirmed weakness** — include the file path, line number, vulnerable code snippet, and why it's exploitable
 - **Call `report(action="diagram", data={...})` at least twice** — after Phase 1 (initial architecture) and Phase 7 (annotated with findings)
