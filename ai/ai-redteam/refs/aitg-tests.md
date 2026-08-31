@@ -12,7 +12,7 @@ AITG v1 defines 32 structured test cases across four layers: **APP** (applicatio
 
 | AITG ID | Name | Layer | Covered by |
 |---------|------|-------|------------|
-| APP-01 | Prompt Injection | App | Phase 2/3 via LLM01 (FuzzyAI, Garak, PyRIT, promptfoo) |
+| APP-01 | Prompt Injection | App | Phase 2/3 via LLM01 (FuzzyAI, Garak, promptfoo) |
 | APP-02 | Indirect Prompt Injection | App | Phase 3 RAG subsection + Phase 4 indirect injection |
 | APP-03 | Sensitive Data Leak | App | Phase 2/3 via LLM02 |
 | APP-04 | Input Leakage (logs/telemetry) | App | **Phase 3c** (shell access) |
@@ -251,7 +251,8 @@ From *Prompt Injection as Role Confusion* (Ye/Cui/Hadfield-Menell, ICML 2026). C
 finding: LLMs infer conversational role from **writing style and surface delimiters**,
 not from the trusted role tags. So text *styled* or *delimited* as a higher-privilege
 role is treated as that role. Two black-box attacks fall out; both are auto-fireable as
-a batch via `scan(tool="pyrit", … "payload_set": …)` from `refs/role-confusion-payloads.json`.
+manually by iterating the templates in `refs/role-confusion-payloads.json` via
+`http(action="request", ...)`.
 
 ### 5b.1 CoT Forgery (highest value)
 
@@ -717,7 +718,7 @@ get its own coverage-matrix cells. Use it two ways only:
 | AISVS chapter (repo H1) | Maps to | How verified |
 |---|---|---|
 | C1 Training Data Integrity & Traceability | DAT-01/03/04/05 | WHITE-BOX + ATTESTATION |
-| C2 Input Validation | LLM01 / APP-01, APP-02 | **BLACK-BOX** (FuzzyAI/Garak/PyRIT/promptfoo) |
+| C2 Input Validation | LLM01 / APP-01, APP-02 | **BLACK-BOX** (FuzzyAI/Garak/promptfoo) |
 | C3 Model Lifecycle Management & Change Control | MOD-02 (LLM04) | WHITE-BOX + ATTESTATION |
 | C4 Infrastructure, Configuration & Deployment Security | INF-01 (LLM03) | WHITE-BOX (semgrep/trufflehog; chain /container-k8s-security) |
 | C5 Access Control & Identity for AI Components & Users | MCP07 (partial) | WHITE-BOX + ATTESTATION |

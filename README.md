@@ -130,7 +130,7 @@ The agent reads your code, traces the vulnerable function from user input to sin
 /ai-redteam https://your-app.com/api/chat provider=openai depth=thorough
 ```
 
-OWASP LLM Top 10 (2025), the OWASP AI Testing Guide (AITG v1, Nov 2025), and OWASP MCP Top 10 runtime attacks. Generates payloads on the fly using FuzzyAI, Garak, PyRIT, and promptfoo.
+OWASP LLM Top 10 (2025), the OWASP AI Testing Guide (AITG v1, Nov 2025), and OWASP MCP Top 10 runtime attacks. Generates payloads on the fly using FuzzyAI, Garak, and promptfoo.
 
 ### 6. Internal AD assessment
 
@@ -243,7 +243,7 @@ poetry run python -m mcp_server</code></pre>
 
 | Skill | What it does |
 |---|---|
-| `/ai-redteam` | OWASP LLM Top 10 (2025) + AITG v1 + MCP Top 10 runtime attacks. Uses FuzzyAI, Garak, PyRIT, promptfoo |
+| `/ai-redteam` | OWASP LLM Top 10 (2025) + AITG v1 + MCP Top 10 runtime attacks. Uses FuzzyAI, Garak, promptfoo |
 | `/colang-gen` | Generate NeMo Guardrails Colang configs and YAML config blocks from plain language |
 </details>
 
