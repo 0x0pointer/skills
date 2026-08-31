@@ -40,7 +40,7 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `session(action="complete", options={...})` | Mark the scan done and write final notes |
 | `scan(tool="nuclei", ...)` | Cloud-specific vulnerability templates (S3, Azure Blob, GCP) |
 | `scan(tool="httpx", ...)` | Probe cloud endpoints, detect cloud services |
-| `kali(command=...)` | Kali tools: aws-cli, az-cli, gcloud, curl (IMDS), prowler, scoutsuite |
+| `kali(command=...)` | Kali tools: aws-cli, gcloud, curl (IMDS) |
 | `http(action="request", ...)` | Manual probing — IMDS, public buckets, cloud metadata, API endpoints |
 | `http(action="save_poc", ...)` | Save a confirmed exploit as a raw `.http` file in `pocs/` |
 | `report(action="finding", data={...})` | Log a confirmed vulnerability with evidence to findings.json |
@@ -48,6 +48,22 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 | `report(action="dashboard", data={"port": 7777})` | Serve dashboard.html at localhost:7777 |
 | `report(action="note", data={...})` | Write a reasoning note or decision to the session log |
 
+
+> **NOT IN THE IMAGE — read before running any `az`, `prowler` or `scout` command below.**
+> The Kali image no longer ships these, so the commands that use them WILL fail:
+>
+> | Tool | Status | Effect on this skill |
+> |------|--------|----------------------|
+> | `az` (azure-cli) | **removed** from the image | Every `kali(command="az ...")` step below fails with `az: command not found`. Azure coverage is unavailable by default. |
+> | `prowler` | not installed | No release supports the image's Python 3.14; Phase 10 automated scanning skips it. |
+> | `scout` (ScoutSuite) | not installed | Same — Phase 10 skips it. |
+>
+> **AWS and GCP are unaffected** (`aws`, `gcloud`, `curl`/IMDS, nuclei cloud templates all work), and
+> the Azure commands are kept below because they are still correct — they just need the CLI present.
+> To run the Azure phases, install the CLI into the live container first:
+> `kali(command="pip install --break-system-packages azure-cli")`
+> then re-run the Azure steps. Do NOT report an Azure control as `tested_clean` on the strength of a
+> `command not found` — mark it not-assessed instead.
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
 
