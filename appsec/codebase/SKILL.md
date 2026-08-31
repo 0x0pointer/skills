@@ -1,14 +1,14 @@
 ---
 name: codebase
 description: |
-  White-box source code security review structured around OWASP ASVS 5.0 (346 verification requirements across 17 chapters). Reads and understands application source code to build a security-aware knowledge base that enriches all downstream skills.
+  White-box source code security review structured around OWASP ASVS 5.0 (346 requirements, 17 chapters). Reads application source to build a security-aware knowledge base for downstream skills.
 
 
-  Covers: tech stack identification, route/endpoint mapping, authentication and authorization architecture, dangerous function patterns, source-to-sink data flow tracing, IaC review, dependency analysis, ASVS compliance mapping, and LLM integration security (prompt injection, tool abuse, output handling, RAG poisoning, MCP server patterns).
+  Covers: tech stack ID, route/endpoint mapping, auth architecture, dangerous function patterns with full source-to-sink taint analysis (incl. trust-boundary crossing), SSRF, IaC review, dependency/supply-chain analysis, non-human identity (OWASP NHI Top 10), business-logic and workflow-integrity checks, ASVS compliance mapping, and LLM integration security (prompt injection, tool abuse, output handling, RAG poisoning, MCP patterns).
 
-  When LLM/AI framework usage is detected, automatically reviews OWASP LLM Top 10 patterns from source code and chains into /ai-redteam with white-box context for live endpoint testing.
+  When LLM/AI usage is detected, reviews OWASP LLM Top 10 patterns and chains into /ai-redteam for live testing.
 
-  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /supply-chain, /cloud-identity-federation, /business-logic, /credential-audit, and /ai-redteam — providing white-box context that transforms black-box testing into targeted, informed assessment.
+  Chains into /pentester, /threat-modeling, /web-exploit, /api-security, /cloud-security, /analyze-cve, /supply-chain, /cloud-identity-federation, /business-logic, /credential-audit, and /ai-redteam for targeted, informed assessment.
 argument-hint: "<codebase-path> [depth=quick|standard|thorough] [focus=all|auth|injection|crypto|config|iac|llm|business-logic|nhi]"
 user-invocable: true
 ---
