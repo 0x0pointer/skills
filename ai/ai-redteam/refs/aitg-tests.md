@@ -12,7 +12,7 @@ AITG v1 defines 32 structured test cases across four layers: **APP** (applicatio
 
 | AITG ID | Name | Layer | Covered by |
 |---------|------|-------|------------|
-| APP-01 | Prompt Injection | App | Phase 2/3 via LLM01 (FuzzyAI, Garak, promptfoo) |
+| APP-01 | Prompt Injection | App | Phase 2/3 via LLM01 (Garak + transform-crafted manual) |
 | APP-02 | Indirect Prompt Injection | App | Phase 3 RAG subsection + Phase 4 indirect injection |
 | APP-03 | Sensitive Data Leak | App | Phase 2/3 via LLM02 |
 | APP-04 | Input Leakage (logs/telemetry) | App | **Phase 3c** (shell access) |
@@ -718,7 +718,7 @@ get its own coverage-matrix cells. Use it two ways only:
 | AISVS chapter (repo H1) | Maps to | How verified |
 |---|---|---|
 | C1 Training Data Integrity & Traceability | DAT-01/03/04/05 | WHITE-BOX + ATTESTATION |
-| C2 Input Validation | LLM01 / APP-01, APP-02 | **BLACK-BOX** (FuzzyAI/Garak/promptfoo) |
+| C2 Input Validation | LLM01 / APP-01, APP-02 | **BLACK-BOX** (Garak + transform-crafted manual) |
 | C3 Model Lifecycle Management & Change Control | MOD-02 (LLM04) | WHITE-BOX + ATTESTATION |
 | C4 Infrastructure, Configuration & Deployment Security | INF-01 (LLM03) | WHITE-BOX (semgrep/trufflehog; chain /container-k8s-security) |
 | C5 Access Control & Identity for AI Components & Users | MCP07 (partial) | WHITE-BOX + ATTESTATION |
