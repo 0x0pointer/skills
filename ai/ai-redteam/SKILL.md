@@ -3,7 +3,7 @@ name: ai-redteam
 description: |
   AI/LLM red-team assessment using OWASP LLM Top 10 (2025), the OWASP AI Testing Guide (AITG v1, Nov 2025), and OWASP MCP Top 10 runtime testing for agentic/MCP targets. Tests prompt injection, jailbreaks, system prompt leakage, sensitive data extraction, excessive agency, improper output handling, model extraction, content bias, evasion, membership inference, MCP token exposure, and MCP command injection.
 
-  Combines Garak (probe-based automated scanning) with agent-driven manual testing powered by the transform() payload tool - a pure-Python engine (base/cipher/homoglyph/zero-width encodings, mutation fuzzer, bijection-learning scaffold, token-bombs, universal decoder, P4RS3LT0NGV3-style) for crafting advanced jailbreak/injection payloads that slip past input filters. The agent itself drives multi-turn/crescendo attacks (craft -> encode -> send -> read -> escalate). Includes a conditional MCP recon phase and a post-access AI infrastructure phase (chained from /post-exploit). Produces an OWASP LLM Top 10 + AITG + MCP coverage matrix, findings per category, an architecture diagram, and PoCs. Chains into /gh-export.
+  Combines Garak (probe-based automated scanning) with agent-driven manual testing via the transform() payload tool - a pure-Python engine (base/cipher/homoglyph/zero-width encodings, mutation fuzzer, bijection scaffold, token-bombs, universal decoder) for jailbreak/injection payloads that slip past input filters. The agent drives multi-turn/crescendo attacks. Includes a conditional MCP recon phase and a post-access AI infrastructure phase (chained from /post-exploit). Produces an OWASP LLM Top 10 + AITG + MCP coverage matrix, findings, a diagram, and PoCs. Chains into /gh-export.
 argument-hint: "<target-url> [provider=openai|anthropic|azure|rest] [model=gpt-4o] [depth=quick|standard|thorough]"
 user-invocable: true
 ---
@@ -259,6 +259,12 @@ If you only have one auth state available, log a note explaining which state was
 Run automated tools based on depth. **Batch independent tools in the same response.**
 
 Automated coverage is Garak; everything Garak doesn't cover is an **agent-driven manual battery**: you craft each payload, encode it with `transform()` to defeat the input filter, deliver it with `http(action="request")` in BOTH auth states, and read the reply (use `transform(action="decode")` if the model answered in an encoding). Load `refs/transforms.md` for the technique→category mapping and worked examples.
+
+> **Tell Garak the request/response shape you already learned.** You interacted with this endpoint during recon, so you know its input key and where the reply sits — pass them so Garak reaches the target with zero probing:
+> ```
+> scan(tool="garak", target=URL, options={"probes":"...", "body_key":"user_input", "response_field":"$.response"})
+> ```
+> `body_key` = the JSON field the endpoint reads the prompt from (e.g. `message`, `user_input`, a custom `prompt_text_v2`); `response_field` = a JSONPath to the reply (`$.response`, `$.choices[0].message.content`, …). This is the same shape you registered on the endpoint via `report(action="coverage", type="endpoint", params=[...])` — reuse it. If you omit them, Garak auto-detects by reading the API's own error and your registered params, but **passing them is faster and never mis-detects.** A run that returns "0 eval entries" almost always means a wrong `body_key` (the probes 4xx'd) — set it explicitly and re-run.
 
 **Quick depth:**
 ```
