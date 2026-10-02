@@ -108,20 +108,25 @@ kali(command="nbtscan NETWORK/24 2>/dev/null | head -50")
 
 ### Phase 2 — Port Scanning & Service Detection
 
-**Fast scan:**
+Scan in **three escalating passes** — a top-ports sweep alone misses high-port and UDP services (SNMP/DNS/NTP/NetBIOS/…), which is the most common recon gap.
+
+**Pass 1 — fast TCP triage (top-100 across the range):**
 ```
 scan(tool="naabu", target="NETWORK/24", options={"ports": "top-100"})
+scan(tool="nmap", target=HOST, options={"ports": "top-1000", "flags": "-sV -sC"})   # service/version on live hosts
 ```
 
-**Service detection on live hosts:**
-```
-scan(tool="nmap", target=HOST, options={"ports": "top-1000", "flags": "-sV -sC"})
-```
-
-**Full port scan (thorough):**
+**Pass 2 — full TCP (1-65535) on every live host — MANDATORY, not thorough-only:**
 ```
 scan(tool="naabu", target="NETWORK/24", options={"ports": "full"})
+scan(tool="nmap", target=HOST, options={"ports": "<new open ports>", "flags": "-sV -sC"})   # version the extras
 ```
+
+**Pass 3 — UDP top-100 on every live host — the pass that's usually skipped:**
+```
+scan(tool="nmap", target=HOST, options={"ports": "udp"})          # SNMP(161)/DNS(53)/NTP(123)/NetBIOS(137)/TFTP/IKE/SIP/mDNS
+```
+Feed every new open port (TCP or UDP) back into enumeration — SNMP→`snmpwalk`/`onesixtyone`, NetBIOS→`nbtscan`, etc. Recon is not complete until Pass 2 and Pass 3 have run on each live host.
 
 After discovery, call `report(action="diagram", data={...})` with network topology:
 ```mermaid
