@@ -162,6 +162,12 @@ If the user already specified depth in their request, skip the question and proc
 0. Call `session(action="start", options={...})` with target URL, depth, and limits
 1. Call `report(action="dashboard", data={"port": 7777})` — live findings tracker
 2. Call `report(action="note", data={...})` — record target type, provider, model, auth method, and any known guardrails
+2a. **Discover the AI/MCP/agent surface — probe the modern descriptors a classic web crawl misses** (the scan engine auto-probes these now; confirm and fuzz for more with `scan(tool="ffuf", target=URL, options={"wordlist":"ai-mcp-api.txt"})`):
+   - `.well-known/mcp.json`, `.well-known/mcp/server-card.json`, `.well-known/agent-card.json`, `.well-known/ai-plugin.json` — MCP server / A2A agent / plugin manifests; they **enumerate tools + endpoints** → register each.
+   - `/mcp`, `/mcp/`, `/sse` — MCP transport endpoints (streamable-HTTP / SSE).
+   - `/llms.txt`, `/llms-full.txt` — LLM site descriptors (often leak internal routes/prompts).
+   - `/openapi.json|yaml`, `/v3/api-docs`, `/graphql` — the API schema.
+   Any tool or endpoint a descriptor lists becomes its own coverage endpoint (next step).
 3. **Register the AI surface in the coverage matrix — MANDATORY. The per-cell matrix (not a prose note) is the audit-grade deliverable, and it is the only scan state that survives context compaction.** Register the LLM chat endpoint with the prompt field typed `llm_prompt` so the matrix fans out one cell per OWASP LLM category:
 
    ```
