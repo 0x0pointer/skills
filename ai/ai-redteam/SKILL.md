@@ -41,6 +41,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — run once PER AI/LLM/MCP endpoint (and per MCP tool), not once per scan.** A newly discovered AI endpoint is a fresh assessment, NOT covered by a prior endpoint's run. Each distinct model/chat/completion endpoint and each exposed MCP tool gets its own invocation.
+
 
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.

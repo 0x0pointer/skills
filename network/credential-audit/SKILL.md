@@ -29,6 +29,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — re-run PER distinct authentication surface, not once per scan.** A fresh invocation for each network service (`host:port`), each web login form, each API/token scheme, and each OAuth/OIDC or SAML flow — a prior run on one surface does NOT cover another. Route OAuth/OIDC surfaces to `/oauth-security` and SAML/SSO surfaces to `/saml-sso`.
+
 **If credentials yield shell access: MUST invoke `/post-exploit` — do not stop at credential confirmation.**
 
 

@@ -68,6 +68,8 @@ Read this before generating any payload. Commit to MANDATORY chains before your 
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — run PER host/exec-context needing a shell, not once per scan.** Each host or execution context that needs a shell is a fresh invocation; a prior payload/listener for one context does NOT cover another.
+
 **You WILL invoke `/post-exploit` the moment a reverse shell connects. Do not spend time manually enumerating — hand off immediately.**
 
 
