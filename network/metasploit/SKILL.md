@@ -28,6 +28,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — run PER exploitable CVE/service instance, not once per scan.** Each confirmed exploitable CVE and each vulnerable service instance is its own validation run; a prior module run does NOT cover another target.
+
 **You WILL invoke `/post-exploit` the moment a session is opened.**
 
 

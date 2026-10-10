@@ -26,6 +26,10 @@ This skill is domain-agnostic. The same patterns apply to an e-commerce checkout
 
 ---
 
+> **RE-RUN TRIGGERS — re-run as new logic surface appears, not once per scan.** A fresh invocation PER new stateful workflow, PER new numeric/quantity field, and PER new identity/tenant boundary — each newly mapped flow, field, or boundary is uncovered until this skill runs against it. Discovering more surface later in the engagement means running this skill again, not assuming the first pass covered it.
+
+---
+
 ## Tools Available
 
 | Tool | Use for |
