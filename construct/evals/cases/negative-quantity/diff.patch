@@ -1,0 +1,16 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -54,9 +54,10 @@ def add_item():
+     ).fetchone()
+     if product is None:
+         return jsonify(error="unknown product"), 404
++    quantity = int(body.get("quantity", 1))
+     db().execute(
+-        "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, 1)",
+-        (g.user_id, product["id"]),
++        "INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)",
++        (g.user_id, product["id"], quantity),
+     )
+     db().commit()
+     return jsonify(cart_view(g.user_id)), 201

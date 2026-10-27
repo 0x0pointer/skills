@@ -1,0 +1,17 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -26,3 +26,13 @@ def get_order(order_id):
+     if row is None:
+         return jsonify(error="not found"), 404
+     return jsonify(dict(row))
++
++
++@app.get("/api/orders/search")
++@login_required
++def search_orders():
++    q = request.args.get("q", "")
++    rows = db().execute(
++        f"SELECT id, note, total FROM orders WHERE user_id = {g.user_id} AND note LIKE '%{q}%'"
++    ).fetchall()
++    return jsonify([dict(r) for r in rows])

@@ -36,6 +36,8 @@ except ImportError:  # pragma: no cover - surfaced clearly in CI
 REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 # Top-level markdown files that are NOT skills and should be skipped.
 NON_SKILL_MD = {"README.md", "MEMORY.md", "LICENSE.md", "CONTRIBUTING.md", "CHANGELOG.md"}
+# Top-level dirs holding another project's skills, validated by that project (see README).
+SEPARATE_SKILL_SETS = {"construct"}
 
 FRONTMATTER_RE = re.compile(r"^---[ \t]*\n(.*?)\n---[ \t]*\n", re.DOTALL)
 
@@ -47,6 +49,10 @@ def find_skill_files(root: str) -> list[str]:
         # don't descend into VCS / tooling / hidden dirs (e.g. .git, .github,
         # .venv, .sleep-home, .skillopt-sleep staging+backups)
         dirnames[:] = [d for d in dirnames if not d.startswith(".") and d != "node_modules"]
+        if dirpath == root:
+            # construct/ holds Construct's scan-stage skills (its own format and linter, and skill
+            # names like business-logic that would collide with ours); agent-smith never installs them
+            dirnames[:] = [d for d in dirnames if d not in SEPARATE_SKILL_SETS]
         for name in filenames:
             if name == "SKILL.md":
                 skills.append(os.path.join(dirpath, name))

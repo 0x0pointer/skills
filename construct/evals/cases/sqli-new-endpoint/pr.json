@@ -1,0 +1,10 @@
+{
+  "repo": "evals/shop-flask",
+  "number": 101,
+  "title": "Add order search for customers",
+  "body": "Customers asked to search their orders by note text. Adds GET /api/orders/search?q=...",
+  "base_ref": "main",
+  "head_ref": "feature/order-search",
+  "commits": [{"sha": "0000000000000000000000000000000000000101", "message": "Add order search endpoint"}],
+  "changed_files": ["app.py"]
+}

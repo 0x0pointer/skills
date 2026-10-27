@@ -1,0 +1,10 @@
+{
+  "repo": "evals/shop-flask",
+  "number": 104,
+  "title": "Add order detail endpoint",
+  "body": "The order page needs the details of a single order. Adds GET /api/orders/<id> next to the existing order list.",
+  "base_ref": "main",
+  "head_ref": "feature/order-detail",
+  "commits": [{"sha": "0000000000000000000000000000000000000104", "message": "Add GET /api/orders/<id>"}],
+  "changed_files": ["app.py"]
+}

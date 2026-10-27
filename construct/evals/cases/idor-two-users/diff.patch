@@ -1,0 +1,18 @@
+diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -36,3 +36,14 @@ def list_orders():
+         "SELECT id, note, total FROM orders WHERE user_id = ?", (g.user_id,)
+     ).fetchall()
+     return jsonify([dict(r) for r in rows])
++
++
++@app.get("/api/orders/<int:order_id>")
++@login_required
++def get_order(order_id):
++    row = db().execute(
++        "SELECT id, user_id, note, total FROM orders WHERE id = ?", (order_id,)
++    ).fetchone()
++    if row is None:
++        return jsonify(error="not found"), 404
++    return jsonify(dict(row))

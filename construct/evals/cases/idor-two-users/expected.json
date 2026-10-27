@@ -1,0 +1,25 @@
+{
+  "id": "idor-two-users",
+  "description": "New order detail endpoint loads an order by id without checking it belongs to the session user. Dynamically reproduced with two seeded users: alice reads bob's order.",
+  "stack": "python-flask",
+  "known_false_positive": false,
+  "tags": ["dynamic", "two-users"],
+  "triage": {"acceptable": ["full"]},
+  "expected_findings": [
+    {
+      "bug_class": "idor",
+      "vuln_class": "technical",
+      "sink_file": "app.py",
+      "sink_lines": [44, 46],
+      "entry_point": "GET /api/orders/<order_id>",
+      "static_verdicts": ["confirmed_static", "plausible"],
+      "labels": ["reproduced", "likely"],
+      "min_severity": "medium",
+      "introduced": true
+    }
+  ],
+  "must_not_find": [
+    {"bug_class": "sqli", "sink_file": "app.py", "reason": "every query binds its values as parameters"},
+    {"bug_class": "idor", "sink_file": "app.py", "sink_lines": [33, 38], "reason": "list_orders filters by the session user_id"}
+  ]
+}

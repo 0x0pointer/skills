@@ -43,6 +43,8 @@ Findings, PoCs (Burp-ready `.http` files), threat models, code patches, GitHub i
 
 The skills assume an MCP server providing five consolidated tools (`scan`, `kali`, `http`, `report`, `session`). Pair them with [agent-smith](https://github.com/0x0pointer/agent-smith) for a turnkey setup, or wire them into your own MCP server.
 
+> `construct/` is separate: it holds the skills of [Construct](https://github.com/0x0pointer/Construct), the agentic PR security scanner, which uses this repository as a submodule. They are not installed by agent-smith and are skipped by `validate_skills.py`.
+
 ---
 
 ## The new way: skills as pattern teachings
