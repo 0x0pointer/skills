@@ -31,6 +31,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — re-run PER container/pod and PER K8s cluster, not once per scan.** Each distinct container/pod and each separate cluster is its own assessment; a prior run on one does NOT cover another.
+
 
 ## Tools Available
 

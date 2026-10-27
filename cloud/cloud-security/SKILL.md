@@ -31,6 +31,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — re-run PER cloud account/subscription/project and PER newly minted identity, not once per scan.** Each account, subscription, or project — and each new identity you obtain (assumed role, minted key, federated principal) — is a fresh posture assessment NOT covered by a prior run.
+
 
 ## Tools Available
 
