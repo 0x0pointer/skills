@@ -1,0 +1,35 @@
+# Reference PoC for the eval: a negative quantity makes the cart total negative. Never shown to the agent.
+kind: http
+hypothesis_id: H1
+description: >
+  alice adds the 49900 espresso machine with quantity -1. The server accepts it and the
+  server-computed cart total drops below zero (invariant: total >= 0, quantity >= 1).
+users:
+  alice:
+    vars: {username: alice, password: alice-dev-pw}
+    login:
+      - name: alice_login
+        method: POST
+        path: /api/login
+        json: {username: "${USER.username}", password: "${USER.password}"}
+        expect_status: [200]
+steps:
+  - name: add_negative
+    as: alice
+    method: POST
+    path: /api/cart/items
+    json: {product_id: 2, quantity: -1}
+  - name: view_cart
+    as: alice
+    path: /api/cart
+    expect_status: [200]
+oracles:
+  - type: response_status
+    step: add_negative
+    status: [200, 201]
+  - type: json_compare
+    step: view_cart
+    path: total
+    op: lt
+    value: 0
+fires_when: all

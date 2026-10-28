@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PRSec eval case expectations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "description", "triage", "expected_findings", "must_not_find"],
+  "$defs": {
+    "bugClass": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+    "lines": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {"type": "integer", "minimum": 1},
+      "description": "Inclusive [start, end] range the reported sink line must fall into"
+    }
+  },
+  "properties": {
+    "id": {"type": "string", "description": "Must equal the case directory name"},
+    "description": {"type": "string", "minLength": 1},
+    "stack": {"type": "string"},
+    "known_false_positive": {"type": "boolean", "default": false},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "triage": {
+      "type": "object", "additionalProperties": false, "required": ["acceptable"],
+      "properties": {
+        "acceptable": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"enum": ["skip", "light", "full"]}
+        }
+      }
+    },
+    "expected_findings": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["bug_class", "vuln_class", "sink_file", "labels"],
+        "properties": {
+          "bug_class": {"$ref": "#/$defs/bugClass"},
+          "vuln_class": {"enum": ["technical", "business_logic"]},
+          "sink_file": {"type": "string"},
+          "sink_lines": {"$ref": "#/$defs/lines"},
+          "entry_point": {"type": "string"},
+          "static_verdicts": {
+            "type": "array", "minItems": 1,
+            "items": {"enum": ["plausible", "confirmed_static"]}
+          },
+          "labels": {
+            "type": "array", "minItems": 1,
+            "items": {"enum": ["reproduced", "likely", "inconclusive"]}
+          },
+          "min_severity": {"enum": ["critical", "high", "medium", "low", "info"]},
+          "introduced": {"type": "boolean"}
+        }
+      }
+    },
+    "expected_refutations": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["bug_class", "sink_file", "reason"],
+        "properties": {
+          "bug_class": {"$ref": "#/$defs/bugClass"},
+          "sink_file": {"type": "string"},
+          "sink_lines": {"$ref": "#/$defs/lines"},
+          "reason": {"type": "string"}
+        }
+      }
+    },
+    "must_not_find": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["bug_class", "sink_file", "reason"],
+        "properties": {
+          "bug_class": {"$ref": "#/$defs/bugClass"},
+          "sink_file": {"type": "string"},
+          "sink_lines": {"$ref": "#/$defs/lines"},
+          "reason": {"type": "string"}
+        }
+      }
+    }
+  }
+}

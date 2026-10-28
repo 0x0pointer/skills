@@ -1,0 +1,9 @@
+{
+  "id": "css-only",
+  "description": "Styling-only change to one CSS rule; must be skipped (deterministic skip-list or triage).",
+  "stack": "python-flask",
+  "known_false_positive": false,
+  "triage": {"acceptable": ["skip"]},
+  "expected_findings": [],
+  "must_not_find": []
+}

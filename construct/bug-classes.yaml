@@ -1,0 +1,38 @@
+# Canonical bug_class vocabulary. Every skill, every stage output and every eval case uses
+# these exact kebab-case names. Aliases exist only so the orchestrator can normalise model
+# output; never write an alias yourself. Fingerprints depend on bug_class, so renaming a class
+# here changes finding identity — treat it as a breaking change.
+version: 1
+classes:
+  # ---- technical (taint-style: source -> sink)
+  sqli:            {kind: technical, title: SQL injection, aliases: [sql-injection]}
+  nosqli:          {kind: technical, title: NoSQL / operator injection, aliases: [nosql-injection]}
+  xss:             {kind: technical, title: Cross-site scripting, aliases: [cross-site-scripting, stored-xss, reflected-xss, dom-xss]}
+  ssrf:            {kind: technical, title: Server-side request forgery, aliases: [server-side-request-forgery]}
+  path-traversal:  {kind: technical, title: Path traversal / arbitrary file access, aliases: [path, lfi, directory-traversal, zip-slip]}
+  cmdi:            {kind: technical, title: OS command injection, aliases: [command-injection, os-command-injection]}
+  code-injection:  {kind: technical, title: Code evaluation injection (eval and equivalents), aliases: [eval-injection, rce]}
+  ssti:            {kind: technical, title: Server-side template injection, aliases: [template-injection]}
+  deserialization: {kind: technical, title: Unsafe deserialization, aliases: [deser, insecure-deserialization]}
+  open-redirect:   {kind: technical, title: Open redirect, aliases: [unvalidated-redirect]}
+  xxe:             {kind: technical, title: XML external entity, aliases: [xml-external-entity]}
+  header-injection: {kind: technical, title: HTTP header / CRLF injection, aliases: [crlf-injection, response-splitting]}
+  ldap-injection:  {kind: technical, title: LDAP injection, aliases: []}
+  prototype-pollution: {kind: technical, title: Prototype pollution, aliases: []}
+  file-upload:     {kind: technical, title: Unrestricted file upload, aliases: [unrestricted-upload]}
+  crypto-misuse:   {kind: technical, title: Cryptographic misuse, aliases: [crypto, weak-crypto, weak-hashing, insecure-randomness, predictable-token]}
+  authn-session:   {kind: technical, title: Authentication / session weakness, aliases: [authn, broken-authentication, session-fixation, jwt]}
+  csrf:            {kind: technical, title: Cross-site request forgery, aliases: []}
+  cors-misconfig:  {kind: technical, title: Permissive CORS with credentials, aliases: [cors]}
+  secrets-exposure: {kind: technical, title: Hard-coded or leaked secret, aliases: [hardcoded-secret]}
+  # ---- authorization (either kind; use business_logic when the rule is domain-specific)
+  idor:            {kind: either, title: Missing object-level authorization (IDOR/BOLA), aliases: [bola, authz-idor, cross-tenant, tenant-isolation, broken-object-level-authorization]}
+  bfla:            {kind: either, title: Missing function-level authorization, aliases: [broken-function-level-authorization, privilege-escalation, missing-authz]}
+  mass-assignment: {kind: either, title: Mass assignment / object property authorization, aliases: [bopla, overposting]}
+  data-exposure:   {kind: either, title: Excessive or sensitive data exposure, aliases: [excessive-data-exposure, info-disclosure, sensitive-data-exposure, pii-leak]}
+  # ---- business logic (invariant-style: where should the rule be enforced?)
+  race-condition:  {kind: business_logic, title: Race condition / non-atomic check-then-act, aliases: [race, toctou, double-spend, duplicate-submission]}
+  workflow-bypass: {kind: business_logic, title: Workflow / state-machine bypass, aliases: [state-machine-bypass, step-skipping, token-reuse, replay]}
+  value-tampering: {kind: business_logic, title: Value / quantity / limit tampering, aliases: [negative-quantity, price-tampering, quantity-tampering, limit-bypass, quota-bypass, integer-overflow, rounding]}
+  # ---- fallback
+  other:           {kind: either, title: Anything not covered above (explain in description), aliases: []}

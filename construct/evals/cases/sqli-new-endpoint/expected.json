@@ -1,0 +1,24 @@
+{
+  "id": "sqli-new-endpoint",
+  "description": "New authenticated search endpoint interpolates the q query parameter into SQL with an f-string.",
+  "stack": "python-flask",
+  "known_false_positive": false,
+  "triage": {"acceptable": ["full"]},
+  "expected_findings": [
+    {
+      "bug_class": "sqli",
+      "vuln_class": "technical",
+      "sink_file": "app.py",
+      "sink_lines": [35, 37],
+      "entry_point": "GET /api/orders/search",
+      "static_verdicts": ["confirmed_static", "plausible"],
+      "labels": ["reproduced", "likely"],
+      "min_severity": "medium",
+      "introduced": true
+    }
+  ],
+  "must_not_find": [
+    {"bug_class": "sqli", "sink_file": "app.py", "sink_lines": [22, 25], "reason": "get_order binds order_id and user_id as parameters"},
+    {"bug_class": "idor", "sink_file": "app.py", "reason": "both queries filter by the session user_id"}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "repo": "evals/cart-flask",
+  "number": 105,
+  "title": "Let customers choose a quantity when adding to the cart",
+  "body": "Adding an item always added one unit. POST /api/cart/items now accepts an optional quantity (default 1) so customers can add several units at once.",
+  "base_ref": "main",
+  "head_ref": "feature/cart-quantity",
+  "commits": [{"sha": "0000000000000000000000000000000000000105", "message": "Accept quantity in add-to-cart"}],
+  "changed_files": ["app.py"]
+}

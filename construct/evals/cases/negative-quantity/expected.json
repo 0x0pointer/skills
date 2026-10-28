@@ -1,0 +1,25 @@
+{
+  "id": "negative-quantity",
+  "description": "Add-to-cart now takes a client-supplied quantity with no lower bound, so a negative quantity lowers the server-computed cart total. Dynamically reproduced with a json_compare oracle on the cart total.",
+  "stack": "python-flask",
+  "known_false_positive": false,
+  "tags": ["dynamic", "business-logic", "json-compare"],
+  "triage": {"acceptable": ["full"]},
+  "expected_findings": [
+    {
+      "bug_class": "value-tampering",
+      "vuln_class": "business_logic",
+      "sink_file": "app.py",
+      "sink_lines": [57, 61],
+      "entry_point": "POST /api/cart/items",
+      "static_verdicts": ["confirmed_static", "plausible"],
+      "labels": ["reproduced", "likely"],
+      "min_severity": "medium",
+      "introduced": true
+    }
+  ],
+  "must_not_find": [
+    {"bug_class": "sqli", "sink_file": "app.py", "reason": "every query binds its values as parameters"},
+    {"bug_class": "idor", "sink_file": "app.py", "reason": "cart reads and writes are scoped by the session user_id"}
+  ]
+}
