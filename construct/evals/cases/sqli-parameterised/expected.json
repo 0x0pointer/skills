@@ -1,0 +1,15 @@
+{
+  "id": "sqli-parameterised",
+  "description": "Same feature as sqli-new-endpoint but q is passed as a bound LIKE parameter. A hypothesis may be raised; static validation must refute it.",
+  "stack": "python-flask",
+  "known_false_positive": true,
+  "triage": {"acceptable": ["light", "full"]},
+  "expected_findings": [],
+  "expected_refutations": [
+    {"bug_class": "sqli", "sink_file": "app.py", "sink_lines": [35, 38], "reason": "db().execute receives the SQL literal and a params tuple; q only ever appears inside the bound value"}
+  ],
+  "must_not_find": [
+    {"bug_class": "sqli", "sink_file": "app.py", "reason": "parameterised query"},
+    {"bug_class": "idor", "sink_file": "app.py", "reason": "both queries filter by the session user_id"}
+  ]
+}

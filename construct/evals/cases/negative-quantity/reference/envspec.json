@@ -1,0 +1,12 @@
+{
+  "stack": "python",
+  "workdir": ".",
+  "install": ["python -m venv .venv", ".venv/bin/pip install -r requirements.txt"],
+  "build": [".venv/bin/python init_db.py"],
+  "start": ".venv/bin/flask --app app run --host 127.0.0.1 --port 5000",
+  "port": 5000,
+  "health": {"path": "/api/cart", "expect_status": [401], "timeout_s": 60},
+  "env": {},
+  "services": [],
+  "stubs": []
+}

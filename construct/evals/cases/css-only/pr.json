@@ -1,0 +1,10 @@
+{
+  "repo": "evals/shop-flask",
+  "number": 103,
+  "title": "Tweak primary button colour and padding",
+  "body": "Design review follow-up: slightly brighter primary button with more padding.",
+  "base_ref": "main",
+  "head_ref": "style/button",
+  "commits": [{"sha": "0000000000000000000000000000000000000103", "message": "Brighter primary button"}],
+  "changed_files": ["static/css/site.css"]
+}
