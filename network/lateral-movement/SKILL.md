@@ -29,6 +29,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — re-run PER host / per trust boundary / per newly obtained credential, not once per scan.** Each reached host, each crossed trust boundary, and each freshly captured credential opens movement surface a prior run did NOT cover — invoke this skill again for it.
+
 
 ## Tools Available
 
