@@ -1,0 +1,291 @@
+{
+  "name": "agent-smith",
+  "owner": {
+    "name": "0x0pointer"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for the agent-smith offensive-security skills"
+  },
+  "plugins": [
+    {
+      "name": "agent-smith",
+      "description": "The full agent-smith toolset: /pentester plus every skill in this repository. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "pentest",
+        "appsec"
+      ],
+      "commands": [
+        "./pentester.md"
+      ],
+      "skills": [
+        "./recon/osint",
+        "./web/api-security",
+        "./web/business-logic",
+        "./web/oauth-security",
+        "./web/param-fuzz",
+        "./web/saml-sso",
+        "./web/web-exploit",
+        "./appsec/aikido-triage",
+        "./appsec/analyze-cve",
+        "./appsec/codebase",
+        "./appsec/compliance",
+        "./appsec/remediate",
+        "./appsec/supply-chain",
+        "./appsec/threat-modeling",
+        "./cloud/cloud-identity-federation",
+        "./cloud/cloud-security",
+        "./cloud/container-k8s-security",
+        "./network/ad-assessment",
+        "./network/credential-audit",
+        "./network/email-security",
+        "./network/lateral-movement",
+        "./network/metasploit",
+        "./network/network-assess",
+        "./network/post-exploit",
+        "./network/reverse-shell",
+        "./network/ssl-tls-audit",
+        "./mobile/android-burp-emulator",
+        "./mobile/android-security",
+        "./mobile/ios-security",
+        "./mobile/masvs-checklist",
+        "./mobile/mobile-pentest-plan",
+        "./ai/ai-redteam",
+        "./ai/colang-gen",
+        "./reporting/gh-export",
+        "./reporting/report",
+        "./reporting/request-cves"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-aikido",
+      "description": "Triage Aikido security findings against your codebase and check whether vulnerable dependency code is actually reachable. Needs only the Aikido MCP.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "aikido",
+        "triage",
+        "cve"
+      ],
+      "skills": [
+        "./appsec/aikido-triage",
+        "./appsec/analyze-cve"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-recon",
+      "description": "OSINT and reconnaissance. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "recon"
+      ],
+      "skills": [
+        "./recon/osint"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-web",
+      "description": "Web application testing: OWASP Web/API Top 10, OAuth, SAML, fuzzing, business logic. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "web"
+      ],
+      "skills": [
+        "./web/api-security",
+        "./web/business-logic",
+        "./web/oauth-security",
+        "./web/param-fuzz",
+        "./web/saml-sso",
+        "./web/web-exploit"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-appsec",
+      "description": "White-box code review, CVE reachability, threat modeling, supply chain, compliance and remediation. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "appsec"
+      ],
+      "skills": [
+        "./appsec/aikido-triage",
+        "./appsec/analyze-cve",
+        "./appsec/codebase",
+        "./appsec/compliance",
+        "./appsec/remediate",
+        "./appsec/supply-chain",
+        "./appsec/threat-modeling"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-cloud",
+      "description": "Cloud, container/Kubernetes and identity federation security. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "cloud"
+      ],
+      "skills": [
+        "./cloud/cloud-identity-federation",
+        "./cloud/cloud-security",
+        "./cloud/container-k8s-security"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-network",
+      "description": "Network, Active Directory, TLS, email, credential audit and post-exploitation. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "network"
+      ],
+      "skills": [
+        "./network/ad-assessment",
+        "./network/credential-audit",
+        "./network/email-security",
+        "./network/lateral-movement",
+        "./network/metasploit",
+        "./network/network-assess",
+        "./network/post-exploit",
+        "./network/reverse-shell",
+        "./network/ssl-tls-audit"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-mobile",
+      "description": "Android and iOS security testing (MASVS). Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "mobile"
+      ],
+      "skills": [
+        "./mobile/android-burp-emulator",
+        "./mobile/android-security",
+        "./mobile/ios-security",
+        "./mobile/masvs-checklist",
+        "./mobile/mobile-pentest-plan"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-ai",
+      "description": "AI/LLM red-teaming and guardrail generation. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "ai"
+      ],
+      "skills": [
+        "./ai/ai-redteam",
+        "./ai/colang-gen"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    },
+    {
+      "name": "agent-smith-reporting",
+      "description": "Reports, GitHub issue export and CVE submission packages. Needs the agent-smith MCP server.",
+      "category": "security",
+      "keywords": [
+        "security",
+        "reporting"
+      ],
+      "skills": [
+        "./reporting/gh-export",
+        "./reporting/report",
+        "./reporting/request-cves"
+      ],
+      "version": "1.0.0",
+      "author": {
+        "name": "0x0pointer"
+      },
+      "homepage": "https://github.com/0x0pointer/skills",
+      "repository": "https://github.com/0x0pointer/skills",
+      "license": "AGPL-3.0",
+      "source": "./",
+      "strict": false
+    }
+  ]
+}
