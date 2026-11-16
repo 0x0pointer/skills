@@ -1,0 +1,16 @@
+{
+  "name": "agent-smith",
+  "owner": {
+    "name": "0x0pointer"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for the agent-smith skills"
+  },
+  "plugins": [
+    {
+      "name": "agent-smith-aikido",
+      "source": "./",
+      "description": "Triage Aikido security findings against your codebase and check whether vulnerable dependency code is actually reachable."
+    }
+  ]
+}

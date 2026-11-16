@@ -1,0 +1,16 @@
+{
+  "name": "agent-smith-aikido",
+  "version": "1.0.0",
+  "description": "Triage Aikido security findings against your codebase and check whether vulnerable dependency code is actually reachable.",
+  "author": {
+    "name": "0x0pointer"
+  },
+  "homepage": "https://github.com/0x0pointer/skills",
+  "repository": "https://github.com/0x0pointer/skills",
+  "license": "AGPL-3.0",
+  "keywords": ["security", "aikido", "triage", "cve", "sca", "sast"],
+  "skills": [
+    "./appsec/aikido-triage",
+    "./appsec/analyze-cve"
+  ]
+}
