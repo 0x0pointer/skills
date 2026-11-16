@@ -16,6 +16,32 @@ Drop them into Claude Code, OpenCode, or any MCP-capable agent and run end-to-en
 
 ---
 
+## Quick start
+
+### Triage Aikido findings in Claude Code
+
+`/aikido-triage` and `/analyze-cve` only need the [Aikido MCP](https://help.aikido.dev/ai-and-dev-tools/aikido-mcp), not the agent-smith server. Install them as a Claude Code plugin:
+
+```
+/plugin marketplace add 0x0pointer/skills
+/plugin install agent-smith-aikido@agent-smith
+/plugin install aikido@claude-plugins-official
+```
+
+The last line adds the official Aikido plugin, which provides the MCP tools. Restart Claude Code, check with `/mcp` that Aikido is connected, then run this from your repository:
+
+```
+/agent-smith-aikido:aikido-triage .
+```
+
+Optional filters: `repo=<name>`, `team=<name>`, `severity=critical,high`. Nothing is closed in Aikido until you confirm the proposed triage.
+
+### Full pentest toolkit
+
+For the other skills (`/pentester`, `/codebase`, `/api-security`, …) you need the MCP server and containers from [agent-smith](https://github.com/0x0pointer/agent-smith). See [Requirements](#requirements).
+
+---
+
 ## Why these skills
 
 - 🧠 **Pattern teachings, not payload libraries.**
@@ -281,19 +307,6 @@ cd agent-smith
 ```
 
 Skills can also be wired into any custom MCP client that exposes the same five tools.
-
-### Aikido triage as a Claude Code plugin
-
-`/aikido-triage` and `/analyze-cve` only need the [Aikido MCP](https://help.aikido.dev/ai-and-dev-tools/aikido-mcp), not the agent-smith server. This repository is also a Claude Code plugin marketplace, so you can install just these two skills:
-
-```
-/plugin marketplace add 0x0pointer/skills
-/plugin install agent-smith-aikido@agent-smith
-```
-
-On Claude Code 2.1.275 or later this works in one step: `/plugin install agent-smith-aikido --marketplace 0x0pointer/skills`.
-
-Install the official Aikido plugin for the MCP tools (`/plugin install aikido@claude-plugins-official`), then run `/agent-smith-aikido:aikido-triage .` from your repository. Plugin skills are namespaced with the plugin name.
 
 ---
 
