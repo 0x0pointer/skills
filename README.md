@@ -18,37 +18,15 @@ Drop them into Claude Code, OpenCode, or any MCP-capable agent and run end-to-en
 
 ## Quick start
 
-This repository is a Claude Code plugin marketplace. Add it once:
+### 1. Add the marketplace
 
 ```
 /plugin marketplace add 0x0pointer/skills
 ```
 
-Then install the whole toolset, or only the parts you need:
+### 2. Triage Aikido findings
 
-| Plugin | What you get | Needs |
-|---|---|---|
-| `agent-smith` | Everything: `/pentester` plus all skills below | agent-smith MCP server |
-| `agent-smith-aikido` | `aikido-triage`, `analyze-cve` | Aikido MCP only |
-| `agent-smith-web` | OWASP Web/API Top 10, OAuth, SAML, fuzzing, business logic | agent-smith MCP server |
-| `agent-smith-appsec` | Code review, CVE analysis, threat modeling, supply chain, compliance, remediation | agent-smith MCP server |
-| `agent-smith-cloud` | Cloud, container/Kubernetes, identity federation | agent-smith MCP server |
-| `agent-smith-network` | Network, AD, TLS, email, credential audit, post-exploitation | agent-smith MCP server |
-| `agent-smith-mobile` | Android, iOS, MASVS | agent-smith MCP server |
-| `agent-smith-ai` | AI/LLM red-teaming, guardrails | agent-smith MCP server |
-| `agent-smith-recon` | OSINT | agent-smith MCP server |
-| `agent-smith-reporting` | Reports, GitHub issue export, CVE submissions | agent-smith MCP server |
-
-```
-/plugin install agent-smith@agent-smith          # everything
-/plugin install agent-smith-web@agent-smith      # or pick categories
-```
-
-Install either `agent-smith` or the category plugins, not both, or you get every skill twice. Skills chain into each other across categories (`/codebase` → `/web-exploit`, `/pentester` → `/analyze-cve`), so a chain only runs if the plugin holding the next skill is installed too. Plugin skills are namespaced with the plugin name, for example `/agent-smith-web:api-security`.
-
-The MCP server and containers come from [agent-smith](https://github.com/0x0pointer/agent-smith); see [Requirements](#requirements).
-
-### Triage Aikido findings without the agent-smith server
+The default: `aikido-triage` and `analyze-cve`. They only need the Aikido MCP, not the agent-smith server.
 
 ```
 /plugin install agent-smith-aikido@agent-smith
@@ -62,6 +40,35 @@ The second line adds the official Aikido plugin, which provides the MCP tools. R
 ```
 
 Optional filters: `repo=<name>`, `team=<name>`, `severity=critical,high`. Nothing is closed in Aikido until you confirm the proposed triage.
+
+### 3. Optional: the full pentest toolset
+
+These need the MCP server and containers from [agent-smith](https://github.com/0x0pointer/agent-smith); see [Requirements](#requirements). Pick **one** of the two options below. Installing both gives every skill twice.
+
+**All skills**, including `/pentester`:
+
+```
+/plugin install agent-smith@agent-smith
+```
+
+**Or only the categories you need**, one line each:
+
+| Plugin | What you get |
+|---|---|
+| `agent-smith-web` | OWASP Web/API Top 10, OAuth, SAML, fuzzing, business logic |
+| `agent-smith-appsec` | Code review, CVE analysis, threat modeling, supply chain, compliance, remediation |
+| `agent-smith-cloud` | Cloud, container/Kubernetes, identity federation |
+| `agent-smith-network` | Network, AD, TLS, email, credential audit, post-exploitation |
+| `agent-smith-mobile` | Android, iOS, MASVS |
+| `agent-smith-ai` | AI/LLM red-teaming, guardrails |
+| `agent-smith-recon` | OSINT |
+| `agent-smith-reporting` | Reports, GitHub issue export, CVE submissions |
+
+```
+/plugin install agent-smith-web@agent-smith
+```
+
+Skills chain into each other across categories (`/codebase` → `/web-exploit`), so a chain only runs if the plugin holding the next skill is installed too. Plugin skills are namespaced with the plugin name, for example `/agent-smith-web:api-security`.
 
 ---
 
