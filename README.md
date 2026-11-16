@@ -18,27 +18,50 @@ Drop them into Claude Code, OpenCode, or any MCP-capable agent and run end-to-en
 
 ## Quick start
 
-### Triage Aikido findings in Claude Code
-
-`/aikido-triage` and `/analyze-cve` only need the [Aikido MCP](https://help.aikido.dev/ai-and-dev-tools/aikido-mcp), not the agent-smith server. Install them as a Claude Code plugin:
+This repository is a Claude Code plugin marketplace. Add it once:
 
 ```
 /plugin marketplace add 0x0pointer/skills
+```
+
+Then install the whole toolset, or only the parts you need:
+
+| Plugin | What you get | Needs |
+|---|---|---|
+| `agent-smith` | Everything: `/pentester` plus all skills below | agent-smith MCP server |
+| `agent-smith-aikido` | `aikido-triage`, `analyze-cve` | Aikido MCP only |
+| `agent-smith-web` | OWASP Web/API Top 10, OAuth, SAML, fuzzing, business logic | agent-smith MCP server |
+| `agent-smith-appsec` | Code review, CVE analysis, threat modeling, supply chain, compliance, remediation | agent-smith MCP server |
+| `agent-smith-cloud` | Cloud, container/Kubernetes, identity federation | agent-smith MCP server |
+| `agent-smith-network` | Network, AD, TLS, email, credential audit, post-exploitation | agent-smith MCP server |
+| `agent-smith-mobile` | Android, iOS, MASVS | agent-smith MCP server |
+| `agent-smith-ai` | AI/LLM red-teaming, guardrails | agent-smith MCP server |
+| `agent-smith-recon` | OSINT | agent-smith MCP server |
+| `agent-smith-reporting` | Reports, GitHub issue export, CVE submissions | agent-smith MCP server |
+
+```
+/plugin install agent-smith@agent-smith          # everything
+/plugin install agent-smith-web@agent-smith      # or pick categories
+```
+
+Install either `agent-smith` or the category plugins, not both, or you get every skill twice. Skills chain into each other across categories (`/codebase` → `/web-exploit`, `/pentester` → `/analyze-cve`), so a chain only runs if the plugin holding the next skill is installed too. Plugin skills are namespaced with the plugin name, for example `/agent-smith-web:api-security`.
+
+The MCP server and containers come from [agent-smith](https://github.com/0x0pointer/agent-smith); see [Requirements](#requirements).
+
+### Triage Aikido findings without the agent-smith server
+
+```
 /plugin install agent-smith-aikido@agent-smith
 /plugin install aikido@claude-plugins-official
 ```
 
-The last line adds the official Aikido plugin, which provides the MCP tools. Restart Claude Code, check with `/mcp` that Aikido is connected, then run this from your repository:
+The second line adds the official Aikido plugin, which provides the MCP tools. Restart Claude Code, check with `/mcp` that Aikido is connected, then run this from your repository:
 
 ```
 /agent-smith-aikido:aikido-triage .
 ```
 
 Optional filters: `repo=<name>`, `team=<name>`, `severity=critical,high`. Nothing is closed in Aikido until you confirm the proposed triage.
-
-### Full pentest toolkit
-
-For the other skills (`/pentester`, `/codebase`, `/api-security`, …) you need the MCP server and containers from [agent-smith](https://github.com/0x0pointer/agent-smith). See [Requirements](#requirements).
 
 ---
 
