@@ -45,6 +45,8 @@ Read this before executing any workflow phase. Commit to MANDATORY chains before
 
 > **Invoking a chained skill:** follow the per-client invocation table in the project's CLAUDE.md / AGENTS.md — do not hard-code client-specific syntax here.
 
+> **RE-RUN TRIGGERS — run once PER distinct CVE, not once per scan.** Each new CVE is its own trace + PoC; a prior CVE's analysis never covers another. Re-invoke this workflow for every additional CVE surfaced in the engagement.
+
 
 
 **Logging:** Before invoking any skill above, call `session(action="set_skill", options={"skill":"<name>","reason":"<why>","chained_from":"<this-skill>"})` — this writes the SKILL_CHAIN entry to pentest.log.
