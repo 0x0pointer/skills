@@ -269,7 +269,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-11-25T09:17:01.984549298Z",
-  "last_event_at": "2026-11-25T09:17:09.622454536Z",
+  "last_event_at": "2026-11-25T09:17:13.992881454Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -309,9 +309,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 41,
       "checkpoint": {
-        "timestamp": "2026-11-25T09:17:09.630695399Z",
+        "timestamp": "2026-11-25T09:17:13.992181031Z",
         "current_node": "probe",
         "completed_nodes": [
           "start",
@@ -319,29 +319,25 @@
         ],
         "node_retries": {},
         "context_values": {
-          "failure_class": "",
-          "failure_signature": "",
-          "last_response": "no — use_skill tool did not exist in this session, so it could not be called\nN/A\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
-          "current_node": "probe",
           "graph.goal": "Check that the differential-review skill can be loaded",
-          "internal.thread_id": "start",
           "internal.work_dir": "/workspace/skills",
-          "thread.start.current_node": "probe",
-          "internal.fidelity": "truncate",
+          "failure_signature": "",
           "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
-          "internal.node_visit_count": 1,
-          "internal.run_id": "01M88ZWYH5SAA4E29K22RXFS6X",
+          "response.probe": "no — use_skill tool did not exist in this session, so it could not be called\nN/A\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
           "internal.retry_count.probe": 0,
-          "internal.retry_count.start": 0,
+          "current_node": "probe",
+          "internal.thread_id": "start",
+          "internal.fidelity": "truncate",
           "outcome": "succeeded",
-          "last_stage": "probe",
-          "response.probe": "no — use_skill tool did not exist in this session, so it could not be called\nN/A\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md"
+          "internal.retry_count.start": 0,
+          "failure_class": "",
+          "last_response": "no — use_skill tool did not exist in this session, so it could not be called\nN/A\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
+          "thread.start.current_node": "probe",
+          "internal.run_id": "01M88ZWYH5SAA4E29K22RXFS6X",
+          "internal.node_visit_count": 1,
+          "last_stage": "probe"
         },
         "node_outcomes": {
-          "start": {
-            "status": "succeeded",
-            "usage": null
-          },
           "probe": {
             "status": "succeeded",
             "context_updates": {
@@ -377,18 +373,75 @@
               "tool_time_ms": 62,
               "active_time_ms": 5077
             }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
           }
         },
         "next_node_id": "exit",
+        "git_commit_sha": "7113876022f2db6fe6479d5db1f5ebdf9e5cf321",
         "node_visits": {
-          "start": 1,
-          "probe": 1
+          "probe": 1,
+          "start": 1
         }
       },
-      "diff": {}
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
     }
   ],
-  "conclusion": null,
+  "conclusion": {
+    "timestamp": "2026-11-25T09:17:14.012868829Z",
+    "status": "succeeded",
+    "timing": {
+      "wall_time_ms": 12010,
+      "inference_time_ms": 5015,
+      "tool_time_ms": 62,
+      "active_time_ms": 5077
+    },
+    "final_git_commit_sha": "7113876022f2db6fe6479d5db1f5ebdf9e5cf321",
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "probe",
+        "stage_label": "probe",
+        "timing": {
+          "wall_time_ms": 5521,
+          "inference_time_ms": 5015,
+          "tool_time_ms": 62,
+          "active_time_ms": 5077
+        },
+        "billing_usd_micros": 14586,
+        "retries": 0
+      }
+    ],
+    "billing": {
+      "input_tokens": 3737,
+      "output_tokens": 96,
+      "total_tokens": 5597,
+      "reasoning_tokens": 228,
+      "cache_read_tokens": 1536,
+      "cache_write_tokens": 0,
+      "total_usd_micros": 14586
+    },
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -453,7 +506,12 @@
       "first_event_seq": 22,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Stage completed: probe",
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:17:09.630543190Z"
+      },
       "provider_used": {
         "mode": "agent",
         "provider": "openai",
@@ -467,17 +525,24 @@
       "output": null,
       "started_at": "2026-11-25T09:17:04.108632669Z",
       "handler": "agent",
+      "timing": {
+        "wall_time_ms": 5521,
+        "inference_time_ms": 5015,
+        "tool_time_ms": 62,
+        "active_time_ms": 5077
+      },
       "usage": {
         "input_tokens": 3737,
         "output_tokens": 96,
         "total_tokens": 5597,
         "reasoning_tokens": 228,
         "cache_read_tokens": 1536,
-        "cache_write_tokens": 0
+        "cache_write_tokens": 0,
+        "total_usd_micros": 14586
       },
       "model": {
         "provider": "openai",
-        "model_id": "gpt-5.4-2026-03-05"
+        "model_id": "gpt-5.4"
       },
       "permission_level": "full",
       "agent_tools": [
@@ -642,7 +707,41 @@
         ],
         "warnings": []
       },
-      "state": "running"
+      "state": "succeeded"
+    },
+    "exit@1": {
+      "first_event_seq": 44,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:17:13.992881454Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:17:13.992866861Z",
+      "handler": "exit",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
     }
   }
 }
