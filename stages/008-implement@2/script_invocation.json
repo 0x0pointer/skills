@@ -1,0 +1,6 @@
+{
+  "script": "n=$(cat /tmp/fabro/impl.n 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/fabro/impl.n; echo implement visit $n; if [ $n -ge 2 ]; then echo change-$n >> zz_routing_test.txt; fi; ls /tmp/fabro",
+  "command": "exec 2>&1\nn=$(cat /tmp/fabro/impl.n 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/fabro/impl.n; echo implement visit $n; if [ $n -ge 2 ]; then echo change-$n >> zz_routing_test.txt; fi; ls /tmp/fabro",
+  "language": "shell",
+  "timeout_ms": 120000
+}
