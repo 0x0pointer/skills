@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: \nimport os, subprocess\nos.makedirs('/tmp/fabro', exist_ok=True)\nopen('/tmp/fabro/issue.md', 'w').write('Title: Add a helper script that shows the last commits touching a skill' + chr(10) + chr(10) + 'Maintainers often want to see who last changed a skill. Add scripts/skill_history.py: given a skill path and an optional number of commits it prints the git log for that path.' + chr(10))\nopen('/tmp/fabro/issue_number', 'w').write('0')\nsubprocess.run('git update-ref refs/remotes/origin/main HEAD', shell=True)\nprint('stub issue written')\n",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:19:35.237850602Z"
+}
