@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: cat /tmp/fabro/review-brief.md; wc -l /tmp/fabro/change.diff; echo '{\"verdict\": \"pass\", \"needs_security_review\": true, \"summary\": \"ok but touches auth\", \"findings\": []}' > /tmp/fabro/review.json",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:14:15.894516140Z"
+}
