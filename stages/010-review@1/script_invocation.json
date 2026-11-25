@@ -1,0 +1,6 @@
+{
+  "script": "cat /tmp/fabro/review-brief.md; wc -l /tmp/fabro/change.diff; echo '{\"verdict\": \"pass\", \"needs_security_review\": true, \"summary\": \"ok but touches auth\", \"findings\": []}' > /tmp/fabro/review.json",
+  "command": "exec 2>&1\ncat /tmp/fabro/review-brief.md; wc -l /tmp/fabro/change.diff; echo '{\"verdict\": \"pass\", \"needs_security_review\": true, \"summary\": \"ok but touches auth\", \"findings\": []}' > /tmp/fabro/review.json",
+  "language": "shell",
+  "timeout_ms": 120000
+}
