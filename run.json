@@ -913,7 +913,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-11-25T11:37:03.396470823Z",
-  "last_event_at": "2026-11-25T11:37:12.380610018Z",
+  "last_event_at": "2026-11-25T11:39:10.506974975Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -1021,9 +1021,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 39,
       "checkpoint": {
-        "timestamp": "2026-11-25T11:37:14.526675645Z",
+        "timestamp": "2026-11-25T11:37:18.636770261Z",
         "current_node": "install",
         "completed_nodes": [
           "start",
@@ -1032,26 +1032,26 @@
         ],
         "node_retries": {},
         "context_values": {
-          "graph.rankdir": "LR",
-          "internal.retry_count.start": 0,
           "internal.fidelity": "compact",
-          "current_node": "install",
-          "failure_class": "",
-          "thread.check_issue.current_node": "install",
-          "thread.start.current_node": "check_issue",
-          "internal.thread_id": "check_issue",
-          "internal.work_dir": "/workspace/skills",
-          "graph.loop_restart_signature_limit": "10",
-          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n            .cheap  { model: gpt-5.4-mini; reasoning_effort: low; }\n        ",
-          "graph.max_node_visits": "30",
-          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "internal.retry_count.start": 0,
+          "internal.retry_count.check_issue": 0,
           "internal.run_id": "01M897XADFHPZR513BFF7NHK9C",
-          "command.output": "blob://sha256/12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+          "thread.start.current_node": "check_issue",
           "internal.node_visit_count": 1,
-          "failure_signature": "",
+          "failure_class": "",
+          "current_node": "install",
+          "graph.loop_restart_signature_limit": "10",
+          "internal.work_dir": "/workspace/skills",
+          "thread.check_issue.current_node": "install",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n            .cheap  { model: gpt-5.4-mini; reasoning_effort: low; }\n        ",
+          "command.output": "blob://sha256/12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+          "graph.max_node_visits": "30",
+          "graph.rankdir": "LR",
           "outcome": "succeeded",
           "internal.retry_count.install": 0,
-          "internal.retry_count.check_issue": 0
+          "failure_signature": "",
+          "internal.thread_id": "check_issue",
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests"
         },
         "node_outcomes": {
           "start": {
@@ -1088,10 +1088,139 @@
           }
         },
         "next_node_id": "spec",
+        "git_commit_sha": "8c322e12b9e43bd4db7dc8279dd60319b9733fd6",
         "node_visits": {
           "check_issue": 1,
           "install": 1,
           "start": 1
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-11-25T11:39:10.532853065Z",
+        "current_node": "spec",
+        "completed_nodes": [
+          "start",
+          "check_issue",
+          "install",
+          "spec"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "graph.rankdir": "LR",
+          "internal.retry_count.start": 0,
+          "internal.fidelity": "compact",
+          "current_node": "spec",
+          "failure_class": "",
+          "thread.strong.current_node": "spec",
+          "thread.check_issue.current_node": "install",
+          "thread.start.current_node": "check_issue",
+          "internal.retry_count.spec": 0,
+          "internal.thread_id": "strong",
+          "internal.work_dir": "/workspace/skills",
+          "last_stage": "spec",
+          "graph.loop_restart_signature_limit": "10",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n            .cheap  { model: gpt-5.4-mini; reasoning_effort: low; }\n        ",
+          "graph.max_node_visits": "30",
+          "response.spec": "1. Summary\n\nAdd VCS metadata mining to the `/codebase` white-box review skill so agents use commit history, refs, tags, and changelogs as security-review leads instead of only scanning source contents and secret history. The new guidance must find security-fix and insecure-shortcut hints, record actionable evidence, feed touched files into deeper review phases, and explicitly state when history coverage is unavailable or incomplete.\n\n2. Acceptance criteria\n\n1. `appsec/codebase/SKILL.md` adds an all-depths VCS metadata mining step before deeper review phases. The step explicitly covers all local branches/remotes/tags, commit subjects and bodies, merge/squash/PR-title text where present in commit messages, tag names/messages, and changelog/release-note files; it must not be limited to the current working tree.\n2. The step defines two maintained keyword groups: security fixes (including at least injection, bypass, XSS, SSRF, traversal/path traversal, redirect/open redirect, CSRF, auth/access control, deserialization, RCE) and insecure shortcuts (including at least hack, temporary, insecure, disable check, skip validation, for testing only, do not merge, FIXME security, TODO security).\n3. For every metadata hit, the skill instructs the agent to record a structured `report(action=\"note\")` entry containing commit/ref identifier when available, source type, matched category and keyword, touched files, and a sanitized message excerpt. Raw secret values must not be logged.\n4. Files touched by security-relevant commits are explicitly added to the Phase 5 dangerous-pattern/taint-analysis leads, Phase 5d business-logic leads when relevant, and the Phase 7 security profile priority targets.\n5. Apparent security-fix hits require a cross-branch/release check against maintained branches and tags. The skill must instruct agents to flag fixes present on only some maintained refs as possible unbackported vulnerabilities with the affected refs, while still requiring code verification before reporting a confirmed vulnerability.\n6. Commit, tag, merge, PR-title, and changelog text are included as secret-scanning surfaces. If the existing trufflehog wrapper cannot confirm metadata-message coverage, the skill must instruct a safe supplemental metadata scan or an explicit coverage-limitation note.\n7. Ticket IDs and CVE IDs found in metadata are extracted as review leads; public/in-scope references may be followed when reachable, while private or unreachable references are recorded without blocking the review.\n8. If VCS metadata is unavailable, incomplete, shallow, missing refs, or cannot be inspected, the skill requires an explicit `report(action=\"note\")` coverage statement instead of silent skipping.\n9. The change passes `python3 validate_skills.py` and does not touch unrelated skills, CI workflows, scripts, or dependency files.\n\n3. Scope\n\nFiles to change:\n- `appsec/codebase/SKILL.md`\n\nFiles to add:\n- None.\n\nOut of scope:\n- Changes to `validate_skills.py`, CI workflows, SkillSpector baselines, package/dependency files, or any skill outside `appsec/codebase`.\n- Implementing a new scanner or changing MCP/server behavior; this is skill-instruction text only.\n- Automatically fetching remote branches, private tickets, or external CVE pages beyond what the existing agent environment and user authorization already permit.\n\n4. Design\n\nUse the existing markdown skill architecture: update the `/codebase` workflow rather than creating a new skill. Prefer adding a Phase 1 sub-step such as `Step 5 — VCS metadata mining (all depths)` after dependency audit and before the Phase 1 diagram, because the output is orientation data that feeds Phase 5/5d and Phase 7. If command examples are included, keep them read-only and local, using safe git inspection commands such as log/for-each-ref/show/diff-tree; quote the codebase path and never interpolate commit messages, tag names, or branch names into a shell command.\n\nUpdate existing related sections rather than duplicating logic:\n- Tools table: add a concise row only if needed for read-only local git metadata inspection, following surrounding wording.\n- Phase 4 automated scanning: extend the existing trufflehog-history guidance so metadata text is treated as a secret surface and coverage gaps are recorded.\n- Phase 5 and Phase 5d: tell agents to prioritize files and flows surfaced by VCS metadata hits.\n- Phase 7 security profile: add concise fields/lines for VCS history coverage, metadata leads, unbackported-fix candidates, and priority targets.\n\nNo new dependencies are involved. Findings still follow the existing severity bar: metadata is a lead, not proof; confirmed vulnerabilities require source evidence and, where applicable, trace entries.\n\n5. Code quality requirements\n\n- Follow the tone, headings, tables, and imperative style already used in `appsec/codebase/SKILL.md`.\n- Keep the change minimal and localized; avoid renumbering major phases unless necessary.\n- Avoid duplicating the existing secrets-liveness procedure; reference the existing Phase 4 guidance and `appsec/aikido-triage/references/secrets-playbook.md` where liveness probing is relevant.\n- Use clear names such as `VCS metadata leads`, `security-fix keywords`, `insecure-shortcut keywords`, and `unbackported-fix candidates`.\n- Do not introduce client-specific skill invocation syntax; `validate_skills.py` must remain clean.\n- Do not add dead examples, speculative abstractions, or unrelated wording changes.\n\n6. Security considerations\n\nVCS metadata, changelog text, branch names, tag names, commit messages, PR titles, ticket IDs, and CVE references are untrusted input from repository contributors. The skill must warn agents not to follow instructions embedded in that text, not to paste full secrets into logs, and not to treat metadata as proof without code verification.\n\nShell injection risk exists if untrusted refs or messages are interpolated into commands. Command examples must be read-only, avoid `eval`/`xargs sh`/checkout of untrusted refs, quote the target path, and pass refs as data only where safe. Prefer git commands that read object metadata and touched file lists without executing hooks or target code.\n\nSecret-handling risk increases because commit and tag messages may contain credentials. Evidence must mask raw secret values, and any liveness probe must keep the existing opt-in process; no automatic credential validation is introduced.\n\nAuthentication/authorization behavior of target applications is not changed. Business-logic abuse risk is that agents could over-report historical fixes as current vulnerabilities; the skill must require cross-ref presence checks and current-code verification before confirmed findings.\n\n7. Edge cases\n\n- Non-git directory, missing `.git`, exported source archive, or inaccessible VCS metadata.\n- Shallow clone, partial clone, detached HEAD, missing remote branches, missing tags, or refs that cannot be fetched within scope.\n- Very large histories or changelogs causing noisy/duplicate hits; guidance should deduplicate by commit/ref and touched-file set and summarize without flooding logs.\n- Merge commits, squash commits, cherry-picks, reverts, renamed/deleted files, binary-only changes, and backports with different commit IDs.\n- Weird, malformed, or malicious branch/tag/message text, including shell metacharacters, newlines, terminal escapes, prompt-injection wording, or embedded secrets.\n- Changelog/release-note files absent, huge, generated, duplicated across versions, or inconsistent with git history.\n- Security fix appears in one maintained branch/tag but not another, or branch maintenance status is unclear.\n- Git commands fail because the repository changes during review or because permissions deny reading some refs.\n\n8. Test plan\n\nUnit tests:\n- None to add or update; this change is markdown-only and adds no Python code.\n\nIntegration tests:\n- Existing `validate_skills.py::main`: run `python3 validate_skills.py`. Asserts all skill frontmatter remains valid, description length stays within limits, no duplicate skill names are introduced, and no prohibited client-specific syntax is added.\n\nRegression tests / review checks:\n- `appsec/codebase/SKILL.md::test_vcs_metadata_surfaces`: manually inspect or grep the changed file to assert the new step covers all refs, commit subjects/bodies, merge/squash/PR-title text where locally present, tags, changelogs, and unavailable/incomplete-history notes. Covers acceptance criteria 1 and 8 plus non-git/shallow/missing-ref edge cases.\n- `appsec/codebase/SKILL.md::test_keyword_groups_and_reporting`: manually inspect or grep for both keyword groups and the required report fields: commit/ref, source type, category, keyword, touched files, sanitized message excerpt. Covers acceptance criteria 2 and 3 plus duplicate/noisy history and malformed message edge cases.\n- `appsec/codebase/SKILL.md::test_metadata_leads_feed_deeper_review`: manually inspect that VCS metadata leads feed Phase 5, Phase 5d, and Phase 7 security-profile priority targets. Covers acceptance criterion 4.\n- `appsec/codebase/SKILL.md::test_backport_and_reference_handling`: manually inspect that apparent security fixes are checked across maintained branches/releases/tags, unbackported candidates are flagged with affected refs, cherry-pick/different-SHA cases are considered, and ticket/CVE IDs become leads. Covers acceptance criteria 5 and 7.\n- `appsec/codebase/SKILL.md::test_metadata_secret_and_injection_guards`: manually inspect that commit/tag/changelog text is a secret-scanning surface, raw secrets are masked, trufflehog coverage gaps are noted, metadata prompt injection is ignored, and shell examples are read-only and do not interpolate untrusted refs/messages unsafely. Covers acceptance criterion 6 and all security considerations.\n\nExisting tests/checks that must keep passing:\n- `python3 validate_skills.py`\n- Repository CI workflows for skill validation and SkillSpector scanning should remain green.\n\nTests required: no\n\n9. Risks\n\n- The added workflow text may make `/codebase` longer and slightly increase review time, especially on large repositories.\n- Agents may over-prioritize noisy historical wording or old fixed issues unless the text clearly labels metadata as leads requiring current-code verification.\n- Git command examples could accidentally encourage unsafe shell interpolation if written carelessly.\n- Frontmatter description edits could exceed the 1024-character validation limit if the implementation expands it too much.\n\n10. Suspicious content\n\nnone\n\nRisk level: medium\nThe change alters security-review behavior and touches untrusted VCS metadata, secret handling, and shell-command guidance, but it is confined to one markdown skill with no runtime code or dependency changes.",
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "internal.run_id": "01M897XADFHPZR513BFF7NHK9C",
+          "command.output": "blob://sha256/12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+          "internal.node_visit_count": 1,
+          "failure_signature": "",
+          "outcome": "succeeded",
+          "internal.retry_count.install": 0,
+          "last_response": "1. Summary\n\nAdd VCS metadata mining to the `/codebase` white-box review skill so agents use commit history, refs, tags, and changelogs as security-review leads instead of only scanning source contents",
+          "internal.retry_count.check_issue": 0
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          },
+          "check_issue": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/ce7b66b162d067495545ba2d8101b0c1e14563c33b81e2328ab7f08c7b9bb12b"
+            },
+            "notes": "Script completed: \nimport json, os, sys, urllib.parse, urllib.request\nREPO_OWNER, REPO_NAME = '0x0pointer', 'skills'\nRAW_NUMBER = '0'.strip()\nLABEL = 'fabro-approved'\nCLAIM = 'fabro-in-progress'\nBUILT = 'fabro-built'\nFAILED = 'fabro-failed'\nMAINTAINERS = set(m.strip().lower() for m in 'RiieCco,blabla1337,JorgeCarvalhoPT'.split(',') if m.strip())\nclass Refused(Exception):\n    pass\ndef refuse(msg):\n    print('REFUSED: ' + msg)\n    sys.exit(1)\ntoken = os.environ.get('GITHUB_TOKEN')\nif not token:\n    refuse('no GITHUB_TOKEN in the sandbox, cannot verify approval')\nif not RAW_NUMBER.isdigit():\n    refuse('issue must be a number; 0 picks the oldest approved issue')\nNUMBER = int(RAW_NUMBER)\ndef send(url, body):\n    req = urllib.request.Request(url, data=json.dumps(body).encode(),\n        headers=dict(Authorization='Bearer ' + token, Accept='application/json'))\n    return json.load(urllib.request.urlopen(req, timeout=30))\ndef graphql(query, **variables):\n    reply = send('https://api.github.com/graphql',\n        dict(query=query, variables=dict(variables, o=REPO_OWNER, n=REPO_NAME)))\n    if reply.get('errors'):\n        refuse('GitHub API error: ' + json.dumps(reply['errors'])[:300])\n    return reply['data']['repository']\nISSUE_QUERY = '''\nquery($o: String!, $n: String!, $i: Int!) {\n  repository(owner: $o, name: $n) {\n    issue(number: $i) {\n      title\n      body\n      state\n      lastEditedAt\n      author { login }\n      labels(first: 50) { nodes { name } }\n      timelineItems(itemTypes: [LABELED_EVENT], last: 100) {\n        nodes { ... on LabeledEvent { createdAt actor { login } label { name } } }\n      }\n    }\n  }\n}\n'''\nLIST_QUERY = '''\nquery($o: String!, $n: String!, $l: String!) {\n  repository(owner: $o, name: $n) {\n    issues(first: 100, states: [OPEN], labels: [$l], orderBy: { field: CREATED_AT, direction: ASC }) {\n      nodes { number labels(first: 50) { nodes { name } } }\n    }\n  }\n}\n'''\ndef approved(number):\n    # The approval check itself. Raises Refused unless every condition holds.\n    issue = graphql(ISSUE_QUERY, i=number)['issue']\n    if issue is None:\n        raise Refused('issue not found (pull requests are not accepted)')\n    if issue['state'] != 'OPEN':\n        raise Refused('issue is not open')\n    if LABEL not in [l['name'] for l in issue['labels']['nodes']]:\n        raise Refused('issue does not carry the label ' + LABEL)\n    events = [e for e in issue['timelineItems']['nodes'] if e and e['label']['name'] == LABEL]\n    if not events:\n        raise Refused('no labelling event found for ' + LABEL)\n    last = events[-1]\n    actor = ((last.get('actor') or dict()).get('login') or '').lower()\n    if actor not in MAINTAINERS:\n        raise Refused('label was applied by ' + (actor or 'unknown') + ', who is not a listed maintainer')\n    edited = issue.get('lastEditedAt')\n    if edited and edited > last['createdAt']:\n        raise Refused('issue text was edited after approval; a maintainer must re-apply the label')\n    return issue, actor, last['createdAt']\ndef claim(number, labels):\n    # Mark the issue as being built. While it carries this label no run\n    # started without a number picks another issue: one build at a time.\n    base = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/issues/' + str(number) + '/labels'\n    send(base, dict(labels=[CLAIM]))\n    for old in (BUILT, FAILED):\n        if old in labels:\n            try:\n                req = urllib.request.Request(base + '/' + urllib.parse.quote(old), method='DELETE',\n                    headers=dict(Authorization='Bearer ' + token, Accept='application/json'))\n                urllib.request.urlopen(req, timeout=30).read()\n            except Exception:\n                pass\nif NUMBER > 0:\n    # A specific issue was asked for (-I issue=<number>, or construct-build).\n    try:\n        issue, actor, when = approved(NUMBER)\n    except Refused as exc:\n        refuse(str(exc))\n    try:\n        claim(NUMBER, [l['name'] for l in issue['labels']['nodes']])\n    except Exception as exc:\n        print('warning: could not add the label ' + CLAIM + ' (' + type(exc).__name__ + ')')\nelse:\n    # No issue given (an automation run): take the oldest open, approved issue\n    # that no run has handled yet. Every candidate still has to pass the full\n    # approval check; one that fails is skipped, not built.\n    # One build at a time: nothing is picked while another issue is being built.\n    busy = [n['number'] for n in graphql(LIST_QUERY, l=CLAIM)['issues']['nodes']]\n    if busy:\n        print('WAITING: issue ' + str(busy[0]) + ' is still being built (label ' + CLAIM + '). One issue is built at a time.')\n        print('If no run is working on it any more, remove that label from the issue.')\n        sys.exit(1)\n    issue = None\n    candidates = graphql(LIST_QUERY, l=LABEL)['issues']['nodes']\n    for node in candidates:\n        number = node['number']\n        handled = [l['name'] for l in node['labels']['nodes'] if l['name'] in (BUILT, FAILED)]\n        if handled:\n            print('skipped issue', number, '- already handled (label ' + handled[0] + ')')\n            continue\n        try:\n            issue, actor, when = approved(number)\n        except Refused as exc:\n            print('skipped issue', number, '-', exc)\n            continue\n        NUMBER = number\n        break\n    if issue is None:\n        print('NOTHING TO BUILD: no open issue labelled ' + LABEL + ' is waiting (' + str(len(candidates)) + ' checked).')\n        print('To build an issue again, remove its ' + BUILT + ' or ' + FAILED + ' label.')\n        sys.exit(1)\n    try:\n        claim(NUMBER, [])\n    except Exception as exc:\n        refuse('could not add the label ' + CLAIM + ' to issue ' + str(NUMBER) + ' (' + type(exc).__name__ + '); not building it, because the next run would pick it again')\nos.makedirs('/tmp/fabro', exist_ok=True)\nwith open('/tmp/fabro/issue.md', 'w') as f:\n    f.write('# ' + issue['title'] + chr(10) + chr(10) + (issue['body'] or '') + chr(10))\nwith open('/tmp/fabro/issue_number', 'w') as f:\n    f.write(str(NUMBER))\nprint('APPROVED: issue', NUMBER, 'released by', actor, 'at', when)\nprint('title:', issue['title'])",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 2529,
+              "active_time_ms": 2529
+            }
+          },
+          "install": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+            },
+            "notes": "Script completed: pip install -q pyyaml",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 2127,
+              "active_time_ms": 2127
+            }
+          },
+          "spec": {
+            "status": "succeeded",
+            "context_updates": {
+              "response.spec": "1. Summary\n\nAdd VCS metadata mining to the `/codebase` white-box review skill so agents use commit history, refs, tags, and changelogs as security-review leads instead of only scanning source contents and secret history. The new guidance must find security-fix and insecure-shortcut hints, record actionable evidence, feed touched files into deeper review phases, and explicitly state when history coverage is unavailable or incomplete.\n\n2. Acceptance criteria\n\n1. `appsec/codebase/SKILL.md` adds an all-depths VCS metadata mining step before deeper review phases. The step explicitly covers all local branches/remotes/tags, commit subjects and bodies, merge/squash/PR-title text where present in commit messages, tag names/messages, and changelog/release-note files; it must not be limited to the current working tree.\n2. The step defines two maintained keyword groups: security fixes (including at least injection, bypass, XSS, SSRF, traversal/path traversal, redirect/open redirect, CSRF, auth/access control, deserialization, RCE) and insecure shortcuts (including at least hack, temporary, insecure, disable check, skip validation, for testing only, do not merge, FIXME security, TODO security).\n3. For every metadata hit, the skill instructs the agent to record a structured `report(action=\"note\")` entry containing commit/ref identifier when available, source type, matched category and keyword, touched files, and a sanitized message excerpt. Raw secret values must not be logged.\n4. Files touched by security-relevant commits are explicitly added to the Phase 5 dangerous-pattern/taint-analysis leads, Phase 5d business-logic leads when relevant, and the Phase 7 security profile priority targets.\n5. Apparent security-fix hits require a cross-branch/release check against maintained branches and tags. The skill must instruct agents to flag fixes present on only some maintained refs as possible unbackported vulnerabilities with the affected refs, while still requiring code verification before reporting a confirmed vulnerability.\n6. Commit, tag, merge, PR-title, and changelog text are included as secret-scanning surfaces. If the existing trufflehog wrapper cannot confirm metadata-message coverage, the skill must instruct a safe supplemental metadata scan or an explicit coverage-limitation note.\n7. Ticket IDs and CVE IDs found in metadata are extracted as review leads; public/in-scope references may be followed when reachable, while private or unreachable references are recorded without blocking the review.\n8. If VCS metadata is unavailable, incomplete, shallow, missing refs, or cannot be inspected, the skill requires an explicit `report(action=\"note\")` coverage statement instead of silent skipping.\n9. The change passes `python3 validate_skills.py` and does not touch unrelated skills, CI workflows, scripts, or dependency files.\n\n3. Scope\n\nFiles to change:\n- `appsec/codebase/SKILL.md`\n\nFiles to add:\n- None.\n\nOut of scope:\n- Changes to `validate_skills.py`, CI workflows, SkillSpector baselines, package/dependency files, or any skill outside `appsec/codebase`.\n- Implementing a new scanner or changing MCP/server behavior; this is skill-instruction text only.\n- Automatically fetching remote branches, private tickets, or external CVE pages beyond what the existing agent environment and user authorization already permit.\n\n4. Design\n\nUse the existing markdown skill architecture: update the `/codebase` workflow rather than creating a new skill. Prefer adding a Phase 1 sub-step such as `Step 5 — VCS metadata mining (all depths)` after dependency audit and before the Phase 1 diagram, because the output is orientation data that feeds Phase 5/5d and Phase 7. If command examples are included, keep them read-only and local, using safe git inspection commands such as log/for-each-ref/show/diff-tree; quote the codebase path and never interpolate commit messages, tag names, or branch names into a shell command.\n\nUpdate existing related sections rather than duplicating logic:\n- Tools table: add a concise row only if needed for read-only local git metadata inspection, following surrounding wording.\n- Phase 4 automated scanning: extend the existing trufflehog-history guidance so metadata text is treated as a secret surface and coverage gaps are recorded.\n- Phase 5 and Phase 5d: tell agents to prioritize files and flows surfaced by VCS metadata hits.\n- Phase 7 security profile: add concise fields/lines for VCS history coverage, metadata leads, unbackported-fix candidates, and priority targets.\n\nNo new dependencies are involved. Findings still follow the existing severity bar: metadata is a lead, not proof; confirmed vulnerabilities require source evidence and, where applicable, trace entries.\n\n5. Code quality requirements\n\n- Follow the tone, headings, tables, and imperative style already used in `appsec/codebase/SKILL.md`.\n- Keep the change minimal and localized; avoid renumbering major phases unless necessary.\n- Avoid duplicating the existing secrets-liveness procedure; reference the existing Phase 4 guidance and `appsec/aikido-triage/references/secrets-playbook.md` where liveness probing is relevant.\n- Use clear names such as `VCS metadata leads`, `security-fix keywords`, `insecure-shortcut keywords`, and `unbackported-fix candidates`.\n- Do not introduce client-specific skill invocation syntax; `validate_skills.py` must remain clean.\n- Do not add dead examples, speculative abstractions, or unrelated wording changes.\n\n6. Security considerations\n\nVCS metadata, changelog text, branch names, tag names, commit messages, PR titles, ticket IDs, and CVE references are untrusted input from repository contributors. The skill must warn agents not to follow instructions embedded in that text, not to paste full secrets into logs, and not to treat metadata as proof without code verification.\n\nShell injection risk exists if untrusted refs or messages are interpolated into commands. Command examples must be read-only, avoid `eval`/`xargs sh`/checkout of untrusted refs, quote the target path, and pass refs as data only where safe. Prefer git commands that read object metadata and touched file lists without executing hooks or target code.\n\nSecret-handling risk increases because commit and tag messages may contain credentials. Evidence must mask raw secret values, and any liveness probe must keep the existing opt-in process; no automatic credential validation is introduced.\n\nAuthentication/authorization behavior of target applications is not changed. Business-logic abuse risk is that agents could over-report historical fixes as current vulnerabilities; the skill must require cross-ref presence checks and current-code verification before confirmed findings.\n\n7. Edge cases\n\n- Non-git directory, missing `.git`, exported source archive, or inaccessible VCS metadata.\n- Shallow clone, partial clone, detached HEAD, missing remote branches, missing tags, or refs that cannot be fetched within scope.\n- Very large histories or changelogs causing noisy/duplicate hits; guidance should deduplicate by commit/ref and touched-file set and summarize without flooding logs.\n- Merge commits, squash commits, cherry-picks, reverts, renamed/deleted files, binary-only changes, and backports with different commit IDs.\n- Weird, malformed, or malicious branch/tag/message text, including shell metacharacters, newlines, terminal escapes, prompt-injection wording, or embedded secrets.\n- Changelog/release-note files absent, huge, generated, duplicated across versions, or inconsistent with git history.\n- Security fix appears in one maintained branch/tag but not another, or branch maintenance status is unclear.\n- Git commands fail because the repository changes during review or because permissions deny reading some refs.\n\n8. Test plan\n\nUnit tests:\n- None to add or update; this change is markdown-only and adds no Python code.\n\nIntegration tests:\n- Existing `validate_skills.py::main`: run `python3 validate_skills.py`. Asserts all skill frontmatter remains valid, description length stays within limits, no duplicate skill names are introduced, and no prohibited client-specific syntax is added.\n\nRegression tests / review checks:\n- `appsec/codebase/SKILL.md::test_vcs_metadata_surfaces`: manually inspect or grep the changed file to assert the new step covers all refs, commit subjects/bodies, merge/squash/PR-title text where locally present, tags, changelogs, and unavailable/incomplete-history notes. Covers acceptance criteria 1 and 8 plus non-git/shallow/missing-ref edge cases.\n- `appsec/codebase/SKILL.md::test_keyword_groups_and_reporting`: manually inspect or grep for both keyword groups and the required report fields: commit/ref, source type, category, keyword, touched files, sanitized message excerpt. Covers acceptance criteria 2 and 3 plus duplicate/noisy history and malformed message edge cases.\n- `appsec/codebase/SKILL.md::test_metadata_leads_feed_deeper_review`: manually inspect that VCS metadata leads feed Phase 5, Phase 5d, and Phase 7 security-profile priority targets. Covers acceptance criterion 4.\n- `appsec/codebase/SKILL.md::test_backport_and_reference_handling`: manually inspect that apparent security fixes are checked across maintained branches/releases/tags, unbackported candidates are flagged with affected refs, cherry-pick/different-SHA cases are considered, and ticket/CVE IDs become leads. Covers acceptance criteria 5 and 7.\n- `appsec/codebase/SKILL.md::test_metadata_secret_and_injection_guards`: manually inspect that commit/tag/changelog text is a secret-scanning surface, raw secrets are masked, trufflehog coverage gaps are noted, metadata prompt injection is ignored, and shell examples are read-only and do not interpolate untrusted refs/messages unsafely. Covers acceptance criterion 6 and all security considerations.\n\nExisting tests/checks that must keep passing:\n- `python3 validate_skills.py`\n- Repository CI workflows for skill validation and SkillSpector scanning should remain green.\n\nTests required: no\n\n9. Risks\n\n- The added workflow text may make `/codebase` longer and slightly increase review time, especially on large repositories.\n- Agents may over-prioritize noisy historical wording or old fixed issues unless the text clearly labels metadata as leads requiring current-code verification.\n- Git command examples could accidentally encourage unsafe shell interpolation if written carelessly.\n- Frontmatter description edits could exceed the 1024-character validation limit if the implementation expands it too much.\n\n10. Suspicious content\n\nnone\n\nRisk level: medium\nThe change alters security-review behavior and touches untrusted VCS metadata, secret handling, and shell-command guidance, but it is confined to one markdown skill with no runtime code or dependency changes.",
+              "last_stage": "spec",
+              "last_response": "1. Summary\n\nAdd VCS metadata mining to the `/codebase` white-box review skill so agents use commit history, refs, tags, and changelogs as security-review leads instead of only scanning source contents"
+            },
+            "notes": "Stage completed: spec",
+            "usage": {
+              "input": {
+                "usage": {
+                  "model": {
+                    "provider": "openai",
+                    "model_id": "gpt-5.5"
+                  },
+                  "tokens": {
+                    "input_tokens": 62032,
+                    "output_tokens": 5821,
+                    "reasoning_tokens": 3767,
+                    "cache_read_tokens": 472576,
+                    "cache_write_tokens": 0
+                  }
+                },
+                "facts": {
+                  "algorithm": "openai"
+                }
+              },
+              "total_usd_micros": 834088
+            },
+            "files_touched": [
+              "/tmp/fabro/spec.md"
+            ],
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 110048,
+              "tool_time_ms": 1390,
+              "active_time_ms": 111438
+            }
+          }
+        },
+        "next_node_id": "approve",
+        "node_visits": {
+          "install": 1,
+          "start": 1,
+          "check_issue": 1,
+          "spec": 1
         }
       },
       "diff": {}
@@ -1124,40 +1253,6 @@
   "superseded_by": null,
   "pending_interviews": {},
   "stages": {
-    "start@1": {
-      "first_event_seq": 17,
-      "prompt": null,
-      "response": null,
-      "completion": {
-        "outcome": "succeeded",
-        "notes": null,
-        "failure_reason": null,
-        "timestamp": "2026-11-25T11:37:05.530929169Z"
-      },
-      "provider_used": null,
-      "diff": null,
-      "script_invocation": null,
-      "script_timing": null,
-      "parallel_results": null,
-      "output": null,
-      "started_at": "2026-11-25T11:37:05.530863246Z",
-      "handler": "start",
-      "timing": {
-        "wall_time_ms": 0,
-        "inference_time_ms": 0,
-        "tool_time_ms": 0,
-        "active_time_ms": 0
-      },
-      "usage": {
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0,
-        "reasoning_tokens": 0,
-        "cache_read_tokens": 0,
-        "cache_write_tokens": 0
-      },
-      "state": "succeeded"
-    },
     "check_issue@1": {
       "first_event_seq": 21,
       "prompt": null,
@@ -1207,11 +1302,50 @@
       },
       "state": "succeeded"
     },
+    "start@1": {
+      "first_event_seq": 17,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T11:37:05.530929169Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T11:37:05.530863246Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
     "install@1": {
       "first_event_seq": 32,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Script completed: pip install -q pyyaml",
+        "failure_reason": null,
+        "timestamp": "2026-11-25T11:37:14.524376962Z"
+      },
       "provider_used": null,
       "diff": null,
       "script_invocation": {
@@ -1220,11 +1354,27 @@
         "language": "shell",
         "timeout_ms": 600000
       },
-      "script_timing": null,
+      "script_timing": {
+        "output": "blob://sha256/12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+        "exit_code": 0,
+        "duration_ms": 2127,
+        "termination": "exited",
+        "output_bytes": 0,
+        "live_streaming": true
+      },
       "parallel_results": null,
       "output": null,
+      "output_bytes": 0,
+      "live_streaming": true,
+      "termination": "exited",
       "started_at": "2026-11-25T11:37:12.377664670Z",
       "handler": "command",
+      "timing": {
+        "wall_time_ms": 2146,
+        "inference_time_ms": 0,
+        "tool_time_ms": 2127,
+        "active_time_ms": 2127
+      },
       "usage": {
         "input_tokens": 0,
         "output_tokens": 0,
@@ -1232,6 +1382,231 @@
         "reasoning_tokens": 0,
         "cache_read_tokens": 0,
         "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "spec@1": {
+      "first_event_seq": 42,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": {
+        "mode": "agent",
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "reasoning_effort": "high"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T11:37:18.646789633Z",
+      "handler": "agent",
+      "usage": {
+        "input_tokens": 62032,
+        "output_tokens": 5821,
+        "total_tokens": 544196,
+        "reasoning_tokens": 3767,
+        "cache_read_tokens": 472576,
+        "cache_write_tokens": 0
+      },
+      "model": {
+        "provider": "openai",
+        "model_id": "gpt-5.5-2026-04-23"
+      },
+      "todos": {
+        "kind": "openai_plan",
+        "list_id": "openai_plan:95e0eb33-51a0-40ab-8f26-362d9aa2f5f5",
+        "items": [
+          {
+            "id": "db9bbd2cde671d77",
+            "status": "completed",
+            "order": 0,
+            "subject": "Read approved issue and existing spec if present"
+          },
+          {
+            "id": "ebac6596c9c58011",
+            "status": "completed",
+            "order": 1,
+            "subject": "Inspect relevant skill files and tests read-only"
+          },
+          {
+            "id": "f595162750aa5b5b",
+            "status": "completed",
+            "order": 2,
+            "subject": "Write /tmp/fabro/spec.md with required sections"
+          },
+          {
+            "id": "ce034ee8bf0cf05d",
+            "status": "completed",
+            "order": 3,
+            "subject": "Print spec contents"
+          }
+        ]
+      },
+      "permission_level": "full",
+      "agent_tools": [
+        {
+          "name": "apply_patch",
+          "description": "Use the `apply_patch` tool to edit files. This is a FREEFORM tool, so do not wrap the patch in JSON.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "write",
+          "invoked": false
+        },
+        {
+          "name": "close_agent",
+          "description": "Close a running subagent that is no longer needed.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "glob",
+          "description": "Find files by file names using a glob pattern. Use path to choose the search root. Prefer this over shell find or ls when locating repository files.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "read",
+          "invoked": true
+        },
+        {
+          "name": "grep",
+          "description": "Search file contents with a regex pattern. Use path to choose the search root, glob_filter to limit matching files, case_insensitive for case folding, and max_results to cap output.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "read",
+          "invoked": true
+        },
+        {
+          "name": "read_file",
+          "description": "Read files before editing them. Returns line-numbered text and supports offset/limit for large files. Use this instead of shell cat, head, tail, or sed when inspecting repository files.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "read",
+          "invoked": true
+        },
+        {
+          "name": "request_user_input",
+          "description": "Ask the human one or more questions and wait for their answers before continuing this stage.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "send_input",
+          "description": "Send a follow-up message to a running subagent when new information or corrected instructions are needed.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "shell",
+          "description": "Execute shell commands for terminal operations, package managers, tests and builds. Use dedicated tools for file reads, file edits, filename searches, and content searches. Provide timeout_ms for long-running commands.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "shell",
+          "invoked": true
+        },
+        {
+          "name": "spawn_agent",
+          "description": "Spawn a subagent for independent work or context isolation. Use it for tasks that can proceed separately, and avoid duplicating the same work in the parent session.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "update_plan",
+          "description": "Update the multi-step plan for the current task. Submit the entire plan; existing steps are reconciled by exact step text.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": true
+        },
+        {
+          "name": "wait",
+          "description": "Wait for a subagent to complete, then use the result to synthesize the outcome for the user.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "web_fetch",
+          "description": "Fetch content from a URL that starts with http:// or https://. Pass a prompt to extract specific information or summarize the page; omit prompt to return the page content.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "web_search",
+          "description": "Search the web using Brave Search when current external information is needed. Returns result titles, URLs, and descriptions; use web_fetch for a specific URL.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "write_file",
+          "description": "Create new files, or overwrite an existing file only when replacement is explicitly intended. Prefer edit_file for targeted changes to existing files because write_file overwrites the full file content.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "write",
+          "invoked": true
+        }
+      ],
+      "context_window": {
+        "provider": "openai",
+        "model": "gpt-5.5",
+        "context_window_tokens": 272000,
+        "input_tokens": 52087,
+        "usage_percent": 19.149632352941175,
+        "count_method": "response_usage_scaled_breakdown",
+        "staleness": "live",
+        "generated_at": "2026-11-25T11:39:10.506755855Z",
+        "event_seq": 124,
+        "breakdown": [
+          {
+            "category": "system_prompt",
+            "tokens": 867,
+            "usage_percent": 0.31875
+          },
+          {
+            "category": "tools",
+            "tokens": 1258,
+            "usage_percent": 0.4625
+          },
+          {
+            "category": "conversation",
+            "tokens": 49957,
+            "usage_percent": 18.36654411764706
+          },
+          {
+            "category": "other",
+            "tokens": 5,
+            "usage_percent": 0.001838235294117647
+          }
+        ],
+        "warnings": []
       },
       "state": "running"
     }
