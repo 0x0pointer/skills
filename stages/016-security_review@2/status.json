@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: n=$(cat /tmp/fabro/sec.n 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/fabro/sec.n; echo security_review visit $n; ls /tmp/fabro; if [ $n -eq 1 ]; then echo '{\"verdict\": \"fail\", \"summary\": \"one\", \"findings\": [{\"severity\": \"blocking\", \"category\": \"injection\", \"file\": \"zz\", \"line\": 1, \"problem\": \"p\", \"fix\": \"f\"}]}' > /tmp/fabro/review.json; else echo '{\"verdict\": \"pass\", \"summary\": \"fixed\", \"findings\": []}' > /tmp/fabro/review.json; fi",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:14:50.021352166Z"
+}
