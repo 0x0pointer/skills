@@ -856,14 +856,116 @@
     }
   },
   "web_url": "https://fabro.tail2ccfc9.ts.net/runs/01M88ZPA4KS4CR1T0GEP29DGWZ",
-  "start": null,
-  "status": {
-    "kind": "starting"
+  "start": {
+    "start_time": "2026-11-25T09:13:24.874065640Z",
+    "run_branch": "fabro/run/01M88ZPA4KS4CR1T0GEP29DGWZ",
+    "base_sha": "9ada9ed122b78135c28c5e1d2ca23f5500368b66"
   },
-  "status_updated_at": "2026-11-25T09:13:22.477141214Z",
-  "last_event_at": "2026-11-25T09:13:24.263963096Z",
+  "status": {
+    "kind": "running"
+  },
+  "status_updated_at": "2026-11-25T09:13:24.874529441Z",
+  "last_event_at": "2026-11-25T09:13:27.109114101Z",
   "pending_control": null,
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "seq": 21,
+      "checkpoint": {
+        "timestamp": "2026-11-25T09:13:27.108998726Z",
+        "current_node": "start",
+        "completed_nodes": [
+          "start"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "failure_class": "",
+          "internal.node_visit_count": 1,
+          "internal.run_id": "01M88ZPA4KS4CR1T0GEP29DGWZ",
+          "internal.work_dir": "/workspace/skills",
+          "graph.loop_restart_signature_limit": "10",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
+          "internal.thread_id": null,
+          "graph.rankdir": "LR",
+          "graph.max_node_visits": "30",
+          "outcome": "succeeded",
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "internal.fidelity": "compact",
+          "internal.retry_count.start": 0,
+          "failure_signature": "",
+          "current_node": "start"
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "check_issue",
+        "node_visits": {
+          "start": 1
+        }
+      },
+      "diff": {}
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-11-25T09:13:27.409134858Z",
+        "current_node": "check_issue",
+        "completed_nodes": [
+          "start",
+          "check_issue"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "command.output": "blob://sha256/4ee319ef8db52a96113035424f1ea8ef5071e789780cecc13029ec5510f57f70",
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "failure_signature": "",
+          "thread.start.current_node": "check_issue",
+          "internal.node_visit_count": 1,
+          "graph.loop_restart_signature_limit": "10",
+          "internal.fidelity": "compact",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
+          "graph.rankdir": "LR",
+          "outcome": "succeeded",
+          "internal.retry_count.check_issue": 0,
+          "internal.thread_id": "start",
+          "internal.run_id": "01M88ZPA4KS4CR1T0GEP29DGWZ",
+          "internal.retry_count.start": 0,
+          "internal.work_dir": "/workspace/skills",
+          "current_node": "check_issue",
+          "graph.max_node_visits": "30",
+          "failure_class": ""
+        },
+        "node_outcomes": {
+          "check_issue": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/4ee319ef8db52a96113035424f1ea8ef5071e789780cecc13029ec5510f57f70"
+            },
+            "notes": "Script completed: mkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; git update-ref refs/remotes/origin/main HEAD; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 281,
+              "active_time_ms": 281
+            }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "install",
+        "node_visits": {
+          "start": 1,
+          "check_issue": 1
+        }
+      },
+      "diff": {}
+    }
+  ],
   "conclusion": null,
   "sandbox": {
     "kind": "ready",
@@ -890,5 +992,68 @@
   "pull_request": null,
   "superseded_by": null,
   "pending_interviews": {},
-  "stages": {}
+  "stages": {
+    "start@1": {
+      "first_event_seq": 18,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:13:27.108884085Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:13:27.108790041Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "check_issue@1": {
+      "first_event_seq": 22,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "mkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; git update-ref refs/remotes/origin/main HEAD; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+        "command": "exec 2>&1\nmkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; git update-ref refs/remotes/origin/main HEAD; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+        "language": "shell",
+        "timeout_ms": 120000
+      },
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:13:27.109083032Z",
+      "handler": "command",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
+    }
+  }
 }

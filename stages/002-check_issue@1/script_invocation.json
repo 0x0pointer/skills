@@ -1,0 +1,6 @@
+{
+  "script": "mkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; git update-ref refs/remotes/origin/main HEAD; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+  "command": "exec 2>&1\nmkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; git update-ref refs/remotes/origin/main HEAD; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+  "language": "shell",
+  "timeout_ms": 120000
+}
