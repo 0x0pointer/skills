@@ -269,7 +269,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-11-25T09:16:26.534371288Z",
-  "last_event_at": "2026-11-25T09:16:33.376079751Z",
+  "last_event_at": "2026-11-25T09:16:37.721986096Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -309,9 +309,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 41,
       "checkpoint": {
-        "timestamp": "2026-11-25T09:16:33.383924527Z",
+        "timestamp": "2026-11-25T09:16:37.721864157Z",
         "current_node": "probe",
         "completed_nodes": [
           "start",
@@ -319,23 +319,23 @@
         ],
         "node_retries": {},
         "context_values": {
-          "internal.run_id": "01M88ZVW8HZ2JS0SHBFCKY6YHZ",
-          "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
-          "failure_class": "",
-          "graph.goal": "Check that the differential-review skill can be loaded",
-          "internal.thread_id": "start",
-          "last_response": "use_skill tool existed and worked: no — tool not available in this session\nfirst heading of the text the tool returned: N/A\nfile names you listed: SKILL.md, adversarial.md, agents, assets, methodolo",
-          "outcome": "succeeded",
           "internal.fidelity": "truncate",
           "internal.retry_count.probe": 0,
+          "internal.run_id": "01M88ZVW8HZ2JS0SHBFCKY6YHZ",
+          "failure_signature": "",
+          "graph.goal": "Check that the differential-review skill can be loaded",
+          "last_response": "use_skill tool existed and worked: no — tool not available in this session\nfirst heading of the text the tool returned: N/A\nfile names you listed: SKILL.md, adversarial.md, agents, assets, methodolo",
+          "internal.node_visit_count": 1,
+          "last_stage": "probe",
+          "current_node": "probe",
+          "internal.retry_count.start": 0,
+          "response.probe": "use_skill tool existed and worked: no — tool not available in this session\nfirst heading of the text the tool returned: N/A\nfile names you listed: SKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
+          "failure_class": "",
           "internal.work_dir": "/workspace/skills",
           "thread.start.current_node": "probe",
-          "response.probe": "use_skill tool existed and worked: no — tool not available in this session\nfirst heading of the text the tool returned: N/A\nfile names you listed: SKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
-          "internal.node_visit_count": 1,
-          "internal.retry_count.start": 0,
-          "current_node": "probe",
-          "last_stage": "probe",
-          "failure_signature": ""
+          "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
+          "outcome": "succeeded",
+          "internal.thread_id": "start"
         },
         "node_outcomes": {
           "probe": {
@@ -380,15 +380,68 @@
           }
         },
         "next_node_id": "exit",
+        "git_commit_sha": "a62e711342cb247c63634032d64af0a2455673d7",
         "node_visits": {
           "start": 1,
           "probe": 1
         }
       },
-      "diff": {}
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
     }
   ],
-  "conclusion": null,
+  "conclusion": {
+    "timestamp": "2026-11-25T09:16:37.742970711Z",
+    "status": "succeeded",
+    "timing": {
+      "wall_time_ms": 11191,
+      "inference_time_ms": 4159,
+      "tool_time_ms": 64,
+      "active_time_ms": 4223
+    },
+    "final_git_commit_sha": "a62e711342cb247c63634032d64af0a2455673d7",
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "probe",
+        "stage_label": "probe",
+        "timing": {
+          "wall_time_ms": 4654,
+          "inference_time_ms": 4159,
+          "tool_time_ms": 64,
+          "active_time_ms": 4223
+        },
+        "billing_usd_micros": 12454,
+        "retries": 0
+      }
+    ],
+    "billing": {
+      "input_tokens": 3646,
+      "output_tokens": 105,
+      "total_tokens": 5379,
+      "reasoning_tokens": 92,
+      "cache_read_tokens": 1536,
+      "cache_write_tokens": 0,
+      "total_usd_micros": 12454
+    },
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -453,7 +506,12 @@
       "first_event_seq": 22,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Stage completed: probe",
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:16:33.383842376Z"
+      },
       "provider_used": {
         "mode": "agent",
         "provider": "openai",
@@ -467,17 +525,24 @@
       "output": null,
       "started_at": "2026-11-25T09:16:28.729047058Z",
       "handler": "agent",
+      "timing": {
+        "wall_time_ms": 4654,
+        "inference_time_ms": 4159,
+        "tool_time_ms": 64,
+        "active_time_ms": 4223
+      },
       "usage": {
         "input_tokens": 3646,
         "output_tokens": 105,
         "total_tokens": 5379,
         "reasoning_tokens": 92,
         "cache_read_tokens": 1536,
-        "cache_write_tokens": 0
+        "cache_write_tokens": 0,
+        "total_usd_micros": 12454
       },
       "model": {
         "provider": "openai",
-        "model_id": "gpt-5.4-2026-03-05"
+        "model_id": "gpt-5.4"
       },
       "permission_level": "full",
       "agent_tools": [
@@ -642,7 +707,41 @@
         ],
         "warnings": []
       },
-      "state": "running"
+      "state": "succeeded"
+    },
+    "exit@1": {
+      "first_event_seq": 44,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:16:37.721986096Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:16:37.721970477Z",
+      "handler": "exit",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
     }
   }
 }
