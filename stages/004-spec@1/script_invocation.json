@@ -1,0 +1,6 @@
+{
+  "script": "printf 'Risk level: low\\nTests required: no\\n' > /tmp/fabro/spec.md; cat /tmp/fabro/spec.md",
+  "command": "exec 2>&1\nprintf 'Risk level: low\\nTests required: no\\n' > /tmp/fabro/spec.md; cat /tmp/fabro/spec.md",
+  "language": "shell",
+  "timeout_ms": 120000
+}
