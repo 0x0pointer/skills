@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: ls /tmp/fabro; test -f /tmp/fabro/review-notes.md && ! test -f /tmp/fabro/todo.md && echo WOULD-LABEL-BUILT || echo WOULD-LABEL-FAILED",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:15:00.356877174Z"
+}
