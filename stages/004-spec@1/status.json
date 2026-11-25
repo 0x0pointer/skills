@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: printf 'Risk level: low\\nTests required: no\\n' > /tmp/fabro/spec.md; cat /tmp/fabro/spec.md",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:09:23.234553294Z"
+}
