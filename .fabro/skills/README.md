@@ -1,8 +1,10 @@
 # Skills for the Fabro pipeline
 
-Fabro lists every `*/SKILL.md` in this folder to the agents of a run, which
-load one with their `use_skill` tool. Agents cannot change this folder: the
-verify step rejects any change under `.fabro/`.
+Skills in the Agent Skills layout (one folder per skill with a `SKILL.md`).
+A stage that uses one is told in its prompt to read the `SKILL.md` here.
+Fabro 0.254.0 did not offer these to agents through its own `use_skill`
+tool when we tried it, which is why the prompt names the file. Agents cannot
+change this folder: the verify step rejects any change under `.fabro/`.
 
 ## differential-review
 
