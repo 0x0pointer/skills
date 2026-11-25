@@ -1,0 +1,6 @@
+{
+  "script": "pip install -q pyyaml",
+  "command": "exec 2>&1\npip install -q pyyaml",
+  "language": "shell",
+  "timeout_ms": 600000
+}

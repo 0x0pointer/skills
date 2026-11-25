@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: mkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; git update-ref refs/remotes/origin/main HEAD; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:13:27.405123480Z"
+}
