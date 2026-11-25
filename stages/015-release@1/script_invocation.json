@@ -1,0 +1,6 @@
+{
+  "script": "ls /tmp/fabro; test -f /tmp/fabro/review-notes.md && ! test -f /tmp/fabro/todo.md && echo WOULD-LABEL-BUILT || echo WOULD-LABEL-FAILED",
+  "command": "exec 2>&1\nls /tmp/fabro; test -f /tmp/fabro/review-notes.md && ! test -f /tmp/fabro/todo.md && echo WOULD-LABEL-BUILT || echo WOULD-LABEL-FAILED",
+  "language": "shell",
+  "timeout_ms": 120000
+}
