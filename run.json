@@ -1,0 +1,298 @@
+{
+  "title": "Check that the differential-review skill can be loaded",
+  "spec": {
+    "run_id": "01M88ZYBRGZP804FAHA0RZ4K0D",
+    "settings": {
+      "project": {
+        "name": null,
+        "description": null,
+        "metadata": {}
+      },
+      "workflow": {
+        "name": null,
+        "description": null,
+        "graph": "workflow.fabro",
+        "metadata": {}
+      },
+      "run": {
+        "goal": {
+          "type": "inline",
+          "value": "Check that the differential-review skill can be loaded"
+        },
+        "working_dir": null,
+        "metadata": {},
+        "inputs": {
+          "built_label": "fabro-built",
+          "issue": "0",
+          "test_notes": "This repository has no unit tests. The check that runs here is python3 validate_skills.py, which validates the frontmatter of every SKILL.md. CI also runs a SkillSpector scan of the changed skills, which cannot run in this sandbox.",
+          "lint_command": "none",
+          "tests_dir": "none",
+          "max_fix_attempts": "3",
+          "in_progress_label": "fabro-in-progress",
+          "sensitive_paths": "scripts/,validate_skills.py,migrate_api.py,.claude-plugin,pentester,construct/",
+          "protected_files": "LICENSE",
+          "test_command": "python3 validate_skills.py",
+          "repo_rules": "Skills are changed here, in this repository. agent-smith and Construct include it as a git submodule and pick changes up through their own update pull requests, so there is nothing to change in those repositories.",
+          "failed_label": "fabro-failed",
+          "maintainers": "RiieCco,blabla1337,JorgeCarvalhoPT",
+          "approval_label": "fabro-approved",
+          "install_command": "pip install -q pyyaml",
+          "repo_owner": "0x0pointer",
+          "max_review_rounds": "3",
+          "repo_description": "a library of agent skills: one directory per skill holding a SKILL.md (YAML frontmatter plus instructions) and its reference files, with a few small maintenance scripts. Skills are instructions that security-testing agents follow, so a change of wording is a change of behaviour",
+          "protected_prefixes": ".github/,.fabro/,.env",
+          "max_standard_review_lines": "400",
+          "repo_name": "skills",
+          "first_fix_attempts": "2"
+        },
+        "model": {
+          "provider": "openai",
+          "name": "gpt-5.4",
+          "fallbacks": [],
+          "controls": {
+            "reasoning_effort": null,
+            "speed": null
+          }
+        },
+        "git": {
+          "author": null
+        },
+        "prepare": {
+          "commands": [],
+          "timeout_ms": 300000
+        },
+        "execution": {
+          "mode": "normal",
+          "approval": "prompt"
+        },
+        "checkpoint": {
+          "exclude_globs": [],
+          "skip_git_hooks": false
+        },
+        "clone": {
+          "enabled": true
+        },
+        "run_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "meta_branch": {
+          "enabled": true,
+          "push": true
+        },
+        "environment": {
+          "id": "skills",
+          "provider": "docker",
+          "image": {
+            "docker": "skills-fabro:latest",
+            "dockerfile": null
+          },
+          "resources": {
+            "cpu": 1,
+            "memory": "1GB",
+            "disk": null
+          },
+          "network": {
+            "mode": "allow_all",
+            "allow": []
+          },
+          "lifecycle": {
+            "preserve": false,
+            "stop_on_terminal": true,
+            "auto_stop": null
+          },
+          "labels": {},
+          "volumes": [],
+          "env": {}
+        },
+        "notifications": {},
+        "interviews": {
+          "provider": null,
+          "slack": null
+        },
+        "agent": {
+          "fabro_tools": false,
+          "permissions": null,
+          "mcps": {}
+        },
+        "hooks": [],
+        "scm": {
+          "provider": null,
+          "owner": null,
+          "repository": null,
+          "github": null
+        },
+        "pull_request": null,
+        "artifacts": {
+          "include": []
+        },
+        "integrations": {
+          "github": {
+            "permissions": {
+              "contents": "write",
+              "pull_requests": "write",
+              "issues": "write"
+            }
+          }
+        }
+      }
+    },
+    "graph": {
+      "name": "SkillTest",
+      "nodes": {
+        "probe": {
+          "id": "probe",
+          "attrs": {
+            "model": {
+              "String": "gpt-5.4"
+            },
+            "provider": {
+              "String": "openai"
+            },
+            "fidelity": {
+              "String": "truncate"
+            },
+            "reasoning_effort": {
+              "String": "low"
+            },
+            "prompt": {
+              "String": "This is a test of the tooling. Do exactly this and nothing else: 1. Call the use_skill tool with skill_name 'differential-review'. 2. List the files in .fabro/skills/differential-review/ with one shell command. Then reply with three lines: whether the use_skill tool existed and worked (yes or no, and the error if no); the first heading of the text the tool returned; the file names you listed. Do not read or change any other file."
+            },
+            "label": {
+              "String": "Probe"
+            }
+          }
+        },
+        "start": {
+          "id": "start",
+          "attrs": {
+            "shape": {
+              "String": "Mdiamond"
+            },
+            "provider": {
+              "String": "openai"
+            },
+            "reasoning_effort": {
+              "String": "low"
+            },
+            "model": {
+              "String": "gpt-5.4"
+            },
+            "label": {
+              "String": "Start"
+            }
+          }
+        },
+        "exit": {
+          "id": "exit",
+          "attrs": {
+            "label": {
+              "String": "Exit"
+            },
+            "model": {
+              "String": "gpt-5.4"
+            },
+            "shape": {
+              "String": "Msquare"
+            },
+            "provider": {
+              "String": "openai"
+            },
+            "reasoning_effort": {
+              "String": "low"
+            }
+          }
+        }
+      },
+      "edges": [
+        {
+          "from": "start",
+          "to": "probe",
+          "attrs": {}
+        },
+        {
+          "from": "probe",
+          "to": "exit",
+          "attrs": {}
+        }
+      ],
+      "attrs": {
+        "model_stylesheet": {
+          "String": "* { model: gpt-5.4; reasoning_effort: low; }"
+        },
+        "goal": {
+          "String": "Check that the differential-review skill can be loaded"
+        }
+      }
+    },
+    "graph_source": "digraph SkillTest {\n    graph [goal=\"Check that the differential-review skill can be loaded\", model_stylesheet=\"* { model: gpt-5.4; reasoning_effort: low; }\"]\n    start [shape=Mdiamond, label=\"Start\"]\n    exit  [shape=Msquare, label=\"Exit\"]\n    probe [label=\"Probe\", fidelity=\"truncate\", prompt=\"This is a test of the tooling. Do exactly this and nothing else: 1. Call the use_skill tool with skill_name 'differential-review'. 2. List the files in .fabro/skills/differential-review/ with one shell command. Then reply with three lines: whether the use_skill tool existed and worked (yes or no, and the error if no); the first heading of the text the tool returned; the file names you listed. Do not read or change any other file.\"]\n    start -> probe -> exit\n}\n",
+    "workflow_slug": "zz-skill-test",
+    "source_directory": "/root/skills",
+    "provenance": {
+      "server": {
+        "version": "0.254.0"
+      },
+      "client": {
+        "user_agent": "fabro-cli/0.254.0",
+        "name": "fabro-cli",
+        "version": "0.254.0"
+      },
+      "subject": {
+        "kind": "user",
+        "identity": {
+          "issuer": "fabro:dev",
+          "subject": "dev"
+        },
+        "login": "dev",
+        "auth_method": "dev_token"
+      }
+    },
+    "manifest_blob": "07eee69ecf35fc5f4052eff6e2c8f3781d0c93216cfac893a39588f5e3a8b14a",
+    "definition_blob": "52d30a5adb97b057e22c65e9597b90822816a2ed15ea8f69d1332c76cc3a8305",
+    "git": {
+      "origin_url": "https://github.com/0x0pointer/skills",
+      "branch": "fabro-leaner-pipeline",
+      "sha": "9ada9ed122b78135c28c5e1d2ca23f5500368b66",
+      "dirty": "dirty",
+      "push_outcome": {
+        "type": "not_attempted"
+      }
+    }
+  },
+  "web_url": "https://fabro.tail2ccfc9.ts.net/runs/01M88ZYBRGZP804FAHA0RZ4K0D",
+  "start": null,
+  "status": {
+    "kind": "starting"
+  },
+  "status_updated_at": "2026-11-25T09:17:46.287581183Z",
+  "last_event_at": "2026-11-25T09:17:48.063315633Z",
+  "pending_control": null,
+  "checkpoints": [],
+  "conclusion": null,
+  "sandbox": {
+    "kind": "ready",
+    "plan": {
+      "provider": "docker",
+      "image": "skills-fabro:latest"
+    },
+    "instance": {
+      "provider": "docker",
+      "image": "skills-fabro:latest",
+      "runtime": {
+        "id": "96503b19378ba4d0f6ca2bb0c57563ad9eb5dce3805a86e37a107e19fde0e2ce",
+        "working_directory": "/workspace/skills",
+        "repo_cloned": true,
+        "clone_origin_url": "https://github.com/0x0pointer/skills",
+        "clone_branch": "fabro-leaner-pipeline",
+        "workspace_root": "/workspace",
+        "repos_root": "/repos",
+        "primary_repo_path": "/repos/0x0pointer/skills",
+        "primary_repo_link": "/workspace/skills"
+      }
+    }
+  },
+  "pull_request": null,
+  "superseded_by": null,
+  "pending_interviews": {},
+  "stages": {}
+}
