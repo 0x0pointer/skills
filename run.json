@@ -866,8 +866,8 @@
   "status": {
     "kind": "running"
   },
-  "status_updated_at": "2026-11-25T09:08:58.082805976Z",
-  "last_event_at": "2026-11-25T09:09:28.755320269Z",
+  "status_updated_at": "2026-11-25T09:09:28.794084668Z",
+  "last_event_at": "2026-11-25T09:09:34.172085719Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -1159,9 +1159,9 @@
       }
     },
     {
-      "seq": 0,
+      "seq": 61,
       "checkpoint": {
-        "timestamp": "2026-11-25T09:09:28.803995832Z",
+        "timestamp": "2026-11-25T09:09:34.118096098Z",
         "current_node": "approve",
         "completed_nodes": [
           "start",
@@ -1172,18 +1172,145 @@
         ],
         "node_retries": {},
         "context_values": {
+          "graph.max_node_visits": "30",
+          "internal.work_dir": "/workspace/skills",
+          "command.output": "blob://sha256/e66c6d11ab632f08ba0f5d6b0206e9e74567dbcf57ddf8cfde7d2e578c533c20",
+          "graph.loop_restart_signature_limit": "10",
+          "internal.retry_count.spec": 0,
+          "thread.check_issue.current_node": "install",
+          "internal.run_id": "01M88ZE53ZB5SMDBRXWQG1EK1J",
+          "outcome": "succeeded",
+          "human.gate.label": "[A] Approve",
+          "internal.retry_count.check_issue": 0,
+          "internal.retry_count.start": 0,
+          "preferred_label": "[A] Approve",
+          "thread.install.current_node": "spec",
+          "current_node": "approve",
+          "human.gate.approve.answer": "A",
+          "internal.retry_count.install": 0,
+          "human.gate.approve.label": "[A] Approve",
+          "failure_class": "",
+          "human.gate.approve.question": "Approve the spec? To have it revised, type what should change.",
+          "internal.fidelity": "compact",
+          "human.gate.selected": "A",
+          "internal.node_visit_count": 1,
+          "internal.thread_id": "spec",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
+          "thread.spec.current_node": "approve",
+          "graph.rankdir": "LR",
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "internal.retry_count.approve": 0,
+          "thread.start.current_node": "check_issue",
+          "failure_signature": ""
+        },
+        "node_outcomes": {
+          "spec": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/e66c6d11ab632f08ba0f5d6b0206e9e74567dbcf57ddf8cfde7d2e578c533c20"
+            },
+            "notes": "Script completed: printf 'Risk level: low\\nTests required: no\\n' > /tmp/fabro/spec.md; cat /tmp/fabro/spec.md",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 233,
+              "active_time_ms": 233
+            }
+          },
+          "check_issue": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/79ddc32b43469760f40208fe31d46df86f1656f081f9f9c7107c017d2f4844a9"
+            },
+            "notes": "Script completed: mkdir -p /tmp/fabro; echo test issue > /tmp/fabro/issue.md; echo 1 > /tmp/fabro/issue_number; pwd; git log -1 --oneline; git branch -a | head -5; ls .fabro/skills 2>&1",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 572,
+              "active_time_ms": 572
+            }
+          },
+          "install": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+            },
+            "notes": "Script completed: pip install -q pyyaml",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 9282,
+              "active_time_ms": 9282
+            }
+          },
+          "approve": {
+            "status": "succeeded",
+            "preferred_label": "[A] Approve",
+            "suggested_next_ids": [
+              "implement"
+            ],
+            "context_updates": {
+              "human.gate.label": "[A] Approve",
+              "human.gate.selected": "A",
+              "human.gate.approve.question": "Approve the spec? To have it revised, type what should change.",
+              "human.gate.approve.answer": "A",
+              "human.gate.approve.label": "[A] Approve"
+            },
+            "usage": null
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "implement",
+        "git_commit_sha": "c1f10a48a6fd276c7abbfabde1cfcc7ec0c52456",
+        "node_visits": {
+          "check_issue": 1,
+          "install": 1,
+          "start": 1,
+          "spec": 1,
+          "approve": 1
+        }
+      },
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-11-25T09:09:34.556252214Z",
+        "current_node": "implement",
+        "completed_nodes": [
+          "start",
+          "check_issue",
+          "install",
+          "spec",
+          "approve",
+          "implement"
+        ],
+        "node_retries": {},
+        "context_values": {
           "human.gate.selected": "A",
           "thread.spec.current_node": "approve",
-          "internal.thread_id": "spec",
+          "internal.thread_id": "approve",
           "outcome": "succeeded",
-          "command.output": "blob://sha256/e66c6d11ab632f08ba0f5d6b0206e9e74567dbcf57ddf8cfde7d2e578c533c20",
+          "command.output": "blob://sha256/5fe2ba646c4bacb27689f0ae7c55efecd671923032e4ae3e474ea43a167d9714",
           "thread.check_issue.current_node": "install",
           "internal.retry_count.install": 0,
           "internal.retry_count.approve": 0,
           "human.gate.approve.answer": "A",
           "human.gate.approve.question": "Approve the spec? To have it revised, type what should change.",
           "internal.run_id": "01M88ZE53ZB5SMDBRXWQG1EK1J",
-          "current_node": "approve",
+          "current_node": "implement",
           "failure_class": "",
           "graph.loop_restart_signature_limit": "10",
           "human.gate.label": "[A] Approve",
@@ -1201,7 +1328,9 @@
           "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
           "internal.retry_count.spec": 0,
           "thread.install.current_node": "spec",
-          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests"
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "thread.approve.current_node": "implement",
+          "internal.retry_count.implement": 0
         },
         "node_outcomes": {
           "spec": {
@@ -1237,6 +1366,20 @@
             },
             "usage": null
           },
+          "implement": {
+            "status": "succeeded",
+            "context_updates": {
+              "command.output": "blob://sha256/5fe2ba646c4bacb27689f0ae7c55efecd671923032e4ae3e474ea43a167d9714"
+            },
+            "notes": "Script completed: n=$(cat /tmp/fabro/impl.n 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/fabro/impl.n; echo implement visit $n; if [ $n -ge 2 ]; then echo change-$n >> zz_routing_test.txt; fi; ls /tmp/fabro",
+            "usage": null,
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 0,
+              "tool_time_ms": 349,
+              "active_time_ms": 349
+            }
+          },
           "install": {
             "status": "succeeded",
             "context_updates": {
@@ -1266,10 +1409,11 @@
             }
           }
         },
-        "next_node_id": "implement",
+        "next_node_id": "verify",
         "node_visits": {
           "install": 1,
           "check_issue": 1,
+          "implement": 1,
           "approve": 1,
           "start": 1,
           "spec": 1
@@ -1472,6 +1616,68 @@
       "handler": "start",
       "timing": {
         "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "implement@1": {
+      "first_event_seq": 64,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": {
+        "script": "n=$(cat /tmp/fabro/impl.n 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/fabro/impl.n; echo implement visit $n; if [ $n -ge 2 ]; then echo change-$n >> zz_routing_test.txt; fi; ls /tmp/fabro",
+        "command": "exec 2>&1\nn=$(cat /tmp/fabro/impl.n 2>/dev/null || echo 0); n=$((n+1)); echo $n > /tmp/fabro/impl.n; echo implement visit $n; if [ $n -ge 2 ]; then echo change-$n >> zz_routing_test.txt; fi; ls /tmp/fabro",
+        "language": "shell",
+        "timeout_ms": 120000
+      },
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:09:34.168686334Z",
+      "handler": "command",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "running"
+    },
+    "approve@1": {
+      "first_event_seq": 52,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:09:28.800298864Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:09:28.787901630Z",
+      "handler": "human",
+      "timing": {
+        "wall_time_ms": 12,
         "inference_time_ms": 0,
         "tool_time_ms": 0,
         "active_time_ms": 0
