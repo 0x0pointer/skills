@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: echo deep >> zz_routing_test.txt",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:10:08.104953245Z"
+}
