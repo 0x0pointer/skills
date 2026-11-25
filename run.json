@@ -260,14 +260,134 @@
     }
   },
   "web_url": "https://fabro.tail2ccfc9.ts.net/runs/01M88ZYBRGZP804FAHA0RZ4K0D",
-  "start": null,
-  "status": {
-    "kind": "starting"
+  "start": {
+    "start_time": "2026-11-25T09:17:48.543011162Z",
+    "run_branch": "fabro/run/01M88ZYBRGZP804FAHA0RZ4K0D",
+    "base_sha": "9ada9ed122b78135c28c5e1d2ca23f5500368b66"
   },
-  "status_updated_at": "2026-11-25T09:17:46.287581183Z",
-  "last_event_at": "2026-11-25T09:17:48.063315633Z",
+  "status": {
+    "kind": "running"
+  },
+  "status_updated_at": "2026-11-25T09:17:48.544369Z",
+  "last_event_at": "2026-11-25T09:17:53.567637821Z",
   "pending_control": null,
-  "checkpoints": [],
+  "checkpoints": [
+    {
+      "seq": 21,
+      "checkpoint": {
+        "timestamp": "2026-11-25T09:17:50.872568593Z",
+        "current_node": "start",
+        "completed_nodes": [
+          "start"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "graph.goal": "Check that the differential-review skill can be loaded",
+          "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
+          "failure_class": "",
+          "internal.thread_id": null,
+          "outcome": "succeeded",
+          "internal.node_visit_count": 1,
+          "current_node": "start",
+          "internal.fidelity": "compact",
+          "internal.retry_count.start": 0,
+          "internal.work_dir": "/workspace/skills",
+          "internal.run_id": "01M88ZYBRGZP804FAHA0RZ4K0D",
+          "failure_signature": ""
+        },
+        "node_outcomes": {
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "probe",
+        "node_visits": {
+          "start": 1
+        }
+      },
+      "diff": {}
+    },
+    {
+      "seq": 0,
+      "checkpoint": {
+        "timestamp": "2026-11-25T09:17:54.813021126Z",
+        "current_node": "probe",
+        "completed_nodes": [
+          "start",
+          "probe"
+        ],
+        "node_retries": {},
+        "context_values": {
+          "last_response": "no: use_skill tool does not exist in this environment, so it could not be called\nn/a\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
+          "internal.thread_id": "start",
+          "outcome": "succeeded",
+          "failure_signature": "",
+          "internal.run_id": "01M88ZYBRGZP804FAHA0RZ4K0D",
+          "graph.goal": "Check that the differential-review skill can be loaded",
+          "internal.fidelity": "truncate",
+          "current_node": "probe",
+          "response.probe": "no: use_skill tool does not exist in this environment, so it could not be called\nn/a\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
+          "internal.work_dir": "/workspace/skills",
+          "internal.retry_count.start": 0,
+          "last_stage": "probe",
+          "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
+          "internal.retry_count.probe": 0,
+          "internal.node_visit_count": 1,
+          "failure_class": "",
+          "thread.start.current_node": "probe"
+        },
+        "node_outcomes": {
+          "probe": {
+            "status": "succeeded",
+            "context_updates": {
+              "response.probe": "no: use_skill tool does not exist in this environment, so it could not be called\nn/a\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
+              "last_response": "no: use_skill tool does not exist in this environment, so it could not be called\nn/a\nSKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
+              "last_stage": "probe"
+            },
+            "notes": "Stage completed: probe",
+            "usage": {
+              "input": {
+                "usage": {
+                  "model": {
+                    "provider": "openai",
+                    "model_id": "gpt-5.4"
+                  },
+                  "tokens": {
+                    "input_tokens": 3622,
+                    "output_tokens": 94,
+                    "reasoning_tokens": 64,
+                    "cache_read_tokens": 1536,
+                    "cache_write_tokens": 0
+                  }
+                },
+                "facts": {
+                  "algorithm": "openai"
+                }
+              },
+              "total_usd_micros": 11809
+            },
+            "timing": {
+              "wall_time_ms": 0,
+              "inference_time_ms": 3192,
+              "tool_time_ms": 85,
+              "active_time_ms": 3277
+            }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
+          }
+        },
+        "next_node_id": "exit",
+        "node_visits": {
+          "probe": 1,
+          "start": 1
+        }
+      },
+      "diff": {}
+    }
+  ],
   "conclusion": null,
   "sandbox": {
     "kind": "ready",
@@ -294,5 +414,235 @@
   "pull_request": null,
   "superseded_by": null,
   "pending_interviews": {},
-  "stages": {}
+  "stages": {
+    "start@1": {
+      "first_event_seq": 18,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:17:50.872457118Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:17:50.872366248Z",
+      "handler": "start",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
+    "probe@1": {
+      "first_event_seq": 22,
+      "prompt": null,
+      "response": null,
+      "completion": null,
+      "provider_used": {
+        "mode": "agent",
+        "provider": "openai",
+        "model": "gpt-5.4",
+        "reasoning_effort": "low"
+      },
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:17:50.873814078Z",
+      "handler": "agent",
+      "usage": {
+        "input_tokens": 2502,
+        "output_tokens": 48,
+        "total_tokens": 2614,
+        "reasoning_tokens": 64,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "model": {
+        "provider": "openai",
+        "model_id": "gpt-5.4-2026-03-05"
+      },
+      "permission_level": "full",
+      "agent_tools": [
+        {
+          "name": "apply_patch",
+          "description": "Use the `apply_patch` tool to edit files. This is a FREEFORM tool, so do not wrap the patch in JSON.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "write",
+          "invoked": false
+        },
+        {
+          "name": "close_agent",
+          "description": "Close a running subagent that is no longer needed.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "glob",
+          "description": "Find files by file names using a glob pattern. Use path to choose the search root. Prefer this over shell find or ls when locating repository files.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "read",
+          "invoked": false
+        },
+        {
+          "name": "grep",
+          "description": "Search file contents with a regex pattern. Use path to choose the search root, glob_filter to limit matching files, case_insensitive for case folding, and max_results to cap output.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "read",
+          "invoked": false
+        },
+        {
+          "name": "read_file",
+          "description": "Read files before editing them. Returns line-numbered text and supports offset/limit for large files. Use this instead of shell cat, head, tail, or sed when inspecting repository files.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "read",
+          "invoked": false
+        },
+        {
+          "name": "request_user_input",
+          "description": "Ask the human one or more questions and wait for their answers before continuing this stage.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "send_input",
+          "description": "Send a follow-up message to a running subagent when new information or corrected instructions are needed.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "shell",
+          "description": "Execute shell commands for terminal operations, package managers, tests and builds. Use dedicated tools for file reads, file edits, filename searches, and content searches. Provide timeout_ms for long-running commands.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "shell",
+          "invoked": true
+        },
+        {
+          "name": "spawn_agent",
+          "description": "Spawn a subagent for independent work or context isolation. Use it for tasks that can proceed separately, and avoid duplicating the same work in the parent session.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "update_plan",
+          "description": "Update the multi-step plan for the current task. Submit the entire plan; existing steps are reconciled by exact step text.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "wait",
+          "description": "Wait for a subagent to complete, then use the result to synthesize the outcome for the user.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "subagent",
+          "invoked": false
+        },
+        {
+          "name": "web_fetch",
+          "description": "Fetch content from a URL that starts with http:// or https://. Pass a prompt to extract specific information or summarize the page; omit prompt to return the page content.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "web_search",
+          "description": "Search the web using Brave Search when current external information is needed. Returns result titles, URLs, and descriptions; use web_fetch for a specific URL.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "other",
+          "invoked": false
+        },
+        {
+          "name": "write_file",
+          "description": "Create new files, or overwrite an existing file only when replacement is explicitly intended. Prefer edit_file for targeted changes to existing files because write_file overwrites the full file content.",
+          "source": {
+            "kind": "native"
+          },
+          "category": "write",
+          "invoked": false
+        }
+      ],
+      "context_window": {
+        "provider": "openai",
+        "model": "gpt-5.4",
+        "context_window_tokens": 272000,
+        "input_tokens": 2502,
+        "usage_percent": 0.9198529411764705,
+        "count_method": "response_usage_scaled_breakdown",
+        "staleness": "live",
+        "generated_at": "2026-11-25T09:17:53.480444788Z",
+        "event_seq": 30,
+        "breakdown": [
+          {
+            "category": "system_prompt",
+            "tokens": 975,
+            "usage_percent": 0.3584558823529412
+          },
+          {
+            "category": "tools",
+            "tokens": 1411,
+            "usage_percent": 0.51875
+          },
+          {
+            "category": "conversation",
+            "tokens": 110,
+            "usage_percent": 0.04044117647058824
+          },
+          {
+            "category": "other",
+            "tokens": 6,
+            "usage_percent": 0.0022058823529411764
+          }
+        ],
+        "warnings": []
+      },
+      "state": "running"
+    }
+  }
 }
