@@ -1,0 +1,6 @@
+{
+  "outcome": "succeeded",
+  "notes": "Script completed: \nimport os\nD = '/tmp/fabro'\nprint(sorted(os.listdir(D)))\nfor name in ('review-brief.md', 'last-review.md', 'review-notes.md', 'security-review.md'):\n    if os.path.exists(D + '/' + name):\n        print('=====', name)\n        print(open(D + '/' + name).read()[:6000])\n",
+  "failure_reason": null,
+  "timestamp": "2026-11-25T09:35:41.579777514Z"
+}
