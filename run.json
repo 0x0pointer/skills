@@ -269,7 +269,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-11-25T09:17:31.554789573Z",
-  "last_event_at": "2026-11-25T09:17:39.285552407Z",
+  "last_event_at": "2026-11-25T09:17:44.040917759Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -309,9 +309,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 41,
       "checkpoint": {
-        "timestamp": "2026-11-25T09:17:39.296522394Z",
+        "timestamp": "2026-11-25T09:17:44.040780397Z",
         "current_node": "probe",
         "completed_nodes": [
           "start",
@@ -319,23 +319,23 @@
         ],
         "node_retries": {},
         "context_values": {
+          "current_node": "probe",
           "failure_class": "",
+          "internal.fidelity": "truncate",
+          "internal.work_dir": "/workspace/skills",
+          "graph.goal": "Check that the differential-review skill can be loaded",
+          "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
+          "last_stage": "probe",
+          "last_response": "use_skill existed and worked: no — tool `use_skill` is not available in this session, so it could not be called\nfirst heading: N/A\nfiles: SKILL.md, adversarial.md, agents, assets, methodology.md, pa",
+          "internal.retry_count.probe": 0,
           "internal.node_visit_count": 1,
+          "internal.retry_count.start": 0,
+          "failure_signature": "",
           "thread.start.current_node": "probe",
           "internal.thread_id": "start",
-          "internal.retry_count.start": 0,
           "response.probe": "use_skill existed and worked: no — tool `use_skill` is not available in this session, so it could not be called\nfirst heading: N/A\nfiles: SKILL.md, adversarial.md, agents, assets, methodology.md, patterns.md, reporting.md",
-          "internal.retry_count.probe": 0,
-          "last_stage": "probe",
-          "failure_signature": "",
-          "internal.run_id": "01M88ZXV27QAC3R12XWJFNGD3G",
-          "current_node": "probe",
-          "internal.fidelity": "truncate",
-          "graph.model_stylesheet": "* { model: gpt-5.4; reasoning_effort: low; }",
-          "last_response": "use_skill existed and worked: no — tool `use_skill` is not available in this session, so it could not be called\nfirst heading: N/A\nfiles: SKILL.md, adversarial.md, agents, assets, methodology.md, pa",
           "outcome": "succeeded",
-          "internal.work_dir": "/workspace/skills",
-          "graph.goal": "Check that the differential-review skill can be loaded"
+          "internal.run_id": "01M88ZXV27QAC3R12XWJFNGD3G"
         },
         "node_outcomes": {
           "probe": {
@@ -380,15 +380,68 @@
           }
         },
         "next_node_id": "exit",
+        "git_commit_sha": "1ecb5c30c93f6c23c83d0a2784dddbd36b19f728",
         "node_visits": {
-          "probe": 1,
-          "start": 1
+          "start": 1,
+          "probe": 1
         }
       },
-      "diff": {}
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
     }
   ],
-  "conclusion": null,
+  "conclusion": {
+    "timestamp": "2026-11-25T09:17:44.074140060Z",
+    "status": "succeeded",
+    "timing": {
+      "wall_time_ms": 12489,
+      "inference_time_ms": 4900,
+      "tool_time_ms": 75,
+      "active_time_ms": 4975
+    },
+    "final_git_commit_sha": "1ecb5c30c93f6c23c83d0a2784dddbd36b19f728",
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "probe",
+        "stage_label": "probe",
+        "timing": {
+          "wall_time_ms": 5607,
+          "inference_time_ms": 4900,
+          "tool_time_ms": 75,
+          "active_time_ms": 4975
+        },
+        "billing_usd_micros": 13841,
+        "retries": 0
+      }
+    ],
+    "billing": {
+      "input_tokens": 3679,
+      "output_tokens": 109,
+      "total_tokens": 5499,
+      "reasoning_tokens": 175,
+      "cache_read_tokens": 1536,
+      "cache_write_tokens": 0,
+      "total_usd_micros": 13841
+    },
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -415,6 +468,40 @@
   "superseded_by": null,
   "pending_interviews": {},
   "stages": {
+    "exit@1": {
+      "first_event_seq": 44,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:17:44.040917759Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-25T09:17:44.040878381Z",
+      "handler": "exit",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
+    },
     "start@1": {
       "first_event_seq": 18,
       "prompt": null,
@@ -453,7 +540,12 @@
       "first_event_seq": 22,
       "prompt": null,
       "response": null,
-      "completion": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": "Stage completed: probe",
+        "failure_reason": null,
+        "timestamp": "2026-11-25T09:17:39.296354167Z"
+      },
       "provider_used": {
         "mode": "agent",
         "provider": "openai",
@@ -467,17 +559,24 @@
       "output": null,
       "started_at": "2026-11-25T09:17:33.688532191Z",
       "handler": "agent",
+      "timing": {
+        "wall_time_ms": 5607,
+        "inference_time_ms": 4900,
+        "tool_time_ms": 75,
+        "active_time_ms": 4975
+      },
       "usage": {
         "input_tokens": 3679,
         "output_tokens": 109,
         "total_tokens": 5499,
         "reasoning_tokens": 175,
         "cache_read_tokens": 1536,
-        "cache_write_tokens": 0
+        "cache_write_tokens": 0,
+        "total_usd_micros": 13841
       },
       "model": {
         "provider": "openai",
-        "model_id": "gpt-5.4-2026-03-05"
+        "model_id": "gpt-5.4"
       },
       "permission_level": "full",
       "agent_tools": [
@@ -642,7 +741,7 @@
         ],
         "warnings": []
       },
-      "state": "running"
+      "state": "succeeded"
     }
   }
 }
