@@ -1,0 +1,6 @@
+{
+  "script": "echo deep >> zz_routing_test.txt",
+  "command": "exec 2>&1\necho deep >> zz_routing_test.txt",
+  "language": "shell",
+  "timeout_ms": 120000
+}
