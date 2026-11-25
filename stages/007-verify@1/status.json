@@ -1,0 +1,6 @@
+{
+  "outcome": "failed",
+  "notes": null,
+  "failure_reason": "Script failed with exit code: 1\n\n## output\nROUTE_implement (consecutive failed verifications: 1)\n# Fix this: automated verification failed at step: protected paths\n\nLast lines of output:\nCould not list changed files:\nfatal: ambiguous argument 'origin/main': unknown revision or path not in the working tree.\nUse '--' to separate paths from revisions, like this:\n'git <command> [<revision>...] -- [<file>...]'\n\nFull log: /tmp/fabro/verify.log\n\n",
+  "timestamp": "2026-11-25T09:09:40.419509775Z"
+}
