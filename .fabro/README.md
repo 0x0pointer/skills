@@ -31,9 +31,12 @@ in step with each other) and in `docker/Dockerfile`:
 - who may release an issue (`maintainers`);
 - which changed paths send a change to the security reviewer (`sensitive_paths`).
 
-`skills/` in this folder holds the Trail of Bits `differential-review` skill
-that the security reviewer follows; `skills/README.md` there gives its source
-and license.
+`skills/` in this folder holds the skills the model stages follow: spec
+writing and task breakdown for the planner, test-driven and incremental
+implementation for the implementer, systematic debugging for the fix stages,
+verification before completion for every stage that changes code, code review for the standard reviewer, and the Trail
+of Bits `differential-review` skill for the security reviewer.
+`skills/README.md` there lists which stage uses which, with source and license.
 
 This repository has no unit tests. The local check is `validate_skills.py`;
 the SkillSpector scan runs in CI only, and `fix-ci` reads its result from there.
