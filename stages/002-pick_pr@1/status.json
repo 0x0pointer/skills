@@ -1,0 +1,6 @@
+{
+  "outcome": "failed",
+  "notes": null,
+  "failure_reason": "Script failed with exit code: 1\n\n## output\nskipped pull request 85 - its branch fabro-review-then-security is not a fabro run branch\nNOTHING TO FIX: no pull request with failed checks is waiting (1 looked at).\n",
+  "timestamp": "2026-11-27T11:12:09.486673107Z"
+}
