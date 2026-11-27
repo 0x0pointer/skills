@@ -937,7 +937,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-11-27T13:37:05.416070733Z",
-  "last_event_at": "2026-11-27T13:37:09.530465344Z",
+  "last_event_at": "2026-11-27T13:37:14.688903961Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -980,9 +980,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 29,
       "checkpoint": {
-        "timestamp": "2026-11-27T13:37:09.541396489Z",
+        "timestamp": "2026-11-27T13:37:14.686083986Z",
         "current_node": "check_issue",
         "completed_nodes": [
           "start",
@@ -990,30 +990,26 @@
         ],
         "node_retries": {},
         "context_values": {
-          "current_node": "check_issue",
-          "thread.start.current_node": "check_issue",
           "internal.retry_count.start": 0,
-          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
-          "graph.max_node_visits": "30",
-          "internal.node_visit_count": 1,
-          "internal.retry_count.check_issue": 0,
-          "graph.rankdir": "LR",
-          "internal.thread_id": "start",
-          "internal.fidelity": "compact",
-          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
-          "graph.loop_restart_signature_limit": "10",
-          "internal.run_id": "01M8EKJFS0ATHNWP20WV0RWRV3",
-          "failure_class": "deterministic",
-          "command.output": "blob://sha256/921fc24a244a518c32777ec9c76ece9a4e2ca2669ad60b56424da90ae59876d4",
-          "failure_signature": "check_issue|deterministic|script failed with exit code: <n> ## output nothing to build: no open issue labelled fabro-approved is waiting (<n> checked). to build an issue again,remove its fabro-built or fabro-failed label.",
           "outcome": "failed",
-          "internal.work_dir": "/workspace/skills"
+          "failure_signature": "check_issue|deterministic|script failed with exit code: <n> ## output nothing to build: no open issue labelled fabro-approved is waiting (<n> checked). to build an issue again,remove its fabro-built or fabro-failed label.",
+          "internal.retry_count.check_issue": 0,
+          "thread.start.current_node": "check_issue",
+          "internal.work_dir": "/workspace/skills",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
+          "internal.thread_id": "start",
+          "graph.goal": "Resolve the next maintainer-approved GitHub issue of 0x0pointer/skills with a reviewed spec, code, and passing tests",
+          "graph.max_node_visits": "30",
+          "internal.fidelity": "compact",
+          "internal.run_id": "01M8EKJFS0ATHNWP20WV0RWRV3",
+          "current_node": "check_issue",
+          "internal.node_visit_count": 1,
+          "command.output": "blob://sha256/921fc24a244a518c32777ec9c76ece9a4e2ca2669ad60b56424da90ae59876d4",
+          "failure_class": "deterministic",
+          "graph.rankdir": "LR",
+          "graph.loop_restart_signature_limit": "10"
         },
         "node_outcomes": {
-          "start": {
-            "status": "succeeded",
-            "usage": null
-          },
           "check_issue": {
             "status": "failed",
             "context_updates": {
@@ -1030,18 +1026,68 @@
               "tool_time_ms": 1825,
               "active_time_ms": 1825
             }
+          },
+          "start": {
+            "status": "succeeded",
+            "usage": null
           }
         },
         "next_node_id": "exit",
+        "git_commit_sha": "6850f5a04aa057f3ac24120b92421b69692cde70",
+        "loop_failure_signatures": {
+          "check_issue|deterministic|script failed with exit code: <n> ## output nothing to build: no open issue labelled fabro-approved is waiting (<n> checked). to build an issue again,remove its fabro-built or fabro-failed label.": 1
+        },
         "node_visits": {
-          "check_issue": 1,
-          "start": 1
+          "start": 1,
+          "check_issue": 1
         }
       },
-      "diff": {}
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
     }
   ],
-  "conclusion": null,
+  "conclusion": {
+    "timestamp": "2026-11-27T13:37:14.726449103Z",
+    "status": "succeeded",
+    "timing": {
+      "wall_time_ms": 9332,
+      "inference_time_ms": 0,
+      "tool_time_ms": 1825,
+      "active_time_ms": 1825
+    },
+    "final_git_commit_sha": "6850f5a04aa057f3ac24120b92421b69692cde70",
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "check_issue",
+        "stage_label": "check_issue",
+        "timing": {
+          "wall_time_ms": 1840,
+          "inference_time_ms": 0,
+          "tool_time_ms": 1825,
+          "active_time_ms": 1825
+        },
+        "retries": 0
+      }
+    ],
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -1150,6 +1196,40 @@
         "cache_write_tokens": 0
       },
       "state": "failed"
+    },
+    "exit@1": {
+      "first_event_seq": 32,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-27T13:37:14.688903961Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-27T13:37:14.688868055Z",
+      "handler": "exit",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
     }
   }
 }
