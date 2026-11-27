@@ -518,7 +518,7 @@
     "kind": "running"
   },
   "status_updated_at": "2026-11-27T09:42:28.741166032Z",
-  "last_event_at": "2026-11-27T09:42:34.515809630Z",
+  "last_event_at": "2026-11-27T09:42:41.945978823Z",
   "pending_control": null,
   "checkpoints": [
     {
@@ -560,9 +560,9 @@
       "diff": {}
     },
     {
-      "seq": 0,
+      "seq": 29,
       "checkpoint": {
-        "timestamp": "2026-11-27T09:42:34.560614471Z",
+        "timestamp": "2026-11-27T09:42:41.924909535Z",
         "current_node": "pick_pr",
         "completed_nodes": [
           "start",
@@ -570,23 +570,23 @@
         ],
         "node_retries": {},
         "context_values": {
-          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
-          "internal.work_dir": "/workspace/skills",
-          "internal.retry_count.start": 0,
           "failure_signature": "pick_pr|deterministic|script failed with exit code: <n> ## output skipped pull request <n> - its branch fabro-review-then-security is not a fabro run branch nothing to fix: no pull request with failed checks is waiting (<n> looked at).",
-          "internal.thread_id": "start",
           "graph.rankdir": "LR",
-          "internal.fidelity": "compact",
-          "internal.run_id": "01M8E646HYX7FAK93BQWHS7TYV",
-          "graph.goal": "Fix the failed CI checks on a Fabro pull request of 0x0pointer/skills and push the fix to the same branch",
-          "command.output": "blob://sha256/7c387603e836838db5874040786c14664a930acbdab5ba08ba8439d1dda98879",
+          "internal.retry_count.start": 0,
           "graph.max_node_visits": "12",
           "outcome": "failed",
-          "internal.retry_count.pick_pr": 0,
+          "internal.run_id": "01M8E646HYX7FAK93BQWHS7TYV",
+          "command.output": "blob://sha256/7c387603e836838db5874040786c14664a930acbdab5ba08ba8439d1dda98879",
           "failure_class": "deterministic",
-          "thread.start.current_node": "pick_pr",
+          "current_node": "pick_pr",
+          "internal.retry_count.pick_pr": 0,
+          "internal.work_dir": "/workspace/skills",
+          "internal.fidelity": "compact",
+          "graph.model_stylesheet": "\n            *       { model: gpt-5.4; reasoning_effort: medium; }\n            .strong { model: gpt-5.5; reasoning_effort: high; }\n        ",
           "internal.node_visit_count": 1,
-          "current_node": "pick_pr"
+          "internal.thread_id": "start",
+          "graph.goal": "Fix the failed CI checks on a Fabro pull request of 0x0pointer/skills and push the fix to the same branch",
+          "thread.start.current_node": "pick_pr"
         },
         "node_outcomes": {
           "start": {
@@ -612,15 +612,61 @@
           }
         },
         "next_node_id": "exit",
+        "git_commit_sha": "bdbaacc2f5d5936433f6b9931a5df19a258de66c",
+        "loop_failure_signatures": {
+          "pick_pr|deterministic|script failed with exit code: <n> ## output skipped pull request <n> - its branch fabro-review-then-security is not a fabro run branch nothing to fix: no pull request with failed checks is waiting (<n> looked at).": 1
+        },
         "node_visits": {
-          "start": 1,
-          "pick_pr": 1
+          "pick_pr": 1,
+          "start": 1
         }
       },
-      "diff": {}
+      "diff": {
+        "summary": {
+          "files_changed": 0,
+          "additions": 0,
+          "deletions": 0
+        }
+      }
     }
   ],
-  "conclusion": null,
+  "conclusion": {
+    "timestamp": "2026-11-27T09:42:42.208671426Z",
+    "status": "succeeded",
+    "timing": {
+      "wall_time_ms": 13256,
+      "inference_time_ms": 0,
+      "tool_time_ms": 3208,
+      "active_time_ms": 3208
+    },
+    "final_git_commit_sha": "bdbaacc2f5d5936433f6b9931a5df19a258de66c",
+    "stages": [
+      {
+        "stage_id": "start",
+        "stage_label": "start",
+        "timing": {
+          "wall_time_ms": 0,
+          "inference_time_ms": 0,
+          "tool_time_ms": 0,
+          "active_time_ms": 0
+        },
+        "retries": 0
+      },
+      {
+        "stage_id": "pick_pr",
+        "stage_label": "pick_pr",
+        "timing": {
+          "wall_time_ms": 3250,
+          "inference_time_ms": 0,
+          "tool_time_ms": 3208,
+          "active_time_ms": 3208
+        },
+        "retries": 0
+      }
+    ],
+    "total_retries": 0,
+    "diff": {}
+  },
   "sandbox": {
     "kind": "ready",
     "plan": {
@@ -695,6 +741,40 @@
         "cache_write_tokens": 0
       },
       "state": "failed"
+    },
+    "exit@1": {
+      "first_event_seq": 32,
+      "prompt": null,
+      "response": null,
+      "completion": {
+        "outcome": "succeeded",
+        "notes": null,
+        "failure_reason": null,
+        "timestamp": "2026-11-27T09:42:41.945978823Z"
+      },
+      "provider_used": null,
+      "diff": null,
+      "script_invocation": null,
+      "script_timing": null,
+      "parallel_results": null,
+      "output": null,
+      "started_at": "2026-11-27T09:42:41.944005663Z",
+      "handler": "exit",
+      "timing": {
+        "wall_time_ms": 0,
+        "inference_time_ms": 0,
+        "tool_time_ms": 0,
+        "active_time_ms": 0
+      },
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "reasoning_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "state": "succeeded"
     },
     "start@1": {
       "first_event_seq": 17,
