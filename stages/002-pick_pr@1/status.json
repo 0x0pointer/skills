@@ -1,0 +1,6 @@
+{
+  "outcome": "failed",
+  "notes": null,
+  "failure_reason": "Script failed with exit code: 1\n\n## output\nNOTHING TO FIX: no pull request with failed checks is waiting (0 looked at).\n",
+  "timestamp": "2026-11-27T13:12:08.140826010Z"
+}
